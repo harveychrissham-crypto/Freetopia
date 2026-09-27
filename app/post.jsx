@@ -6,57 +6,83 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
 
-const c={ink:'#17171b',muted:'#696974',line:'#e8e8ec',accent:'#6546f5'};
+const c={ink:'#17171b',muted:'#696974',line:'#e8e8ec',accent:'#6546f5',danger:'#9e2f2f'};
+const reasons=['Spam or misleading','Harassment or bullying','Hate or abusive content','Violence or threats','Sexual content','Other'];
 
 export default function PostScreen(){
-  const {id}=useLocalSearchParams();
-  const r=useRouter();
-  const {user,profile}=useAuth();
-  const [post,setPost]=useState(null);
-  const [comments,setComments]=useState([]);
-  const [text,setText]=useState('');
-  const [loading,setLoading]=useState(true);
-  const [saving,setSaving]=useState(false);
-  const [error,setError]=useState('');
+ const{id}=useLocalSearchParams(),r=useRouter(),{user}=useAuth();
+ const[post,setPost]=useState(null),[comments,setComments]=useState([]),[text,setText]=useState('');
+ const[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState('');
+ const[reportOpen,setReportOpen]=useState(false),[reportReason,setReportReason]=useState(''),[reportDetails,setReportDetails]=useState(''),[reportSaving,setReportSaving]=useState(false),[reported,setReported]=useState(false);
 
-  const load=useCallback(async()=>{
-    if(!id)return;
-    setLoading(true);setError('');
-    const [postResult,commentsResult]=await Promise.all([
-      supabase.from('posts').select('id,content,created_at,profiles:author_id(id,username,display_name)').eq('id',id).maybeSingle(),
-      supabase.from('comments').select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').eq('post_id',id).is('parent_id',null).order('created_at',{ascending:true}),
-    ]);
-    if(postResult.error)setError(postResult.error.message);else setPost(postResult.data);
-    if(commentsResult.error)setError(commentsResult.error.message);else setComments(commentsResult.data||[]);
-    setLoading(false);
-  },[id]);
+ const load=useCallback(async()=>{
+  if(!id)return;
+  setLoading(true);setError('');
+  const [postResult,commentsResult]=await Promise.all([
+   supabase.from('posts').select('id,content,created_at,author_id,profiles:author_id(id,username,display_name)').eq('id',id).maybeSingle(),
+   supabase.from('comments').select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').eq('post_id',id).is('parent_id',null).order('created_at',{ascending:true}),
+  ]);
+  if(postResult.error)setError(postResult.error.message);else setPost(postResult.data);
+  if(commentsResult.error)setError(commentsResult.error.message);else setComments(commentsResult.data||[]);
+  setLoading(false);
+ },[id]);
 
-  useFocusEffect(useCallback(()=>{load();},[load]));
+ useFocusEffect(useCallback(()=>{load();},[load]));
 
-  const addComment=async()=>{
-    const value=text.trim();
-    if(!value||!user||saving)return;
-    setSaving(true);setError('');
-    const {data,error:insertError}=await supabase.from('comments').insert({post_id:id,author_id:user.id,content:value}).select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').single();
-    if(insertError)setError(insertError.message);
-    else {setComments(current=>[...current,data]);setText('');}
-    setSaving(false);
-  };
+ const addComment=async()=>{
+  const value=text.trim();if(!value||!user||saving)return;
+  setSaving(true);setError('');
+  const{data,error:insertError}=await supabase.from('comments').insert({post_id:id,author_id:user.id,content:value}).select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').single();
+  if(insertError)setError(insertError.message);else{setComments(current=>[...current,data]);setText('');}
+  setSaving(false);
+ };
 
-  const author=Array.isArray(post?.profiles)?post.profiles[0]:post?.profiles;
-  const name=author?.display_name||author?.username||'Freetopia member';
+ const submitReport=async()=>{
+  if(!user||!post||!reportReason||reportSaving)return;
+  setReportSaving(true);setError('');
+  const{error:e}=await supabase.from('moderation_reports').insert({
+   reporter_id:user.id,reported_user_id:post.author_id,post_id:post.id,reason:reportReason,details:reportDetails.trim()||null
+  });
+  if(e)setError(e.message);else{setReported(true);setReportOpen(false);setReportReason('');setReportDetails('');}
+  setReportSaving(false);
+ };
 
-  return <SafeAreaView style={s.safe}><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
-    <View style={s.header}><Pressable onPress={()=>r.back()}><Text style={s.back}>‹</Text></Pressable><Text style={s.headerTitle}>Conversation</Text><View style={{width:30}}/></View>
-    <ScrollView contentContainerStyle={s.content}>
-      {loading&&<Text style={s.muted}>Loading conversation…</Text>}
-      {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
-      {!!post&&<View style={s.post}><Text style={s.author}>{name}</Text><Text style={s.contentText}>{post.content}</Text><Text style={s.time}>{new Date(post.created_at).toLocaleString()}</Text></View>}
-      <Text style={s.section}>Replies · {comments.length}</Text>
-      {!loading&&comments.length===0&&<View style={s.empty}><Text style={s.emptyTitle}>No replies yet</Text><Text style={s.muted}>Start the conversation.</Text></View>}
-      {comments.map(comment=>{const a=Array.isArray(comment.profiles)?comment.profiles[0]:comment.profiles;const n=a?.display_name||a?.username||'Freetopia member';return <View key={comment.id} style={s.comment}><View style={s.commentAvatar}><Text style={s.avatarText}>{n.charAt(0).toUpperCase()}</Text></View><View style={{flex:1}}><Text style={s.commentAuthor}>{n}</Text><Text style={s.commentText}>{comment.content}</Text><Text style={s.time}>{new Date(comment.created_at).toLocaleString()}</Text></View></View>})}
-    </ScrollView>
-    <View style={s.composer}><TextInput value={text} onChangeText={setText} placeholder="Write a reply…" placeholderTextColor="#9a9aa4" style={s.input} multiline maxLength={1000}/><Pressable onPress={addComment} disabled={saving||!text.trim()} style={[s.send,(saving||!text.trim())&&s.sendDisabled]}><Text style={s.sendText}>{saving?'…':'Send'}</Text></Pressable></View>
-  </KeyboardAvoidingView></SafeAreaView>
+ const author=Array.isArray(post?.profiles)?post.profiles[0]:post?.profiles;
+ const name=author?.display_name||author?.username||'Freetopia member';
+ const canReport=!!user&&post?.author_id!==user.id&&!reported;
+
+ return <SafeAreaView style={s.safe}><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
+  <View style={s.header}><Pressable onPress={()=>r.back()}><Text style={s.back}>‹</Text></Pressable><Text style={s.headerTitle}>Post</Text><View style={{width:30}}/></View>
+  <ScrollView contentContainerStyle={s.content}>
+   {loading&&<Text style={s.muted}>Loading post…</Text>}
+   {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
+   {!!post&&<View style={s.post}>
+    <View style={s.postTop}><View style={{flex:1}}><Text style={s.author}>{name}</Text>{author?.username&&<Text style={s.handle}>@{author.username}</Text>}</View>
+    {canReport&&<Pressable onPress={()=>setReportOpen(v=>!v)}><Text style={s.reportLink}>Report</Text></Pressable>}
+    {reported&&<Text style={s.reported}>Reported</Text>}
+    </View>
+    <Text style={s.contentText}>{post.content}</Text><Text style={s.time}>{new Date(post.created_at).toLocaleString()}</Text>
+   </View>}
+   {reportOpen&&<View style={s.reportBox}>
+    <Text style={s.reportTitle}>Report this post</Text><Text style={s.reportLead}>Choose the reason that best describes the issue.</Text>
+    <View style={s.reasonList}>{reasons.map(reason=><Pressable key={reason} onPress={()=>setReportReason(reason)} style={[s.reason,!reportReason||reportReason!==reason?null:s.reasonSelected]}><Text style={[s.reasonText,reportReason===reason&&s.reasonTextSelected]}>{reason}</Text></Pressable>)}</View>
+    <TextInput value={reportDetails} onChangeText={setReportDetails} placeholder="Additional details (optional)" placeholderTextColor="#9a9aa4" style={s.details} multiline maxLength={500}/>
+    <View style={s.reportActions}><Pressable onPress={()=>setReportOpen(false)} style={s.cancel}><Text style={s.cancelText}>Cancel</Text></Pressable><Pressable disabled={!reportReason||reportSaving} onPress={submitReport} style={[s.submit,!reportReason&&s.submitDisabled]}><Text style={s.submitText}>{reportSaving?'Sending…':'Submit report'}</Text></Pressable></View>
+   </View>}
+   <Text style={s.section}>Replies · {comments.length}</Text>
+   {!loading&&comments.length===0&&<View style={s.empty}><Text style={s.emptyTitle}>No replies yet</Text><Text style={s.muted}>Start the conversation.</Text></View>}
+   {comments.map(comment=>{const a=Array.isArray(comment.profiles)?comment.profiles[0]:comment.profiles;const n=a?.display_name||a?.username||'Freetopia member';return <View key={comment.id} style={s.comment}><View style={s.commentAvatar}><Text style={s.avatarText}>{n.charAt(0).toUpperCase()}</Text></View><View style={{flex:1}}><Text style={s.commentAuthor}>{n}</Text><Text style={s.commentText}>{comment.content}</Text><Text style={s.time}>{new Date(comment.created_at).toLocaleString()}</Text></View></View>})}
+  </ScrollView>
+  <View style={s.composer}><TextInput value={text} onChangeText={setText} placeholder="Write a reply…" placeholderTextColor="#9a9aa4" style={s.input} multiline maxLength={1000}/><Pressable onPress={addComment} disabled={saving||!text.trim()} style={[s.send,(saving||!text.trim())&&s.sendDisabled]}><Text style={s.sendText}>{saving?'…':'Send'}</Text></Pressable></View>
+ </KeyboardAvoidingView></SafeAreaView>
 }
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:'#fff'},header:{height:58,paddingHorizontal:20,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:c.line},back:{fontSize:34,color:c.ink,lineHeight:34},headerTitle:{fontSize:15,fontWeight:'750',color:c.ink},content:{padding:20,paddingBottom:30},muted:{fontSize:12,color:c.muted},error:{padding:12,borderRadius:12,backgroundColor:'#fff7f7',marginBottom:12},errorText:{fontSize:12,color:'#9e2f2f'},post:{paddingBottom:20,borderBottomWidth:1,borderBottomColor:c.line},author:{fontSize:14,fontWeight:'750',color:c.ink},contentText:{marginTop:10,fontSize:16,lineHeight:24,color:c.ink},time:{marginTop:7,fontSize:10,color:'#9a9aa4'},section:{marginTop:22,fontSize:15,fontWeight:'750',color:c.ink},empty:{marginTop:12,padding:18,borderWidth:1,borderColor:c.line,borderRadius:14,alignItems:'center'},emptyTitle:{fontSize:14,fontWeight:'700',color:c.ink,marginBottom:5},comment:{flexDirection:'row',gap:10,paddingVertical:14,borderBottomWidth:1,borderBottomColor:c.line},commentAvatar:{width:34,height:34,borderRadius:17,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},avatarText:{color:'#fff',fontWeight:'750'},commentAuthor:{fontSize:12,fontWeight:'750',color:c.ink},commentText:{marginTop:4,fontSize:13,lineHeight:20,color:c.ink},composer:{flexDirection:'row',alignItems:'flex-end',gap:8,padding:12,borderTopWidth:1,borderTopColor:c.line,backgroundColor:'#fff'},input:{flex:1,minHeight:42,maxHeight:100,borderWidth:1,borderColor:c.line,borderRadius:14,paddingHorizontal:13,paddingVertical:10,fontSize:13,color:c.ink},send:{height:42,paddingHorizontal:15,borderRadius:14,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},sendDisabled:{opacity:.35},sendText:{color:'#fff',fontSize:12,fontWeight:'750'}});
+
+const s=StyleSheet.create({
+ safe:{flex:1,backgroundColor:'#fff'},header:{height:58,paddingHorizontal:20,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:c.line},back:{fontSize:34,color:c.ink,lineHeight:34},headerTitle:{fontSize:15,fontWeight:'750',color:c.ink},
+ content:{padding:20,paddingBottom:30},muted:{fontSize:12,color:c.muted},error:{padding:12,borderRadius:12,backgroundColor:'#fff7f7',marginBottom:12},errorText:{fontSize:12,color:c.danger},
+ post:{paddingBottom:20,borderBottomWidth:1,borderBottomColor:c.line},postTop:{flexDirection:'row',alignItems:'flex-start'},author:{fontSize:14,fontWeight:'750',color:c.ink},handle:{marginTop:2,fontSize:10,color:c.muted},reportLink:{fontSize:11,fontWeight:'750',color:c.danger},reported:{fontSize:11,fontWeight:'750',color:'#777'},
+ contentText:{marginTop:10,fontSize:16,lineHeight:24,color:c.ink},time:{marginTop:7,fontSize:10,color:'#9a9aa4'},reportBox:{marginTop:14,padding:14,borderWidth:1,borderColor:c.line,borderRadius:15,backgroundColor:'#fafafa'},reportTitle:{fontSize:14,fontWeight:'750',color:c.ink},reportLead:{marginTop:4,fontSize:11,lineHeight:16,color:c.muted},reasonList:{marginTop:10},reason:{paddingVertical:9,paddingHorizontal:10,borderWidth:1,borderColor:c.line,borderRadius:9,marginBottom:6,backgroundColor:'#fff'},reasonSelected:{borderColor:c.accent,backgroundColor:'#f4f1ff'},reasonText:{fontSize:11,color:c.ink},reasonTextSelected:{fontWeight:'750',color:c.accent},details:{minHeight:70,maxHeight:100,borderWidth:1,borderColor:c.line,borderRadius:10,padding:10,fontSize:11,color:c.ink,backgroundColor:'#fff'},reportActions:{marginTop:10,flexDirection:'row',justifyContent:'flex-end',gap:8},cancel:{height:38,paddingHorizontal:13,justifyContent:'center'},cancelText:{fontSize:11,fontWeight:'700',color:c.muted},submit:{height:38,paddingHorizontal:14,borderRadius:10,backgroundColor:c.ink,justifyContent:'center'},submitDisabled:{opacity:.35},submitText:{fontSize:11,fontWeight:'750',color:'#fff'},
+ section:{marginTop:22,fontSize:15,fontWeight:'750',color:c.ink},empty:{marginTop:12,padding:18,borderWidth:1,borderColor:c.line,borderRadius:14,alignItems:'center'},emptyTitle:{fontSize:14,fontWeight:'700',color:c.ink,marginBottom:5},
+ comment:{flexDirection:'row',gap:10,paddingVertical:14,borderBottomWidth:1,borderBottomColor:c.line},commentAvatar:{width:34,height:34,borderRadius:17,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},avatarText:{color:'#fff',fontWeight:'750'},commentAuthor:{fontSize:12,fontWeight:'750',color:c.ink},commentText:{marginTop:4,fontSize:13,lineHeight:20,color:c.ink},
+ composer:{flexDirection:'row',alignItems:'flex-end',gap:8,padding:12,borderTopWidth:1,borderTopColor:c.line,backgroundColor:'#fff'},input:{flex:1,minHeight:42,maxHeight:100,borderWidth:1,borderColor:c.line,borderRadius:14,paddingHorizontal:13,paddingVertical:10,fontSize:13,color:c.ink},send:{height:42,paddingHorizontal:15,borderRadius:14,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},sendDisabled:{opacity:.35},sendText:{color:'#fff',fontSize:12,fontWeight:'750'}
+});
