@@ -35,8 +35,8 @@ export default function Profile() {
       : supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private').eq('id',targetId).maybeSingle();
     const [targetProfile, following, followers, ownPostCount, ownPosts, memberships] = await Promise.all([
       profileRequest,
-      supabase.from('follows').select('*',{count:'exact',head:true}).eq('following_id',targetId).eq('status','accepted'),
       supabase.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',targetId).eq('status','accepted'),
+      supabase.from('follows').select('*',{count:'exact',head:true}).eq('following_id',targetId).eq('status','accepted'),
       supabase.from('posts').select('*',{count:'exact',head:true}).eq('author_id',targetId),
       supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,post_reactions(user_id,reaction_type),post_media(storage_path,media_type)').eq('author_id',targetId).order('created_at',{ascending:false}).limit(30),
       supabase.from('community_members').select('*',{count:'exact',head:true}).eq('user_id',targetId).eq('status','active'),
@@ -81,7 +81,7 @@ export default function Profile() {
       counts={counts}
       joinedAt={user?.created_at}
       onEdit={isOwn ? ()=>router.push('/edit-profile') : undefined}
-      onSettings={()=>router.push('/settings')}
+      onSettings={isOwn ? ()=>router.push('/settings') : undefined}
       isOwn={isOwn}
     />
   );
@@ -132,7 +132,7 @@ function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSe
     <View style={s.cover}>{profile?.cover_url?<Image source={{uri:profile.cover_url}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/><Text style={s.coverStars}>✦  ·  ✧   ·   ✦</Text></>}</View>
     <View style={s.profileBody}>
       <Pressable onPress={onEdit} disabled={!onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><Text style={s.cameraText}>⌾</Text></View>}</Pressable>
-      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}<Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable></View>
+      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable>}</View>
       <Text style={s.name}>{name}</Text>
       <Text style={s.handle}>{handle}</Text>
       <Text style={s.bio}>{profile?.bio || 'Dream big. Build bigger. Share your world with Freetopia.'}</Text>
