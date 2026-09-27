@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { getImageUrl } from '../lib/imageUrl/imageUrl';
+import { getImageUrl } from '../lib/imageUrl';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
