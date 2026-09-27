@@ -23,7 +23,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [viewProfile, setViewProfile] = useState(null);
+  const [viewProfile, setViewProfile] = useState(null); const [followingUser, setFollowingUser] = useState(false); const [followBusy, setFollowBusy] = useState(false);
 
   const load = useCallback(async (pull=false) => {
     const targetId = profileId || user?.id;
@@ -33,17 +33,19 @@ export default function Profile() {
     const profileRequest = isOwn
       ? Promise.resolve({ data: profile, error: null })
       : supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private,created_at').eq('id',targetId).maybeSingle();
-    const [targetProfile, following, followers, ownPostCount, ownPosts, memberships] = await Promise.all([
+    const [targetProfile, following, followers, ownPostCount, ownPosts, memberships, relationship] = await Promise.all([
       profileRequest,
       supabase.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',targetId).eq('status','accepted'),
       supabase.from('follows').select('*',{count:'exact',head:true}).eq('following_id',targetId).eq('status','accepted'),
       supabase.from('posts').select('*',{count:'exact',head:true}).eq('author_id',targetId),
       supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,post_reactions(user_id,reaction_type),post_media(storage_path,media_type)').eq('author_id',targetId).order('created_at',{ascending:false}).limit(30),
       supabase.from('community_members').select('*',{count:'exact',head:true}).eq('user_id',targetId).eq('status','active'),
+      !isOwn && user ? supabase.from('follows').select('id,status').eq('follower_id',user.id).eq('following_id',targetId).maybeSingle() : Promise.resolve({data:null,error:null}),
     ]);
-    const firstError = [targetProfile,following,followers,ownPostCount,ownPosts,memberships].find(x=>x.error)?.error;
+    const firstError = [targetProfile,following,followers,ownPostCount,ownPosts,memberships,relationship].find(x=>x.error)?.error;
     if (firstError) setError(firstError.message);
     setViewProfile(targetProfile.data || null);
+    setFollowingUser(relationship?.data?.status === 'accepted');
     setCounts({ posts:ownPostCount.count || 0, following:following.count||0, followers:followers.count||0 });
     setCommunities(memberships.count||0);
     setPosts(ownPosts.data||[]);
@@ -71,6 +73,19 @@ export default function Profile() {
     if (activeTab === 'Reactions') return posts.filter(p => p.post_reactions?.some(x => x.user_id === user?.id));
     return [];
   },[activeTab,posts,user?.id]);
+
+  const toggleFollow = async () => {
+    if (!user || isOwn || followBusy || !displayedProfile?.id) return;
+    const next = !followingUser;
+    setFollowingUser(next); setFollowBusy(true); setError('');
+    const query = next
+      ? supabase.from('follows').insert({follower_id:user.id,following_id:displayedProfile.id,status:'accepted'})
+      : supabase.from('follows').delete().eq('follower_id',user.id).eq('following_id',displayedProfile.id);
+    const { error: e } = await query;
+    if (e) { setFollowingUser(!next); setError(e.message); }
+    else setCounts(x=>({...x,followers:Math.max(0,x.followers+(next?1:-1))}));
+    setFollowBusy(false);
+  };
 
   const profileHeader = (
     <ProfileHeader
@@ -127,12 +142,12 @@ function ProfileSidebar({name,initials,onNavigate}) {
     <Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials}/><View style={{flex:1}}><Text style={s.sideName}>{name}</Text><Text style={s.sideSub}>Profile</Text></View><Text style={s.sideChevron}>⌄</Text></Pressable>
   </View>;
 }
-function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn}) {
+function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,followBusy,onFollow}) {
   return <View style={s.profileHeader}>
     <View style={s.cover}>{profile?.cover_url?<Image source={{uri:profile.cover_url}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/><Text style={s.coverStars}>✦  ·  ✧   ·   ✦</Text></>}</View>
     <View style={s.profileBody}>
       <Pressable onPress={onEdit} disabled={!onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><Text style={s.cameraText}>⌾</Text></View>}</Pressable>
-      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable>}</View>
+      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={[s.followButton,following&&s.followingButton]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable>}</View>
       <Text style={s.name}>{name}</Text>
       <Text style={s.handle}>{handle}</Text>
       <Text style={s.bio}>{profile?.bio || 'Dream big. Build bigger. Share your world with Freetopia.'}</Text>
@@ -172,7 +187,7 @@ const s=StyleSheet.create({
  safe:{flex:1,backgroundColor:C.bg}, desktopShell:{flex:1,flexDirection:'row',backgroundColor:C.bg}, sidebar:{width:225,padding:18,paddingTop:26,borderRightWidth:1,borderRightColor:C.line,backgroundColor:'#060D16'}, brand:{flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:8,marginBottom:34},brandLogo:{width:34,height:34},brandText:{color:C.text,fontSize:18,fontWeight:'800'},sideNav:{gap:5},sideItem:{minHeight:48,paddingHorizontal:13,borderRadius:10,flexDirection:'row',alignItems:'center',gap:14},activeSide:{backgroundColor:'#182536'},sideIcon:{width:22,color:'#A9B6C7',fontSize:20,textAlign:'center'},sideLabel:{color:'#C5CFDC',fontSize:13,fontWeight:'600',flex:1},badge:{minWidth:20,height:20,borderRadius:10,backgroundColor:'#344A62',alignItems:'center',justifyContent:'center'},badgeText:{color:C.white,fontSize:9,fontWeight:'800'},sideProfile:{marginTop:'auto',padding:10,borderTopWidth:1,borderTopColor:C.line,flexDirection:'row',alignItems:'center',gap:9},sideName:{color:C.text,fontSize:12,fontWeight:'700'},sideSub:{color:C.muted,fontSize:10,marginTop:2},sideChevron:{color:C.muted,fontSize:16},
  desktopMain:{flex:1},desktopGrid:{maxWidth:1090,alignSelf:'center',width:'100%',flexDirection:'row',gap:14,padding:14},profileColumn:{flex:1,minWidth:0},rail:{width:270,gap:12},
  profileHeader:{borderWidth:1,borderColor:C.line,borderRadius:13,overflow:'hidden',backgroundColor:C.panel},cover:{height:175,backgroundColor:'#101A2C',overflow:'hidden',position:'relative'},coverImage:{width:'100%',height:'100%'},coverGlowA:{position:'absolute',width:'80%',height:'180%',left:-70,top:-70,backgroundColor:'#172C55',opacity:.75,transform:[{rotate:'-18deg'}]},coverGlowB:{position:'absolute',width:'60%',height:'160%',right:-40,top:-50,backgroundColor:'#4A1D68',opacity:.55,transform:[{rotate:'20deg'}]},coverStars:{position:'absolute',top:25,right:28,color:'#B3C4F2',fontSize:16,opacity:.7},
- profileBody:{padding:0,position:'relative'},avatarWrap:{position:'absolute',left:17,top:-45,zIndex:2},avatar:{width:88,height:88,borderRadius:44,backgroundColor:'#26384D',borderWidth:3,borderColor:'#EAF1FA',alignItems:'center',justifyContent:'center'},avatarText:{color:C.text,fontSize:28,fontWeight:'800'},camera:{position:'absolute',right:-1,bottom:0,width:28,height:28,borderRadius:14,backgroundColor:'#07101B',borderWidth:1,borderColor:'#A9C4FF',alignItems:'center',justifyContent:'center'},cameraText:{color:C.text,fontSize:13},profileActions:{height:65,flexDirection:'row',alignItems:'center',justifyContent:'flex-end',gap:8,paddingHorizontal:14},outline:{height:34,paddingHorizontal:14,borderRadius:17,borderWidth:1,borderColor:'#40516A',alignItems:'center',justifyContent:'center'},outlineText:{color:C.text,fontSize:10,fontWeight:'800'},circle:{width:34,height:34,borderRadius:17,borderWidth:1,borderColor:'#40516A',alignItems:'center',justifyContent:'center'},circleText:{color:C.text,fontSize:12,letterSpacing:1},name:{paddingHorizontal:17,color:C.text,fontSize:22,fontWeight:'800',letterSpacing:-0.4},handle:{paddingHorizontal:17,color:C.muted,fontSize:11,marginTop:2},bio:{paddingHorizontal:17,color:'#D6DEE8',fontSize:12,lineHeight:19,marginTop:8},metaRow:{flexDirection:'row',gap:14,paddingHorizontal:17,marginTop:10,flexWrap:'wrap'},meta:{color:'#9EAEC1',fontSize:10},statsRow:{flexDirection:'row',gap:24,paddingHorizontal:17,paddingTop:15,paddingBottom:15,borderBottomWidth:1,borderBottomColor:C.line},stat:{color:C.muted,fontSize:10,fontWeight:'600'},statNumber:{color:C.text,fontSize:12,fontWeight:'800'},
+ profileBody:{padding:0,position:'relative'},avatarWrap:{position:'absolute',left:17,top:-45,zIndex:2},avatar:{width:88,height:88,borderRadius:44,backgroundColor:'#26384D',borderWidth:3,borderColor:'#EAF1FA',alignItems:'center',justifyContent:'center'},avatarText:{color:C.text,fontSize:28,fontWeight:'800'},camera:{position:'absolute',right:-1,bottom:0,width:28,height:28,borderRadius:14,backgroundColor:'#07101B',borderWidth:1,borderColor:'#A9C4FF',alignItems:'center',justifyContent:'center'},cameraText:{color:C.text,fontSize:13},profileActions:{height:65,flexDirection:'row',alignItems:'center',justifyContent:'flex-end',gap:8,paddingHorizontal:14},outline:{height:34,paddingHorizontal:14,borderRadius:17,borderWidth:1,borderColor:'#40516A',alignItems:'center',justifyContent:'center'},outlineText:{color:C.text,fontSize:10,fontWeight:'800'},followButton:{height:34,minWidth:82,paddingHorizontal:14,borderRadius:17,backgroundColor:C.blue,alignItems:'center',justifyContent:'center'},followingButton:{backgroundColor:'#15202D',borderWidth:1,borderColor:'#40516A'},followButtonText:{color:C.white,fontSize:10,fontWeight:'800'},circle:{width:34,height:34,borderRadius:17,borderWidth:1,borderColor:'#40516A',alignItems:'center',justifyContent:'center'},circleText:{color:C.text,fontSize:12,letterSpacing:1},name:{paddingHorizontal:17,color:C.text,fontSize:22,fontWeight:'800',letterSpacing:-0.4},handle:{paddingHorizontal:17,color:C.muted,fontSize:11,marginTop:2},bio:{paddingHorizontal:17,color:'#D6DEE8',fontSize:12,lineHeight:19,marginTop:8},metaRow:{flexDirection:'row',gap:14,paddingHorizontal:17,marginTop:10,flexWrap:'wrap'},meta:{color:'#9EAEC1',fontSize:10},statsRow:{flexDirection:'row',gap:24,paddingHorizontal:17,paddingTop:15,paddingBottom:15,borderBottomWidth:1,borderBottomColor:C.line},stat:{color:C.muted,fontSize:10,fontWeight:'600'},statNumber:{color:C.text,fontSize:12,fontWeight:'800'},
  tabs:{height:52,marginTop:1,flexDirection:'row',borderWidth:1,borderTopWidth:0,borderColor:C.line,backgroundColor:C.panel},tab:{flex:1,alignItems:'center',justifyContent:'center',position:'relative'},tabText:{color:C.muted,fontSize:11,fontWeight:'700'},tabActive:{color:C.text,fontWeight:'800'},tabLine:{position:'absolute',bottom:0,left:18,right:18,height:3,borderRadius:3,backgroundColor:'#4B78A8'},
  post:{padding:16,borderWidth:1,borderColor:C.line,borderTopWidth:0,backgroundColor:C.panel},postHead:{flexDirection:'row',alignItems:'flex-start',gap:10},postAuthor:{color:C.text,fontSize:12,fontWeight:'800'},postHandle:{color:C.muted,fontWeight:'500'},postText:{color:'#E4EAF1',fontSize:12,lineHeight:19,marginTop:6},more:{color:C.muted,fontSize:13,letterSpacing:2},mediaPlaceholder:{height:130,borderRadius:11,backgroundColor:'#0F1C2C',borderWidth:1,borderColor:'#1E314A',marginTop:10,alignItems:'center',justifyContent:'center'},mediaText:{color:'#72869E',fontSize:10},postActions:{flexDirection:'row',alignItems:'center',gap:22,marginTop:11,paddingTop:9,borderTopWidth:1,borderTopColor:C.line},action:{color:'#9EAEC1',fontSize:10},
  railCard:{borderWidth:1,borderColor:C.line,borderRadius:12,backgroundColor:C.panel,padding:13},railTitle:{color:C.text,fontSize:13,fontWeight:'800'},progressRow:{flexDirection:'row',alignItems:'center',gap:10,marginTop:10},progress:{flex:1,height:6,borderRadius:5,backgroundColor:'#172A43',overflow:'hidden'},progressFill:{height:6,borderRadius:5,backgroundColor:C.blue},percent:{color:C.text,fontSize:10,fontWeight:'700'},checkRow:{flexDirection:'row',alignItems:'center',gap:9,marginTop:10},check:{width:18,height:18,borderRadius:9,borderWidth:1,borderColor:'#54708F',alignItems:'center',justifyContent:'center'},checkDone:{backgroundColor:C.blue,borderColor:'#4B78A8'},checkText:{color:C.white,fontSize:10,fontWeight:'800'},checkLabel:{color:'#B9C6D5',fontSize:10},railEmpty:{color:C.muted,fontSize:10,lineHeight:16,marginTop:7},statGrid:{flexDirection:'row',justifyContent:'space-between',marginTop:12},mini:{alignItems:'center',minWidth:65},miniIcon:{color:'#AFC6E3',fontSize:16},miniN:{color:C.text,fontSize:13,fontWeight:'800',marginTop:3},miniLabel:{color:C.muted,fontSize:9,marginTop:2},promo:{borderWidth:1,borderColor:'#263244',borderRadius:12,padding:13,backgroundColor:'#111B28'},promoLogo:{width:32,height:32},promoTitle:{color:C.text,fontSize:11,fontWeight:'800',marginTop:8},promoBody:{color:'#B9B4E2',fontSize:9,lineHeight:14,marginTop:4},promoButton:{height:34,borderRadius:17,backgroundColor:'#334D69',alignItems:'center',justifyContent:'center',marginTop:11},promoButtonText:{color:C.white,fontSize:9,fontWeight:'800'},
