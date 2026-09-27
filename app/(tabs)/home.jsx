@@ -181,6 +181,7 @@ export default function Home() {
           <PostCard key={post.id} post={post} onLike={toggleLike} onComments={() => nav({ pathname: '/post', params: { id: post.id } })} />
         ))}
       </ScrollView>
+      <Pressable onPress={() => nav('/create')} style={s.mobileCreate}><Text style={s.mobileCreateText}>＋</Text></Pressable>
     </SafeAreaView>
   );
 }
@@ -450,7 +451,9 @@ const s = StyleSheet.create({
   createRailBody: { color: '#B9B4E5', fontSize: 10, marginTop: 5 },
   createCta: { alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 13, height: 32, borderRadius: 16, backgroundColor: C.blue, justifyContent: 'center' },
   createCtaText: { color: C.white, fontSize: 10, fontWeight: '800' },
-  mobileContent: { paddingHorizontal: 16, paddingBottom: 30 },
+  mobileContent: { paddingHorizontal: 16, paddingBottom: 95 },
+  mobileCreate: { position: 'absolute', bottom: 32, left: '50%', marginLeft: -27, width: 54, height: 54, borderRadius: 27, backgroundColor: C.violet, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#111A29', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 8 },
+  mobileCreateText: { color: C.white, fontSize: 30, lineHeight: 32, fontWeight: '300' },
   mobileHeader: { height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logo: { width: 31, height: 31 },
