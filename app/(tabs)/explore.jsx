@@ -24,8 +24,8 @@ export default function Explore(){
  },[user?.id]);
  useEffect(()=>{load()},[load]);
 
- const search=async()=>{
-  const value=q.trim(); if(!value){load();return;}
+ const search=async(nextValue)=>{
+  const value=(nextValue??q).trim(); if(!value){load();return;}
   setLoading(true);setError('');
   const [p,c,po]=await Promise.all([
    supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').or('username.ilike.%'+value+'%,display_name.ilike.%'+value+'%,bio.ilike.%'+value+'%').limit(20),
@@ -51,7 +51,7 @@ function Desktop(p){
  return <View style={s.shell}><Sidebar router={p.router}/><View style={s.main}><Topbar router={p.router} profile={p.profile} q={p.q} setQ={p.setQ} search={p.search}/><View style={s.body}><View style={s.center}>
   <Text style={s.title}>Explore</Text><Text style={s.lead}>Discover new people, communities and ideas.</Text>
   <Tabs tab={p.tab} setTab={p.setTab}/>
-  {p.tab==='For You'?<><Hero router={p.router}/><SectionTitle icon="♨" title="Trending Topics" action="See all" onPress={()=>p.setTab('Topics')}/><TopicStrip posts={p.posts} onTopic={x=>{p.setQ(x);p.search();}}/><SectionTitle icon="♧" title="Popular Communities" action="See all" onPress={()=>p.setTab('Communities')}/><CommunityCards communities={p.communities} router={p.router}/><SectionTitle icon="♙" title="Recommended for You" action="Latest"/><PostList posts={p.posts} router={p.router}/></>:p.tab==='Communities'?<><SectionTitle icon="♧" title="Communities" action="Latest"/><CommunityList communities={p.communities} router={p.router}/></>:p.tab==='Posts'?<><SectionTitle icon="▱" title="Posts" action="Latest"/><PostList posts={p.posts} router={p.router}/></>:p.tab==='People'?<><SectionTitle icon="♙" title="People" action="Latest"/><PeopleList people={p.people} follow={p.follow} router={p.router}/></>:<><SectionTitle icon="♨" title="Topics" action="Recent"/><TopicStrip posts={p.posts}/><SectionTitle icon="▱" title="Recent conversations" action="Latest"/><PostList posts={p.posts} router={p.router}/></>}
+  {p.tab==='For You'?<><Hero router={p.router}/><SectionTitle icon="♨" title="Trending Topics" action="See all" onPress={()=>p.setTab('Topics')}/><TopicStrip posts={p.posts} onTopic={x=>p.search(x)}/><SectionTitle icon="♧" title="Popular Communities" action="See all" onPress={()=>p.setTab('Communities')}/><CommunityCards communities={p.communities} router={p.router}/><SectionTitle icon="♙" title="Recommended for You" action="Latest"/><PostList posts={p.posts} router={p.router}/></>:p.tab==='Communities'?<><SectionTitle icon="♧" title="Communities" action="Latest"/><CommunityList communities={p.communities} router={p.router}/></>:p.tab==='Posts'?<><SectionTitle icon="▱" title="Posts" action="Latest"/><PostList posts={p.posts} router={p.router}/></>:p.tab==='People'?<><SectionTitle icon="♙" title="People" action="Latest"/><PeopleList people={p.people} follow={p.follow} router={p.router}/></>:<><SectionTitle icon="♨" title="Topics" action="Recent"/><TopicStrip posts={p.posts} onTopic={x=>p.search(x)}/><SectionTitle icon="▱" title="Recent conversations" action="Latest"/><PostList posts={p.posts} router={p.router}/></>}
   {p.error&&<Error text={p.error}/>} {p.loading&&<Text style={s.loading}>Loading Explore…</Text>}
  </View><View style={s.rail}><Rail title="Top Communities" onPress={()=>p.setTab('Communities')}><CommunityRank communities={p.communities.slice(0,5)} router={p.router}/></Rail><Rail title="Trending Now" onPress={()=>p.setTab('Topics')}><TopicList posts={p.posts}/></Rail><Rail title="Featured Creators" onPress={()=>p.setTab('People')}><PeopleList people={p.people.slice(0,5)} follow={p.follow} router={p.router}/></Rail><Promo router={p.router}/></View></View></View></View>;
 }
