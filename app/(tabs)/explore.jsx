@@ -23,7 +23,7 @@ export default function Explore(){
   const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted').in('following_id',ids);followed=new Set((f.data||[]).map(x=>x.following_id));} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
  },[user?.id]);
  useEffect(()=>{load()},[load]);
- useEffect(()=>{const incoming=Array.isArray(params.q)?params.q[0]:params.q;if(incoming&&incoming!==q&&!initialSearchApplied){setQ(incoming);setTab('Posts');setInitialSearchApplied(true);search(incoming)}},[params.q,q,initialSearchApplied]);
+ useEffect(()=>{const incoming=Array.isArray(params.q)?params.q[0]:params.q;const incomingTab=Array.isArray(params.tab)?params.tab[0]:params.tab;const validTabs=['For You','Communities','Topics','Posts','People'];if(incomingTab&&validTabs.includes(incomingTab))setTab(incomingTab);if(incoming&&incoming!==q&&!initialSearchApplied){setQ(incoming);setTab('Posts');setInitialSearchApplied(true);search(incoming)}},[params.q,params.tab,q,initialSearchApplied]);
 
  const search=async(nextValue)=>{
   const value=(nextValue??q).trim(); if(!value){load();return;}
