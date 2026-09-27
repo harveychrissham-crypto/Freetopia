@@ -13,55 +13,53 @@ The default branch contained exactly one tracked file, `README.md`, with a produ
 | Area | Finding |
 |---|---|
 | Framework / entry point | None. No application source or package manifest. |
-| Routing / product surface | None. No routes, pages, forms, or navigation. |
+| Routing / product surface | None. No routes, screens, forms, or navigation. |
 | Frontend / components / styles | None. No assets, tokens, component system, or UI behavior. |
 | Backend / APIs / services | None. No server, API contracts, or service code. |
 | Database / data model | None. No schema, migrations, or database configuration. |
 | Authentication / authorization | None. No identity, session, or permission enforcement. |
 | Storage / media | None. No storage integration or media assets. |
 | Dependencies | None. No package manifest or lockfile. |
-| Tests / build | No test or build scripts exist; baseline commands cannot run. |
+| Tests / build | No test or build scripts existed; baseline checks could not run. |
 | Deployment / infrastructure | No environment template, CI, deployment config, analytics, or monitoring. |
 | Existing behavior to preserve | None beyond the README identity statement. |
 
 ### Baseline
 
 - `git ls-tree -r HEAD`: only `README.md`.
-- Baseline test/build: unavailable because no application or tooling was present; this is a repository baseline limitation, not a failing test result.
+- Baseline tests/build: unavailable because no application or tooling was present; this is a repository limitation, not a failing test result.
 - Node.js 24.19.0 and npm 11.17.0 are available in the implementation environment.
 
 ### Implementation map
 
-No existing application architecture, routes, data, or backend can be mapped. This implementation introduces a small React/Vite frontend foundation. Its current entry is `index.html` → `src/main.jsx` → `src/App.jsx`; centralized theme values live in `src/styles/tokens.css`, global resets in `src/styles/global.css`, reusable controls in `src/components/ui.jsx` and `src/styles/components.css`, and the responsive showcase in `src/styles/app.css`.
+The app is a native iOS and Android project using Expo SDK 57 and React Native. `package.json` enters through `expo-router/entry`; `app/_layout.jsx` configures native status bar and stack navigation; `app/index.jsx` is the current home screen. `app.json` defines the app identity, iOS bundle ID, Android package, icon asset, and Expo Router plugin. The supplied mark is in `public/brand/`.
 
-### Phase decisions
+## Phase decisions
 
-- **Phase 0: complete.** The repository and absent baseline were recorded above.
-- **Phase 1: implemented as a foundation.** Freetopia identity, the supplied transparent logo/app mark, monochrome-first tokens, selective blue-violet gradient, type scale, spacing, radii, motion, and responsive breakpoint are centralized. The provided mark is resized to 512 px for lighter app delivery and used in the header, hero, footer, closing brand moment, favicon, and Apple touch icon. The original file supplied by the user remains unchanged in Downloads.
-- **Phase 2: implemented for the foundation surface.** Buttons, inputs, avatars, badges, tabs, dropdown, native modal and drawer dialogs, tooltip, skeleton, empty/error states, and toast feedback are available. Navigation primitives remain deferred until real destinations exist.
-- **Phase 3 onward: blocked by missing product infrastructure.** No backend/auth provider, database, storage, deployment environment, or API contracts are supplied. Choosing and wiring those would introduce material infrastructure and data-handling decisions. No users, feed entries, or social actions are fabricated in the UI.
+- **Phase 0: complete.** The original repository and absent baseline are recorded above.
+- **Phase 1: implemented as a native foundation.** Freetopia identity, supplied app mark, monochrome-first color, selective blue-violet accent, responsive mobile layout, safe-area handling, and readable type are applied to the initial native screen.
+- **Phase 2: initial native product surface implemented.** The app has an accessible, branded welcome screen, a clear backend-dependent empty state, and an in-app action that scrolls to the product principles. Platform routes use Expo Router. A real feed, account flow, search, communities, settings, and conversations are not represented as working features.
+- **Phase 3 onward: blocked by missing product infrastructure.** No backend/auth provider, database, storage, deployment environment, or API contracts are supplied. Selecting and wiring those would introduce material infrastructure and data-handling decisions. No users, feed entries, or social actions are fabricated.
 
 ## Current limitations and next prerequisites
 
-1. Select/provision the backend and identity provider, then define session and server-side authorization boundaries before account or user data work.
-2. Select/provision database and media storage, then define migrations and ownership rules before profiles, follows, posts, or uploads.
-3. Configure environment variables and deployment/CI before claiming production readiness.
-4. Build genuine social features in dependency order; add their loading, empty, error, responsive, accessibility, and authorization coverage with each feature.
+1. Select/provision backend and identity services; define session handling and server-side authorization before account or user data work.
+2. Select/provision database and media storage; define schemas, migrations, ownership, and deletion rules before profiles, follows, posts, or uploads.
+3. Define API contracts and configure environment variables, build credentials, CI, and release pipelines before production distribution.
+4. Build genuine social features in dependency order, with loading, empty, error, accessibility, and authorization coverage.
 
 ## Deviations
 
-- The brief assumes an existing application, but the remote repository is README-only. A frontend foundation was introduced to complete the achievable brand and design-system phases.
-- Phase 2 navigation is not surfaced as a fake product menu; actual destinations do not exist yet.
-- No baseline build, automated tests, or browser matrix existed. The new build and static checks are green; manual browser interaction and 390 px / 1280 px responsive reviews are recorded below.
+- The supplied brief assumed an existing app, but the remote repository was README-only. A small app foundation was introduced.
+- The user clarified that Freetopia is an iOS and Android app. The earlier web-only React/Vite foundation was replaced by Expo/React Native screens and native application configuration.
+- The app currently uses one honest, usable welcome screen rather than simulated login, feed, tabs, or messaging.
+- No iOS/Android simulator or native build environment was available during this implementation. Bundle export checks verify JavaScript bundling for each platform, not installation or runtime behavior on a physical device.
 
-## Phase gate checks after Phases 1–2
+## Phase checks
 
-- `npm install --cache .npm-cache`: completed; npm reported 0 vulnerabilities.
-- `npm run build`: passed (Vite production build).
-- `npm run lint`: passed (ESLint, no warnings/errors).
-- Browser review at 1280 px: hero, brand mark, desktop layout, and right-side orbital accent render without visible overflow.
-- Browser review at 390 px: single-column showcase and mobile spacing render without visible horizontal overflow.
-- Supplied 1254×1254 transparent PNG mark, resized to 512×512 for app delivery, renders in the header, hero, footer, favicon, and Apple touch icon references.
-- Interaction review: primary action toast, showcase tabs, error preview and retry, native modal open/close, and native drawer open/Escape close all behaved as intended.
-- Accessibility structure review: skip link, main landmark, heading hierarchy, tab roles and selected state, visible input label/hint, named avatar previews, and labelled dialogs were present in the accessibility tree.
-- No automated component or end-to-end test suite was introduced; there was no baseline harness. Manual browser checks do not replace assistive technology testing.
+- `npm install`: completed with Expo SDK 57 dependencies.
+- `expo install --check`: passed; SDK-compatible package versions are installed.
+- `npm run lint`: passed after configuring ESLint for React Native JSX.
+- `npm run check:android`: passed; Metro bundled 1,249 modules into an Android Hermes bundle.
+- `npm run check:ios`: passed; Metro bundled 1,104 modules into an iOS Hermes bundle.
+- No automated native UI or end-to-end suite exists yet. Device/simulator accessibility and interaction review remains outstanding.

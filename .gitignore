@@ -1,5 +1,7 @@
 node_modules/
 dist/
+.expo/
+.expo-home/
 .npm-cache/
 .env
 .env.*

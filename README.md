@@ -1,30 +1,33 @@
 # Freetopia
 
-Freetopia is a social world built around freedom, expression, connection, discovery, and people.
+Freetopia is a social world built around freedom, expression, connection, discovery, and people. This repository now contains a cross-platform iOS and Android app built with Expo and React Native.
 
-## Current state
+## Run the app
 
-This repository began as a README-only project. The current implementation establishes the brand foundation and accessible, reusable UI primitives. Authentication, social data, media, and messaging are intentionally not simulated; those phases require a real backend and authorization model.
-
-## Run locally
-
-Requirements: Node.js 20 or newer.
+Requirements: Node.js LTS and npm. Install dependencies, then start Expo:
 
 ```sh
 npm install
-npm run dev
+npm start
 ```
 
-Use `npm run build` for the production build and `npm run lint` for static checks.
+Use Expo Go or a configured iOS/Android simulator/device to open the app. `npm run ios` and `npm run android` launch on an available local simulator. Expo Router handles native routes and deep links.
 
 ## Project map
 
-- `src/styles/tokens.css` — color, type, spacing, radius, motion, and breakpoint foundations.
-- `public/brand/freetopia-mark.png` — transparent 512 px app-optimized version of the supplied Freetopia logo and icon.
-- `src/components/ui/` — reusable accessible design primitives.
-- `src/App.jsx` — responsive foundation and component showcase.
-- `docs/implementation-audit.md` — Phase 0 audit and phase status.
+- `app/` — native screens and Expo Router layout.
+- `public/brand/freetopia-mark.png` — supplied Freetopia brand mark used by the app and launch screen.
+- `app.json` — app identity, native identifiers, icons, and router plugin configuration.
+- `docs/implementation-audit.md` — Phase 0 audit, implementation map, checks, and remaining dependencies.
 
-## Product integrity
+## Current product state
 
-Visible controls in this foundation either demonstrate a local UI state or navigate to a real section. It does not claim to provide live accounts, posts, search, communities, notifications, or messaging.
+The app has a branded, accessible welcome screen and a truthful empty state. It does not display fabricated profiles, posts, communities, messages, or notifications. Accounts, social data, uploads, and messaging require a real backend, database, storage, and server-side authorization design before those screens can behave as product features.
+
+## Checks
+
+```sh
+npm run lint
+npm run check:android
+npm run check:ios
+```
