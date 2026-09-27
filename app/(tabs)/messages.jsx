@@ -1,18 +1,157 @@
-import {useCallback,useState} from 'react';
-import {useFocusEffect} from '@react-navigation/native';
-import {Pressable,ScrollView,StyleSheet,Text,View} from 'react-native';
-import {useRouter} from 'expo-router';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import {supabase} from '../../lib/supabase';
-import {useAuth} from '../../providers/AuthProvider';
+import { useCallback, useMemo, useState } from 'react';
+import { Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../providers/AuthProvider';
 
-export default function Messages(){
- const{user}=useAuth(),router=useRouter(),[tab,setTab]=useState('Messages'),[items,setItems]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
- const load=useCallback(async()=>{if(!user?.id)return;setLoading(true);const{data,error:e}=await supabase.from('conversations').select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,profiles:user_id(id,username,display_name))').order('created_at',{ascending:false});if(e)setError(e.message);else setItems((data||[]).map(c=>{const m=c.conversation_members||[];return{...c,me:m.find(x=>x.user_id===user.id),other:m.find(x=>x.user_id!==user.id)}}).filter(c=>c.me));setLoading(false)},[user?.id]);
- useFocusEffect(useCallback(()=>{load()},[load]));
- const change=async(c,p)=>{const{error:e}=await supabase.from('conversation_members').update(p).eq('conversation_id',c.id).eq('user_id',user.id);if(e)setError(e.message);else load()};
- const rows=items.filter(c=>tab==='Requests'?c.me.request_status==='pending':tab==='Archived'?c.me.request_status==='accepted'&&c.me.is_archived:tab==='Messages'?c.me.request_status==='accepted'&&!c.me.is_archived:false);
- return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content}><View style={s.head}><View><Text style={s.k}>CONNECT</Text><Text style={s.title}>Messages</Text></View><Pressable onPress={()=>router.push('/new-message')} style={s.new}><Text style={s.wh}>New</Text></Pressable></View><Text style={s.lead}>Private conversations without the clutter.</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>{['Messages','Requests','Communities','Archived'].map(x=><Pressable key={x} onPress={()=>setTab(x)} style={[s.tab,tab===x&&s.sel]}><Text style={[s.tabt,tab===x&&s.selt]}>{x}</Text></Pressable>)}</ScrollView>{error&&<Text style={s.err}>{error}</Text>}{loading&&<Text style={s.muted}>Loading conversations…</Text>}{!loading&&tab==='Communities'&&<Empty text="Community messaging is not connected yet."/>}{!loading&&tab!=='Communities'&&!rows.length&&<Empty text={tab==='Requests'?'No message requests.':'No conversations yet.'}/>} {!loading&&rows.map(c=><Row key={c.id} c={c} tab={tab} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>)}</ScrollView></SafeAreaView>}
-function Empty({text}){return <View style={s.empty}><Text style={s.icon}>✉</Text><Text style={s.h}>{text}</Text><Text style={s.p}>Real conversations will appear here.</Text></View>}
-function Row({c,tab,open,accept,decline,archive}){const p=c.other?.profiles,n=p?.display_name||p?.username||c.title||'Conversation';return <View style={s.row}><Pressable onPress={open} style={s.main}><View style={s.avatar}><Text style={s.avt}>{n[0]?.toUpperCase()}</Text></View><View style={{flex:1}}><Text style={s.name}>{n}</Text>{p?.username&&<Text style={s.handle}>@{p.username}</Text>}{tab==='Requests'&&<Text style={s.pending}>Message request</Text>}</View></Pressable>{tab==='Requests'?<View style={s.actions}><Pressable onPress={accept} style={s.accept}><Text style={s.wh}>Accept</Text></Pressable><Pressable onPress={decline} style={s.decline}><Text style={s.bt}>Decline</Text></Pressable></View>:<Pressable onPress={archive} style={s.small}><Text style={s.bt}>{tab==='Archived'?'Unarchive':'Archive'}</Text></Pressable>}</View>}
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:'#fff'},content:{padding:20},head:{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-end'},k:{fontSize:10,fontWeight:'800',letterSpacing:1.5,color:'#6546f5'},title:{marginTop:8,fontSize:31,fontWeight:'760',color:'#17171b'},lead:{marginTop:8,fontSize:14,lineHeight:21,color:'#696974'},new:{paddingHorizontal:15,height:36,borderRadius:11,backgroundColor:'#17171b',justifyContent:'center'},wh:{color:'#fff',fontSize:10,fontWeight:'700'},tabs:{gap:7,paddingVertical:18},tab:{paddingHorizontal:13,height:34,borderRadius:17,borderWidth:1,borderColor:'#e8e8ec',justifyContent:'center'},sel:{backgroundColor:'#17171b'},tabt:{fontSize:11,color:'#696974'},selt:{color:'#fff'},err:{padding:12,color:'#9e2f2f'},muted:{color:'#696974'},empty:{marginTop:10,padding:24,borderWidth:1,borderColor:'#e8e8ec',borderRadius:18,alignItems:'center',backgroundColor:'#f7f7f9'},icon:{fontSize:25,color:'#6546f5'},h:{marginTop:12,fontSize:17,fontWeight:'700',color:'#17171b'},p:{marginTop:7,fontSize:13,color:'#696974'},row:{flexDirection:'row',alignItems:'center',paddingVertical:13,borderBottomWidth:1,borderBottomColor:'#e8e8ec',gap:8},main:{flex:1,flexDirection:'row',alignItems:'center',gap:10},avatar:{width:44,height:44,borderRadius:22,backgroundColor:'#17171b',alignItems:'center',justifyContent:'center'},avt:{color:'#fff',fontWeight:'700'},name:{fontSize:13,fontWeight:'700',color:'#17171b'},handle:{fontSize:11,color:'#696974'},pending:{fontSize:10,color:'#6546f5'},actions:{gap:5},accept:{padding:9,backgroundColor:'#17171b',borderRadius:8},decline:{padding:9,borderWidth:1,borderColor:'#e8e8ec',borderRadius:8},small:{padding:8,borderWidth:1,borderColor:'#e8e8ec',borderRadius:8},bt:{fontSize:10,color:'#17171b',fontWeight:'700'}});
+const C = { bg:'#050A11', panel:'#08121E', panel2:'#0C1928', line:'#17283B', text:'#F5F7FA', muted:'#8191A5', blue:'#3B82F6', violet:'#7C3AED', pink:'#D946EF', white:'#FFF', danger:'#FF5B73' };
+
+export default function Messages() {
+  const { user, profile } = useAuth();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const desktop = Platform.OS === 'web' && width >= 1000;
+  const [tab,setTab] = useState('Messages');
+  const [items,setItems] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [refreshing,setRefreshing] = useState(false);
+  const [error,setError] = useState('');
+  const [query,setQuery] = useState('');
+
+  const load = useCallback(async (pull=false) => {
+    if (!user?.id) return;
+    pull ? setRefreshing(true) : setLoading(true);
+    setError('');
+    const { data, error:e } = await supabase
+      .from('conversations')
+      .select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))')
+      .order('created_at',{ascending:false});
+    if (e) { setError(e.message); setItems([]); }
+    else {
+      const base = (data||[]).map(c => {
+        const members = c.conversation_members || [];
+        return { ...c, me:members.find(m=>m.user_id===user.id), other:members.find(m=>m.user_id!==user.id) };
+      }).filter(c=>c.me);
+      const ids = base.map(c=>c.id);
+      let latest = [];
+      if (ids.length) {
+        const mr = await supabase.from('messages').select('id,conversation_id,sender_id,content,created_at').in('conversation_id',ids).order('created_at',{ascending:false}).limit(Math.min(ids.length*3,300));
+        if (!mr.error) latest = mr.data || [];
+      }
+      const latestBy = {};
+      latest.forEach(m => { if (!latestBy[m.conversation_id]) latestBy[m.conversation_id]=m; });
+      setItems(base.map(c=>({...c,lastMessage:latestBy[c.id]||null})));
+    }
+    setLoading(false); setRefreshing(false);
+  },[user?.id]);
+
+  useFocusEffect(useCallback(()=>{ load(); },[load]));
+
+  const change = async (c,patch) => {
+    const { error:e } = await supabase.from('conversation_members').update(patch).eq('conversation_id',c.id).eq('user_id',user.id);
+    if (e) setError(e.message); else load();
+  };
+
+  const rows = useMemo(() => {
+    const filtered = items.filter(c => {
+      const p=c.other?.profiles;
+      const n=p?.display_name||p?.username||c.title||'Conversation';
+      return !query.trim() || n.toLowerCase().includes(query.trim().toLowerCase());
+    });
+    return filtered.filter(c =>
+      tab==='Requests' ? c.me.request_status==='pending' :
+      tab==='Archived' ? c.me.request_status==='accepted' && c.me.is_archived :
+      tab==='Messages' ? c.me.request_status==='accepted' && !c.me.is_archived : false
+    );
+  },[items,tab,query]);
+
+  const requestCount = items.filter(c=>c.me?.request_status==='pending').length;
+  const archiveCount = items.filter(c=>c.me?.request_status==='accepted' && c.me?.is_archived).length;
+
+  if (desktop) return (
+    <SafeAreaView style={s.safe}>
+      <View style={s.desktopShell}>
+        <Sidebar profile={profile} router={router} />
+        <View style={s.desktopMain}>
+          <Topbar query={query} setQuery={setQuery} router={router} />
+          <View style={s.desktopBody}>
+            <View style={s.inbox}>
+              <View style={s.inboxHead}>
+                <View><Text style={s.kicker}>CONNECT</Text><Text style={s.title}>Messages</Text></View>
+                <Pressable onPress={()=>router.push('/new-message')} style={s.new}><Text style={s.newText}>＋ New</Text></Pressable>
+              </View>
+              <Tabs tab={tab} setTab={setTab} requestCount={requestCount} />
+              {error ? <Error text={error}/> : null}
+              {loading ? <Loading/> : tab==='Communities' ? <CommunityPlaceholder/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
+            </View>
+            <ConversationPreview />
+            <QuickRail requestCount={requestCount} archiveCount={archiveCount} router={router} />
+          </View>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+
+  return (
+    <SafeAreaView style={s.safe}>
+      <View style={s.mobileHead}>
+        <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
+        <View style={s.headActions}><Text style={s.icon}>⌕</Text><Pressable onPress={()=>router.push('/new-message')}><Text style={s.icon}>□</Text></Pressable></View>
+      </View>
+      <View style={s.mobileTitleRow}><Text style={s.mobileTitle}>Messages</Text><Pressable onPress={()=>router.push('/new-message')}><Text style={s.compose}>↗</Text></Pressable></View>
+      <Tabs tab={tab} setTab={setTab} requestCount={requestCount}/>
+      {tab==='Communities' ? <CommunityPlaceholder/> :
+        <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />} contentContainerStyle={s.mobileList}>
+          {error ? <Error text={error}/> : null}
+          {loading ? <Loading/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
+        </ScrollView>
+      }
+    </SafeAreaView>
+  );
+}
+
+function Sidebar({profile,router}) {
+  const items=[['⌂','Home','/home'],['⌕','Explore','/explore'],['♧','Communities','/communities'],['▱','Messages','/messages'],['♧','Notifications','/notifications'],['＋','Create','/create'],['♙','Profile','/profile']];
+  return <View style={s.sidebar}>
+    <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
+    <View style={s.sideNav}>{items.map(([ic,label,path])=><Pressable key={label} onPress={()=>router.push(path)} style={[s.sideItem,label==='Messages'&&s.active]}><Text style={s.sideIcon}>{ic}</Text><Text style={s.sideLabel}>{label}</Text>{label==='Messages'?<Badge n="3"/>:null}{label==='Notifications'?<Badge n="5"/>:null}</Pressable>)}</View>
+    <View style={s.proCard}><Text style={s.proTitle}>✦ Freetopia Pro</Text><Text style={s.proBody}>Unlock more features, customize your experience, and get closer to your community.</Text><Pressable style={s.proButton}><Text style={s.proButtonText}>Upgrade →</Text></Pressable></View>
+  </View>;
+}
+function Topbar({query,setQuery,router}) {
+  return <View style={s.topbar}><TextInput value={query} onChangeText={setQuery} placeholder="Search Freetopia..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Text style={s.topIcon}>♧</Text><Text style={s.topIcon}>□</Text><Pressable onPress={()=>router.push('/profile')}><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></Pressable></View></View>;
+}
+function Tabs({tab,setTab,requestCount}) {
+  return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>{['Messages','Requests','Communities','Archived'].map(x=><Pressable key={x} onPress={()=>setTab(x)} style={[s.tab,tab===x&&s.tabSelected]}><Text style={[s.tabText,tab===x&&s.tabSelectedText]}>{x}</Text>{x==='Requests'&&requestCount>0?<View style={s.count}><Text style={s.countText}>{requestCount}</Text></View>:null}</Pressable>)}</ScrollView>;
+}
+function Row({c,tab,open,accept,decline,archive}) {
+  const p=c.other?.profiles;
+  const n=p?.display_name||p?.username||c.title||'Conversation';
+  const preview=c.lastMessage?.content || (tab==='Requests'?'Can we connect?':'Start a conversation');
+  const mine=c.lastMessage?.sender_id===c.me?.user_id;
+  return <View style={s.row}>
+    <Pressable onPress={open} style={s.rowMain}>
+      {p?.avatar_url?<Image source={{uri:p.avatar_url}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
+      <View style={s.rowInfo}><View style={s.rowTop}><Text style={s.name} numberOfLines={1}>{n}</Text>{c.lastMessage?<Text style={s.time}>{relative(c.lastMessage.created_at)}</Text>:null}</View><Text style={s.preview} numberOfLines={1}>{mine?'You: ':''}{preview}</Text></View>
+    </Pressable>
+    {tab==='Requests' ? <View style={s.requestActions}><Pressable onPress={accept} style={s.accept}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={decline} style={s.decline}><Text style={s.declineText}>Decline</Text></Pressable></View> : <Pressable onPress={archive} style={s.archive}><Text style={s.archiveText}>{tab==='Archived'?'Unarchive':'Archive'}</Text></Pressable>}
+  </View>;
+}
+function ConversationPreview(){return <View style={s.previewPanel}><Text style={s.previewHint}>Select a conversation</Text><Text style={s.previewTitle}>Your conversations live here</Text><Text style={s.previewBody}>Open a message to continue the conversation.</Text></View>}
+function QuickRail({requestCount,archiveCount,router}){return <View style={s.quickRail}><View style={s.quickCard}><Text style={s.quickTitle}>Quick Access</Text><View style={s.quickGrid}><Quick icon="♧" label="My Communities"/><Quick icon="☆" label="Saved"/><Quick icon="▣" label="Archive" value={archiveCount}/><Quick icon="♙" label="Achievements"/></View></View><View style={s.quickCard}><Text style={s.quickTitle}>Inbox</Text><QuickLine label="Hidden Requests" value={requestCount}/><QuickLine label="Archived chats" value={archiveCount}/><Pressable onPress={()=>router.push('/new-message')} style={s.railNew}><Text style={s.railNewText}>Start a new conversation →</Text></Pressable></View><View style={s.railPromo}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Freetopia</Text><Text style={s.promoBody}>One conversation at a time.</Text></View></View>}
+function Quick({icon,label,value}){return <View style={s.quick}><Text style={s.quickIcon}>{icon}</Text><Text style={s.quickLabel}>{label}</Text>{value>0?<Text style={s.quickValue}>{value}</Text>:null}</View>}
+function QuickLine({label,value}){return <View style={s.quickLine}><Text style={s.quickLineLabel}>{label}</Text><Text style={s.quickLineValue}>{value}</Text></View>}
+function CommunityPlaceholder(){return <View style={s.communityBox}><Text style={s.communityIcon}>♧</Text><Text style={s.emptyTitle}>Community messaging isn't connected yet</Text><Text style={s.emptyBody}>The community tab is reserved for a real community conversation system. No fake threads are shown.</Text></View>}
+function Empty({tab}){return <View style={s.empty}><Text style={s.emptyIcon}>{tab==='Archived'?'▣':'✉'}</Text><Text style={s.emptyTitle}>{tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'}</Text><Text style={s.emptyBody}>{tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'}</Text></View>}
+function Error({text}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load messages</Text><Text style={s.errorText}>{text}</Text></View>}
+function Loading(){return <View style={s.loading}><Text style={s.muted}>Loading conversations…</Text></View>}
+function Badge({n}){return <View style={s.badge}><Text style={s.badgeText}>{n}</Text></View>}
+function relative(v){const m=Math.max(0,Math.floor((Date.now()-new Date(v).getTime())/60000));if(m<1)return 'now';if(m<60)return m+'m';const h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d'}
+
+const s=StyleSheet.create({
+ safe:{flex:1,backgroundColor:C.bg},desktopShell:{flex:1,flexDirection:'row',backgroundColor:C.bg},sidebar:{width:225,padding:18,paddingTop:26,borderRightWidth:1,borderRightColor:C.line,backgroundColor:'#060D16'},brand:{flexDirection:'row',alignItems:'center',gap:9},logo:{width:34,height:34},brandText:{color:C.text,fontSize:18,fontWeight:'800'},sideNav:{marginTop:35,gap:5},sideItem:{minHeight:46,paddingHorizontal:12,borderRadius:10,flexDirection:'row',alignItems:'center',gap:13},active:{backgroundColor:'#172B55'},sideIcon:{width:22,color:'#AFC0D3',fontSize:19,textAlign:'center'},sideLabel:{color:'#C9D4E2',fontSize:13,fontWeight:'600',flex:1},badge:{minWidth:20,height:20,borderRadius:10,backgroundColor:C.violet,alignItems:'center',justifyContent:'center'},badgeText:{color:C.white,fontSize:9,fontWeight:'800'},proCard:{marginTop:'auto',borderWidth:1,borderColor:'#3A2A91',borderRadius:12,padding:13,backgroundColor:'#171044'},proTitle:{color:C.text,fontSize:11,fontWeight:'800'},proBody:{color:'#BDB6E6',fontSize:9,lineHeight:14,marginTop:6},proButton:{height:30,borderRadius:15,backgroundColor:C.blue,alignItems:'center',justifyContent:'center',marginTop:10},proButtonText:{color:C.white,fontSize:9,fontWeight:'800'},
+ desktopMain:{flex:1},topbar:{height:64,borderBottomWidth:1,borderBottomColor:C.line,flexDirection:'row',alignItems:'center',paddingHorizontal:24,gap:20},search:{height:36,backgroundColor:'#101D30',borderRadius:9,paddingHorizontal:14,color:C.text,fontSize:11,flex:1,maxWidth:510,borderWidth:1,borderColor:'#172D46'},topIcons:{marginLeft:'auto',flexDirection:'row',alignItems:'center',gap:20},topIcon:{color:C.text,fontSize:20},topAvatar:{width:31,height:31,borderRadius:16,backgroundColor:'#324761',alignItems:'center',justifyContent:'center'},topAvatarText:{color:C.text,fontSize:12,fontWeight:'800'},desktopBody:{flex:1,flexDirection:'row',padding:12,gap:12},inbox:{width:315,borderWidth:1,borderColor:C.line,borderRadius:12,overflow:'hidden',backgroundColor:C.panel},inboxHead:{padding:14,flexDirection:'row',justifyContent:'space-between',alignItems:'center'},kicker:{color:C.blue,fontSize:9,fontWeight:'800',letterSpacing:1.4},title:{color:C.text,fontSize:21,fontWeight:'800',marginTop:3},new:{height:32,paddingHorizontal:11,borderRadius:9,backgroundColor:C.violet,alignItems:'center',justifyContent:'center'},newText:{color:C.white,fontSize:10,fontWeight:'800'},tabs:{gap:5,paddingHorizontal:10,paddingBottom:10},tab:{height:31,paddingHorizontal:10,borderRadius:15,flexDirection:'row',alignItems:'center',gap:5},tabSelected:{backgroundColor:'#172B55'},tabText:{color:C.muted,fontSize:9,fontWeight:'700'},tabSelectedText:{color:C.text},count:{minWidth:16,height:16,borderRadius:8,backgroundColor:C.violet,alignItems:'center',justifyContent:'center'},countText:{color:C.white,fontSize:8,fontWeight:'800'},row:{minHeight:66,paddingHorizontal:10,paddingVertical:9,borderTopWidth:1,borderTopColor:C.line,flexDirection:'row',alignItems:'center',gap:7},rowMain:{flex:1,flexDirection:'row',alignItems:'center',gap:9},avatar:{width:40,height:40,borderRadius:20,backgroundColor:'#243B55',alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#385270'},avatarText:{color:C.text,fontSize:14,fontWeight:'800'},rowInfo:{flex:1,minWidth:0},rowTop:{flexDirection:'row',alignItems:'center',gap:6},name:{color:C.text,fontSize:11,fontWeight:'800',flex:1},time:{color:C.muted,fontSize:8},preview:{color:'#8FA0B4',fontSize:9,marginTop:4},requestActions:{position:'absolute',right:9,bottom:7,flexDirection:'row',gap:4},accept:{paddingHorizontal:8,height:24,borderRadius:12,backgroundColor:C.blue,alignItems:'center',justifyContent:'center'},acceptText:{color:C.white,fontSize:8,fontWeight:'800'},decline:{paddingHorizontal:7,height:24,borderRadius:12,borderWidth:1,borderColor:'#344B64',alignItems:'center',justifyContent:'center'},declineText:{color:'#B8C5D3',fontSize:8,fontWeight:'700'},archive:{paddingHorizontal:7,height:25,borderRadius:12,borderWidth:1,borderColor:'#263B52',justifyContent:'center'},archiveText:{color:'#91A3B8',fontSize:7,fontWeight:'700'},previewPanel:{flex:1,borderWidth:1,borderColor:C.line,borderRadius:12,backgroundColor:'#050B13',alignItems:'center',justifyContent:'center'},previewHint:{color:C.blue,fontSize:9,fontWeight:'800',letterSpacing:1},previewTitle:{color:C.text,fontSize:20,fontWeight:'800',marginTop:8},previewBody:{color:C.muted,fontSize:11,marginTop:5},quickRail:{width:245,gap:12},quickCard:{borderWidth:1,borderColor:C.line,borderRadius:12,backgroundColor:C.panel,padding:13},quickTitle:{color:C.text,fontSize:12,fontWeight:'800',marginBottom:10},quickGrid:{flexDirection:'row',flexWrap:'wrap',gap:8},quick:{width:'47%',minHeight:58,borderRadius:9,backgroundColor:'#0D1A2A',borderWidth:1,borderColor:'#182C43',padding:8},quickIcon:{color:'#9FB8D5',fontSize:17},quickLabel:{color:'#B7C4D3',fontSize:8,marginTop:5},quickValue:{color:C.text,fontSize:8,fontWeight:'800',marginTop:2},quickLine:{height:34,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:C.line},quickLineLabel:{color:'#AAB8C8',fontSize:9},quickLineValue:{color:C.text,fontSize:9,fontWeight:'800'},railNew:{marginTop:12,height:34,borderRadius:17,backgroundColor:C.blue,alignItems:'center',justifyContent:'center'},railNewText:{color:C.white,fontSize:8,fontWeight:'800'},railPromo:{borderWidth:1,borderColor:'#3D2E9C',borderRadius:12,padding:13,backgroundColor:'#171044'},promoLogo:{width:32,height:32},promoTitle:{color:C.text,fontSize:12,fontWeight:'800',marginTop:7},promoBody:{color:'#BEB7E7',fontSize:9,marginTop:3},
+ mobileHead:{height:52,paddingHorizontal:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:C.line},headActions:{flexDirection:'row',gap:18,alignItems:'center'},icon:{color:C.text,fontSize:21},mobileTitleRow:{paddingHorizontal:16,paddingTop:12,paddingBottom:4,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},mobileTitle:{color:C.text,fontSize:23,fontWeight:'800'},compose:{color:C.text,fontSize:22},mobileList:{paddingBottom:80},empty:{margin:14,padding:28,borderWidth:1,borderColor:C.line,borderRadius:14,backgroundColor:C.panel,alignItems:'center'},emptyIcon:{color:C.blue,fontSize:25},emptyTitle:{color:C.text,fontSize:14,fontWeight:'800',marginTop:10,textAlign:'center'},emptyBody:{color:C.muted,fontSize:10,lineHeight:16,textAlign:'center',marginTop:6,maxWidth:290},communityBox:{margin:14,padding:30,borderWidth:1,borderColor:C.line,borderRadius:14,backgroundColor:C.panel,alignItems:'center'},communityIcon:{fontSize:28,color:C.violet},error:{margin:10,padding:11,borderWidth:1,borderColor:'#522632',borderRadius:9,backgroundColor:'#1B0D14'},errorTitle:{color:'#FF9BAD',fontSize:10,fontWeight:'800'},errorText:{color:'#C88B96',fontSize:9,marginTop:3},loading:{padding:25,alignItems:'center'},muted:{color:C.muted,fontSize:10}
+});
