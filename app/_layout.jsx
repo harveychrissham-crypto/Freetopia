@@ -1,7 +1,7 @@
 import { Stack, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { AuthProvider, useAuth } from '../providers/AuthProvider';
 
 function NavigationGate() {
@@ -18,7 +18,7 @@ function NavigationGate() {
   }, [loading, session, segments, router]);
 
   if (loading) {
-    return <View style={styles.loading}><ActivityIndicator size="small" /></View>;
+    return <View style={styles.loading}><View style={styles.loadingMark}><Text style={styles.loadingMarkText}>F</Text></View><Text style={styles.loadingText}>Freetopia</Text><ActivityIndicator size="small" color="#7F8D9D" /></View>;
   }
 
   return <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />;
@@ -27,12 +27,12 @@ function NavigationGate() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <NavigationGate />
     </AuthProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  loading: { flex: 1, backgroundColor: '#060B12', alignItems: 'center', justifyContent: 'center', gap: 12 },\n  loadingMark: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#182536', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#29415B' },\n  loadingMarkText: { color: '#E9EEF4', fontSize: 20, fontWeight: '900' },\n  loadingText: { color: '#C9D4E2', fontSize: 14, fontWeight: '800', marginBottom: 2 },
 });
