@@ -40,6 +40,7 @@ export default function Community(){
   setBusy(false);
  };
  const isActive=member?.status==='active';
+ const visiblePosts=community.is_private&&!isActive?[]:posts;
 
  return <SafeAreaView style={s.safe}><ScrollView refreshControl={<RefreshControl refreshing={false} onRefresh={()=>load(true)}/>} contentContainerStyle={s.content}>
   <View style={s.topbar}><Pressable onPress={()=>r.back()}><Text style={s.back}>←</Text></Pressable><Text style={s.topTitle}>Community</Text><Pressable onPress={()=>r.push('/communities')}><Text style={s.close}>×</Text></Pressable></View>
@@ -47,12 +48,12 @@ export default function Community(){
    <View style={s.badge}><Text style={s.badgeText}>{community.is_private?'PRIVATE':'COMMUNITY'}</Text></View>
    <Text style={s.title}>{community.name}</Text>
    {community.slug?<Text style={s.slug}>/{community.slug}</Text>:null}
-   <Text style={s.meta}>{members} active member{members===1?'':'s'} · {posts.length} recent post{posts.length===1?'':'s'}</Text>
+   <Text style={s.meta}>{members} active member{members===1?'':'s'} · {visiblePosts.length} recent post{visiblePosts.length===1?'':'s'}</Text>
    <Text style={s.desc}>{community.description||'No description yet.'}</Text>
    {!member?<Pressable disabled={busy} onPress={join} style={[s.join,busy&&s.disabled]}><Text style={s.joinText}>{busy?'Joining…':community.is_private?'Request to join':'Join community'}</Text></Pressable>:member.status==='pending'?<View style={s.pending}><Text style={s.pendingText}>Request pending</Text><Text style={s.pendingHint}>You’ll be able to post here once your request is approved.</Text></View>:<View style={s.actions}><View><Text style={s.member}>You’re a member</Text><Text style={s.memberHint}>{community.is_private?'Private community member':'Active community member'}</Text></View>{community.creator_id!==user?.id?<Pressable disabled={busy} onPress={leave} style={s.leave}><Text style={s.leaveText}>{busy?'Leaving…':'Leave'}</Text></Pressable>:<Text style={s.owner}>Owner</Text>}</View>}
   </View>
   <View style={s.postCtaRow}><View><Text style={s.section}>Community posts</Text><Text style={s.sectionHint}>{isActive?'Share something with this community.':'Join the community to participate.'}</Text></View>{isActive&&<Pressable onPress={()=>r.push({pathname:'/create',params:{communityId:id}})} style={s.postCta}><Text style={s.postCtaText}>＋ Post</Text></Pressable>}</View>
-  {posts.length===0?<View style={s.empty}><Text style={s.emptyTitle}>No posts yet</Text><Text style={s.p}>Posts shared with this community will appear here.</Text></View>:posts.map(p=><Pressable key={p.id} onPress={()=>r.push({pathname:'/post',params:{id:p.id}})} style={s.post}>
+  {visiblePosts.length===0?<View style={s.empty}><Text style={s.emptyTitle}>No posts yet</Text><Text style={s.p}>Posts shared with this community will appear here.</Text></View>:visiblePosts.map(p=><Pressable key={p.id} onPress={()=>r.push({pathname:'/post',params:{id:p.id}})} style={s.post}>
    <View style={s.postHead}>{p.profiles?.avatar_url?<Image source={{uri:p.profiles.avatar_url}} style={s.postAvatar}/>:<View style={s.postAvatarFallback}><Text style={s.postAvatarText}>{(p.profiles?.display_name||p.profiles?.username||'M').charAt(0).toUpperCase()}</Text></View>}<View style={{flex:1}}><Text style={s.author}>{p.profiles?.display_name||p.profiles?.username||'Member'}</Text>{p.profiles?.username?<Text style={s.handle}>@{p.profiles.username} · {relative(p.created_at)}</Text>:<Text style={s.handle}>{relative(p.created_at)}</Text>}</View></View>
    <Text style={s.text}>{p.content||''}</Text><Text style={s.time}>{new Date(p.created_at).toLocaleString()}</Text>
   </Pressable>)}
