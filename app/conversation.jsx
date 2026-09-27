@@ -36,9 +36,16 @@ export default function Conversation(){
  useEffect(()=>{
   load();
   if(!id)return;
-  const ch=supabase.channel('conversation-'+id).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},()=>load()).subscribe();
+  const ch=supabase.channel('conversation-'+id).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
+   const incoming=payload.new;
+   if(!incoming?.id)return;
+   const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url)').eq('id',incoming.id).maybeSingle();
+   if(!message)return;
+   setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
+   if(message.sender_id!==user?.id&&!message.deleted_at){await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});}
+  }).subscribe();
   return()=>{supabase.removeChannel(ch)}
- },[id,load]);
+ },[id,load,user?.id]);
 
  useEffect(()=>{
   if(messages.length)requestAnimationFrame(()=>scrollRef.current?.scrollToEnd({animated:true}));
@@ -51,7 +58,10 @@ export default function Conversation(){
   const{error:e}=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:v});
   if(e)setError(e.message);else setText('');
   setSending(false);
-  if(!e)load()
+  if(!e){
+   const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url)').eq('conversation_id',id).eq('sender_id',user.id).eq('content',v).order('created_at',{ascending:false}).limit(1).maybeSingle();
+   if(message)setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
+ }
  };
 
  const name=info?.other?.profiles?.display_name||info?.other?.profiles?.username||'Conversation';
