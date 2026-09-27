@@ -86,7 +86,7 @@ export default function EditProfile(){
 
   return <SafeAreaView style={s.safe}>
     <KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
-      {desktop?<Desktop router={router} profile={profile} avatar={avatar} initial={initial} username={username} name={name} bio={bio} setUsername={setUsername} setName={setName} setBio={setBio} save={save} saving={saving} error={error} completion={completion} uploadAvatar={uploadAvatar} uploading={uploading} uploadCover={uploadCover} uploadingCover={uploadingCover}/>:<Mobile router={router} profile={profile} avatar={avatar} initial={initial} username={username} name={name} bio={bio} setUsername={setUsername} setName={setName} setBio={setBio} save={save} saving={saving} error={error} uploadCover={uploadCover} uploadingCover={uploadingCover}/>}
+      {desktop?<Desktop router={router} profile={profile} avatar={avatar} initial={initial} username={username} name={name} bio={bio} setUsername={setUsername} setName={setName} setBio={setBio} save={save} saving={saving} error={error} completion={completion} uploadAvatar={uploadAvatar} uploading={uploading} uploadCover={uploadCover} uploadingCover={uploadingCover}/>:<Mobile router={router} profile={profile} avatar={avatar} initial={initial} username={username} name={name} bio={bio} setUsername={setUsername} setName={setName} setBio={setBio} save={save} saving={saving} error={error} uploadAvatar={uploadAvatar} uploading={uploading} uploadCover={uploadCover} uploadingCover={uploadingCover}/>}
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }
@@ -101,7 +101,7 @@ function Desktop(p){
          <View style={s.editorHeader}><View style={s.headingRow}><Pressable onPress={()=>p.router.back()}><Text style={s.back}>‹</Text></Pressable><Text style={s.pageTitle}>Edit Profile</Text></View><Pressable onPress={p.save} disabled={p.saving} style={s.saveButton}><Text style={s.saveText}>{p.saving?'Saving…':'Save Changes'}</Text></Pressable></View>
          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.editorScroll}>
            <Cover avatar={p.avatar} initial={p.initial} cover={p.profile?.cover_url} onChangeCover={p.uploadCover} uploadingCover={p.uploadingCover}/>
-           <View style={s.photoActions}><Pressable onPress={p.uploadAvatar} disabled={p.uploading} style={[s.photoButton,p.uploading&&s.disabledButton]}><Text style={s.buttonText}>{uploading?'Uploading…':'◎ Change Profile Photo'}</Text></Pressable><Text style={s.photoNote}>Original-quality images are uploaded at full picker quality.</Text></View>
+           <View style={s.photoActions}><Pressable onPress={p.uploadAvatar} disabled={p.uploading} style={[s.photoButton,p.uploading&&s.disabledButton]}><Text style={s.buttonText}>{p.uploading?'Uploading…':'◎ Change Profile Photo'}</Text></Pressable><Text style={s.photoNote}>Original-quality images are uploaded at full picker quality.</Text></View>
            <View style={s.fields2}>
              <Field label="Username" value={p.username} setValue={p.setUsername} max={30}/>
              <Field label="Display Name" value={p.name} setValue={p.setName} max={50}/>
