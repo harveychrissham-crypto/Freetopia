@@ -86,7 +86,7 @@ export default function Messages() {
               </View>
               <Tabs tab={tab} setTab={setTab} requestCount={requestCount} />
               {error ? <Error text={error}/> : null}
-              {loading ? <Loading/> : tab==='Communities' ? <CommunityList communities={communities} router={router}/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
+              {loading ? <Loading/> : tab==='Communities' ? <CommunityList communities={communities} router={router} query={query}/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
             </View>
             <ConversationPreview />
             <QuickRail requestCount={requestCount} archiveCount={archiveCount} router={router} onArchive={()=>setTab('Archived')} />
@@ -145,11 +145,12 @@ function ConversationPreview(){return <View style={s.previewPanel}><Text style={
 function QuickRail({requestCount,archiveCount,router,onArchive}){return <View style={s.quickRail}><View style={s.quickCard}><Text style={s.quickTitle}>Quick Access</Text><View style={s.quickGrid}><Quick icon="♧" label="My Communities" onPress={()=>router.push('/communities')}/><Quick icon="☆" label="Saved"/><Quick icon="▣" label="Archive" value={archiveCount} onPress={onArchive}/><Quick icon="♙" label="Achievements"/></View></View><View style={s.quickCard}><Text style={s.quickTitle}>Inbox</Text><QuickLine label="Hidden Requests" value={requestCount}/><QuickLine label="Archived chats" value={archiveCount}/><Pressable onPress={()=>router.push('/new-message')} style={s.railNew}><Text style={s.railNewText}>Start a new conversation →</Text></Pressable></View><View style={s.railPromo}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Freetopia</Text><Text style={s.promoBody}>One conversation at a time.</Text></View></View>}
 function Quick({icon,label,value,onPress}){return <Pressable onPress={onPress} disabled={!onPress} style={s.quick}><Text style={s.quickIcon}>{icon}</Text><Text style={s.quickLabel}>{label}</Text>{value>0?<Text style={s.quickValue}>{value}</Text>:null}</Pressable>}
 function QuickLine({label,value}){return <View style={s.quickLine}><Text style={s.quickLineLabel}>{label}</Text><Text style={s.quickLineValue}>{value}</Text></View>}
-function CommunityList({communities,router}) {
-  if (!communities.length) return <View style={s.communityBox}><Text style={s.communityIcon}>♧</Text><Text style={s.emptyTitle}>No communities yet</Text><Text style={s.emptyBody}>Real communities will appear here as they are created.</Text></View>;
+function CommunityList({communities,router,query=''}) {
+  const visible=(communities||[]).filter(c=>!query.trim()||`${c.name||''} ${c.description||''}`.toLowerCase().includes(query.trim().toLowerCase()));
+  if (!visible.length) return <View style={s.communityBox}><Text style={s.communityIcon}>♧</Text><Text style={s.emptyTitle}>{query.trim()?'No matching communities':'No communities yet'}</Text><Text style={s.emptyBody}>{query.trim()?'Try a different search.':'Real communities will appear here as they are created.'}</Text></View>;
   return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.communityList}>
     <Pressable onPress={()=>router.push('/create-community')} style={s.createCommunity}><Text style={s.createCommunityText}>＋ Create Community</Text></Pressable>
-    {communities.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={s.communityRow}>
+    {visible.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={s.communityRow}>
       {c.avatar_url?<Image source={{uri:c.avatar_url}} style={s.communityAvatar}/>:<View style={s.communityAvatar}><Text style={s.communityAvatarText}>{c.name?.[0]?.toUpperCase()}</Text></View>}
       <View style={{flex:1}}><Text style={s.communityName}>{c.name}</Text><Text style={s.communityMembers}>{c.is_private?'Private community':'Public community'}</Text></View>
       <Text style={s.joined}>View</Text>
