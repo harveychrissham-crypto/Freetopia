@@ -26,7 +26,7 @@ export default function Explore(){
  useEffect(()=>{const incoming=Array.isArray(params.q)?params.q[0]:params.q;const incomingTab=Array.isArray(params.tab)?params.tab[0]:params.tab;const validTabs=['For You','Communities','Topics','Posts','People'];if(incomingTab&&validTabs.includes(incomingTab))setTab(incomingTab);if(incoming&&incoming!==q&&!initialSearchApplied){setQ(incoming);setTab('Posts');setInitialSearchApplied(true);search(incoming)}},[params.q,params.tab,q,initialSearchApplied]);
 
  const search=async(nextValue)=>{
-  const value=(nextValue??q).trim(); if(!value){load();return;}
+  const value=(nextValue??q).trim(); if(!value){load();return;} if(tab==='For You')setTab('Posts');
   setLoading(true);setError('');
   const [p,c,po]=await Promise.all([
    supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').or('username.ilike.%'+value+'%,display_name.ilike.%'+value+'%,bio.ilike.%'+value+'%').limit(20),
