@@ -1,82 +1,474 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { Platform, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 
-const c={ink:'#17171b',muted:'#696974',line:'#e8e8ec',surface:'#f7f7f9',accent:'#6546f5'};
+const C = {
+  bg: '#050A11',
+  panel: '#09111C',
+  panel2: '#0D1725',
+  line: '#172538',
+  text: '#F5F7FA',
+  muted: '#8795A8',
+  blue: '#3B82F6',
+  violet: '#7C3AED',
+  pink: '#D946EF',
+  white: '#FFFFFF',
+};
 
-export default function Home(){
-  const r=useRouter();
+const tabs = ['For You', 'Following', 'Communities'];
+
+export default function Home() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
   const { user, profile } = useAuth();
-  const [posts,setPosts]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [refreshing,setRefreshing]=useState(false);
-  const [error,setError]=useState('');
+  const desktop = Platform.OS === 'web' && width >= 1000;
+  const [activeTab, setActiveTab] = useState('For You');
+  const [posts, setPosts] = useState([]);
+  const [communities, setCommunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
 
-  const loadPosts=useCallback(async (pull=false)=>{
-    if(pull)setRefreshing(true);else setLoading(true);
+  const load = useCallback(async (pull = false) => {
+    if (pull) setRefreshing(true);
+    else setLoading(true);
     setError('');
-    const {data,error:queryError}=await supabase
+
+    const communitiesPromise = supabase
+      .from('communities')
+      .select('id,name,slug,description,is_private')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    let authorIds = null;
+    if (activeTab === 'Following' && user?.id) {
+      const { data, error: followError } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user.id)
+        .eq('status', 'accepted');
+      if (followError) {
+        setError(followError.message);
+      } else {
+        authorIds = [user.id, ...(data || []).map((row) => row.following_id)];
+      }
+    }
+
+    let query = supabase
       .from('posts')
-      .select('id,author_id,content,visibility,created_at,profiles:author_id(id,username,display_name,avatar_url),post_reactions(user_id,reaction_type)')
-      .order('created_at',{ascending:false})
+      .select('id,author_id,content,visibility,community_id,created_at,profiles:author_id(id,username,display_name,avatar_url),post_reactions(user_id,reaction_type)')
+      .order('created_at', { ascending: false })
       .limit(30);
 
-    if(queryError){setError(queryError.message);setPosts([]);}
-    else setPosts((data||[]).map(post=>({
+    if (activeTab === 'Following' && authorIds) {
+      query = query.in('author_id', authorIds);
+    }
+    if (activeTab === 'Communities') {
+      query = query.not('community_id', 'is', null);
+    }
+
+    const [{ data, error: postError }, { data: communityData, error: communityError }] = await Promise.all([
+      query,
+      communitiesPromise,
+    ]);
+
+    if (postError) setError(postError.message);
+    if (communityError) setError(communityError.message);
+
+    setPosts((data || []).map((post) => ({
       ...post,
-      reactionCount:post.post_reactions?.filter(reaction=>reaction.reaction_type==='like').length||0,
-      liked:post.post_reactions?.some(reaction=>reaction.user_id===user?.id&&reaction.reaction_type==='like')||false,
+      reactionCount: post.post_reactions?.filter((reaction) => reaction.reaction_type === 'like').length || 0,
+      liked: post.post_reactions?.some((reaction) => reaction.user_id === user?.id && reaction.reaction_type === 'like') || false,
     })));
-    setLoading(false);setRefreshing(false);
-  },[user?.id]);
+    setCommunities(communityData || []);
+    setLoading(false);
+    setRefreshing(false);
+  }, [activeTab, user?.id]);
 
-  useFocusEffect(useCallback(()=>{loadPosts();},[loadPosts]));
-  const displayName=profile?.display_name||user?.email?.split('@')[0]||'Your profile';
-  const initials=displayName.charAt(0).toUpperCase();
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const toggleLike=async(postId,liked)=>{
-    if(!user)return;
-    setPosts(current=>current.map(post=>post.id===postId?{...post,liked:!liked,reactionCount:Math.max(0,post.reactionCount+(liked?-1:1))}:post));
-    const query=liked
-      ? supabase.from('post_reactions').delete().eq('post_id',postId).eq('user_id',user.id).eq('reaction_type','like')
-      : supabase.from('post_reactions').insert({post_id:postId,user_id:user.id,reaction_type:'like'});
-    const {error:mutationError}=await query;
-    if(mutationError){
-      setPosts(current=>current.map(post=>post.id===postId?{...post,liked,reactionCount:Math.max(0,post.reactionCount+(liked?1:-1))}:post));
+  const toggleLike = async (postId, liked) => {
+    if (!user) return;
+    setPosts((current) => current.map((post) => post.id === postId
+      ? { ...post, liked: !liked, reactionCount: Math.max(0, post.reactionCount + (liked ? -1 : 1)) }
+      : post));
+
+    const request = liked
+      ? supabase.from('post_reactions').delete().eq('post_id', postId).eq('user_id', user.id).eq('reaction_type', 'like')
+      : supabase.from('post_reactions').insert({ post_id: postId, user_id: user.id, reaction_type: 'like' });
+
+    const { error: mutationError } = await request;
+    if (mutationError) {
+      setPosts((current) => current.map((post) => post.id === postId
+        ? { ...post, liked, reactionCount: Math.max(0, post.reactionCount + (liked ? 1 : -1)) }
+        : post));
     }
   };
 
-  return <SafeAreaView style={s.safe}><ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>loadPosts(true)}/>} contentContainerStyle={s.content}>
-    <View style={s.header}><View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.wordmark}>freetopia</Text></View><Pressable onPress={()=>r.push('/notifications')} style={s.headerButton}><Text style={s.headerIcon}>♡</Text></Pressable></View>
-    <View style={s.heading}><Text style={s.eyebrow}>YOUR WORLD</Text><Text style={s.title}>What’s happening{String.fromCharCode(10)}in your world?</Text><Text style={s.lead}>Express. Discover. Connect. Create. Belong.</Text></View>
-    <Pressable onPress={()=>r.push('/create')} style={s.composer}><View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View><View style={{flex:1}}><Text style={s.composerTitle}>What’s on your mind?</Text><Text style={s.composerHint}>Share something with Freetopia</Text></View><View style={s.plus}><Text style={s.plusText}>+</Text></View></Pressable>
-    <View style={s.feedHeader}><Text style={s.sectionTitle}>For you</Text><Text style={s.sectionHint}>Posts visible to your account</Text></View>
-    {!!error && <View style={s.errorBox}><Text style={s.errorTitle}>Couldn’t load your feed</Text><Text style={s.errorBody}>{error}</Text></View>}
-    {!loading && !error && posts.length===0 && <View style={s.empty}><View style={s.emptyIcon}><Text style={{fontSize:20}}>✦</Text></View><Text style={s.emptyTitle}>Your feed is ready</Text><Text style={s.emptyBody}>Create your first post, follow people, or explore communities to start shaping your Freetopia.</Text><Pressable onPress={()=>r.push('/create')} style={s.primary}><Text style={s.primaryText}>Create a post</Text></Pressable></View>}
-    {loading && <View style={s.empty}><Text style={s.emptyTitle}>Loading your feed…</Text></View>}
-    {posts.map(post=><PostCard key={post.id} post={post} onLike={toggleLike} onComments={()=>r.push({pathname:'/post',params:{id:post.id}})}/>)}
-  </ScrollView></SafeAreaView>
+  const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Freetopia member';
+  const initials = displayName.charAt(0).toUpperCase();
+  const topics = useMemo(() => {
+    const counts = {};
+    posts.forEach((post) => {
+      (post.content || '').match(/#[A-Za-z0-9_]+/g)?.forEach((tag) => {
+        const key = tag.toLowerCase();
+        counts[key] = (counts[key] || 0) + 1;
+      });
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [posts]);
+
+  const nav = (path) => router.push(path);
+
+  if (desktop) {
+    return (
+      <SafeAreaView style={s.safe}>
+        <View style={s.desktopShell}>
+          <DesktopSidebar displayName={displayName} initials={initials} activeTab={activeTab} onNavigate={nav} />
+          <View style={s.desktopMain}>
+            <DesktopHeader displayName={displayName} onNavigate={nav} />
+            <View style={s.desktopColumns}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} />}
+                contentContainerStyle={s.feedContent}
+              >
+                <FeedTabs activeTab={activeTab} onChange={setActiveTab} />
+                <Composer displayName={displayName} initials={initials} onPress={() => nav('/create')} desktop />
+                <FeedHeader activeTab={activeTab} />
+                {error ? <ErrorBox message={error} /> : null}
+                {loading ? <LoadingBox /> : null}
+                {!loading && !error && posts.length === 0 ? <EmptyState onCreate={() => nav('/create')} /> : null}
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} onLike={toggleLike} onComments={() => nav({ pathname: '/post', params: { id: post.id } })} desktop />
+                ))}
+              </ScrollView>
+              <RightRail topics={topics} communities={communities} onCommunity={(id) => nav({ pathname: '/community', params: { id } })} onCreate={() => nav('/create')} />
+            </View>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={s.mobileSafe}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={C.blue} />}
+        contentContainerStyle={s.mobileContent}
+      >
+        <View style={s.mobileHeader}>
+          <View style={s.brand}>
+            <Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo} />
+            <Text style={s.wordmark}>Freetopia</Text>
+          </View>
+          <View style={s.headerActions}>
+            <Pressable onPress={() => nav('/explore')} style={s.iconButton}><Text style={s.iconGlyph}>⌕</Text></Pressable>
+            <Pressable onPress={() => nav('/notifications')} style={s.iconButton}><Text style={s.iconGlyph}>♧</Text><View style={s.dot} /></Pressable>
+          </View>
+        </View>
+        <FeedTabs activeTab={activeTab} onChange={setActiveTab} mobile />
+        <Composer displayName={displayName} initials={initials} onPress={() => nav('/create')} />
+        {error ? <ErrorBox message={error} /> : null}
+        {loading ? <LoadingBox /> : null}
+        {!loading && !error && posts.length === 0 ? <EmptyState onCreate={() => nav('/create')} /> : null}
+        {posts.map((post) => (
+          <PostCard key={post.id} post={post} onLike={toggleLike} onComments={() => nav({ pathname: '/post', params: { id: post.id } })} />
+        ))}
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
-function PostCard({post,onLike,onComments}){
-  const author=Array.isArray(post.profiles)?post.profiles[0]:post.profiles;
-  const name=author?.display_name||author?.username||'Freetopia member';
-  const handle=author?.username?'@'+author.username:'';
-  return <View style={s.postCard}>
-    <View style={s.postHead}><View style={s.avatarSmall}><Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text></View><View style={{flex:1}}><Text style={s.postName}>{name}</Text>{!!handle&&<Text style={s.postHandle}>{handle}</Text>}</View></View>
-    <Text style={s.postContent}>{post.content}</Text>
-    <Text style={s.postTime}>{new Date(post.created_at).toLocaleString()}</Text>
-    <View style={s.postActions}>
-      <Pressable onPress={()=>onLike(post.id,post.liked)} style={s.action}><Text style={[s.actionIcon,post.liked&&s.liked]}>♥</Text><Text style={s.actionText}>{post.reactionCount||0}</Text></Pressable>
-      <Pressable onPress={onComments} style={s.action}><Text style={s.actionIcon}>○</Text><Text style={s.actionText}>Comment</Text></Pressable>
+function DesktopSidebar({ displayName, initials, onNavigate }) {
+  const items = [
+    ['⌂', 'Home', '/home'],
+    ['⊕', 'Explore', '/explore'],
+    ['♧', 'Communities', '/communities'],
+    ['▱', 'Messages', '/messages'],
+    ['♧', 'Notifications', '/notifications'],
+    ['＋', 'Create', '/create'],
+  ];
+  return (
+    <View style={s.sidebar}>
+      <View style={s.sidebarBrand}>
+        <Image source={require('../../public/brand/freetopia-mark.png')} style={s.sidebarLogo} />
+        <Text style={s.sidebarWordmark}>Freetopia</Text>
+      </View>
+      <View style={s.sideNav}>
+        {items.map(([icon, label, path]) => (
+          <Pressable key={label} onPress={() => onNavigate(path)} style={[s.sideItem, label === 'Home' && s.sideItemActive]}>
+            <Text style={[s.sideIcon, label === 'Home' && s.sideIconActive]}>{icon}</Text>
+            <Text style={[s.sideLabel, label === 'Home' && s.sideLabelActive]}>{label}</Text>
+            {label === 'Messages' ? <View style={s.badge}><Text style={s.badgeText}>3</Text></View> : null}
+            {label === 'Notifications' ? <View style={s.badge}><Text style={s.badgeText}>5</Text></View> : null}
+          </Pressable>
+        ))}
+      </View>
+      <Pressable onPress={() => onNavigate('/profile')} style={s.sideProfile}>
+        <Avatar initials={initials} uri={null} />
+        <View style={{ flex: 1 }}><Text style={s.sideProfileName}>{displayName}</Text><Text style={s.sideProfileHandle}>Your profile</Text></View>
+        <Text style={s.sideChevron}>⌄</Text>
+      </Pressable>
     </View>
-  </View>
+  );
 }
 
-const s=StyleSheet.create({
-  safe:{flex:1,backgroundColor:'#fff'},content:{paddingHorizontal:20,paddingBottom:30},header:{height:58,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},brand:{flexDirection:'row',alignItems:'center',gap:9},logo:{width:32,height:32},wordmark:{fontSize:18,fontWeight:'750',color:c.ink,letterSpacing:-.5},headerButton:{width:40,height:40,borderWidth:1,borderColor:c.line,borderRadius:20,alignItems:'center',justifyContent:'center'},headerIcon:{fontSize:20,color:c.ink},heading:{paddingTop:28,paddingBottom:24},eyebrow:{fontSize:10,fontWeight:'800',letterSpacing:1.5,color:c.accent},title:{marginTop:9,fontSize:31,lineHeight:35,fontWeight:'760',letterSpacing:-1.1,color:c.ink},lead:{marginTop:9,fontSize:14,color:c.muted,lineHeight:21},composer:{flexDirection:'row',alignItems:'center',gap:11,padding:13,borderWidth:1,borderColor:c.line,borderRadius:18,backgroundColor:c.surface},avatar:{width:38,height:38,borderRadius:19,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},avatarText:{color:'#fff',fontWeight:'750'},composerTitle:{fontSize:14,fontWeight:'650',color:c.ink},composerHint:{marginTop:2,fontSize:11,color:c.muted},plus:{width:34,height:34,borderRadius:17,borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center'},plusText:{fontSize:22,color:c.ink,lineHeight:25},feedHeader:{marginTop:28,marginBottom:10},sectionTitle:{fontSize:16,fontWeight:'750',color:c.ink},sectionHint:{marginTop:3,fontSize:11,color:c.muted},empty:{marginTop:4,padding:22,borderWidth:1,borderColor:c.line,borderRadius:18,backgroundColor:'#fff',alignItems:'center'},emptyIcon:{width:46,height:46,borderRadius:15,backgroundColor:'#efedff',alignItems:'center',justifyContent:'center'},emptyTitle:{marginTop:14,fontSize:17,fontWeight:'700',color:c.ink},emptyBody:{marginTop:7,fontSize:13,lineHeight:20,textAlign:'center',color:c.muted},primary:{marginTop:17,minHeight:44,paddingHorizontal:18,borderRadius:13,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},primaryText:{color:'#fff',fontSize:13,fontWeight:'700'},errorBox:{padding:16,borderWidth:1,borderColor:'#f0cccc',borderRadius:16,backgroundColor:'#fff8f8'},errorTitle:{fontSize:14,fontWeight:'750',color:'#9e2f2f'},errorBody:{marginTop:5,fontSize:12,lineHeight:18,color:'#7b4a4a'},postCard:{marginTop:10,padding:16,borderWidth:1,borderColor:c.line,borderRadius:18,backgroundColor:'#fff'},postHead:{flexDirection:'row',alignItems:'center',gap:10},avatarSmall:{width:38,height:38,borderRadius:19,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},postName:{fontSize:13,fontWeight:'750',color:c.ink},postHandle:{marginTop:2,fontSize:11,color:c.muted},postContent:{marginTop:13,fontSize:15,lineHeight:23,color:c.ink},postTime:{marginTop:12,fontSize:10,color:'#9a9aa4'},postActions:{flexDirection:'row',gap:22,marginTop:14,paddingTop:12,borderTopWidth:1,borderTopColor:c.line},action:{flexDirection:'row',alignItems:'center',gap:6},actionIcon:{fontSize:17,color:c.muted},liked:{color:'#6546f5'},actionText:{fontSize:11,color:c.muted,fontWeight:'650'}
+function DesktopHeader({ displayName, onNavigate }) {
+  return (
+    <View style={s.desktopHeader}>
+      <Pressable onPress={() => onNavigate('/explore')} style={s.searchBar}>
+        <Text style={s.searchIcon}>⌕</Text>
+        <Text style={s.searchPlaceholder}>Search Freetopia...</Text>
+      </Pressable>
+      <View style={s.headerActions}>
+        <Pressable onPress={() => onNavigate('/notifications')} style={s.desktopHeaderIcon}><Text style={s.desktopIconGlyph}>♧</Text><View style={s.dot} /></Pressable>
+        <Pressable onPress={() => onNavigate('/messages')} style={s.desktopHeaderIcon}><Text style={s.desktopIconGlyph}>▱</Text></Pressable>
+        <Pressable onPress={() => onNavigate('/profile')}><Text style={s.desktopAvatarLetter}>{displayName.charAt(0).toUpperCase()}</Text></Pressable>
+      </View>
+    </View>
+  );
+}
+
+function FeedTabs({ activeTab, onChange, mobile }) {
+  return (
+    <View style={[s.feedTabs, mobile && s.mobileTabs]}>
+      {tabs.map((tab) => (
+        <Pressable key={tab} onPress={() => onChange(tab)} style={s.feedTab}>
+          <Text style={[s.feedTabText, activeTab === tab && s.feedTabActive]}>{tab}</Text>
+          {activeTab === tab ? <View style={s.tabIndicator} /> : null}
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function Composer({ displayName, initials, onPress, desktop }) {
+  return (
+    <Pressable onPress={onPress} style={[s.composer, desktop && s.desktopComposer]}>
+      <Avatar initials={initials} />
+      <View style={{ flex: 1 }}>
+        <Text style={s.composerPrompt}>What's on your mind, {displayName.split(' ')[0]}?</Text>
+        <Text style={s.composerHint}>Share a thought, photo, video, or poll</Text>
+      </View>
+      <View style={s.composerActions}>
+        <Text style={s.composerAction}>▧ Photo</Text>
+        <Text style={s.composerAction}>▹ Video</Text>
+        <Text style={s.composerAction}>▥ Poll</Text>
+        <View style={s.postButton}><Text style={s.postButtonText}>Post</Text></View>
+      </View>
+    </Pressable>
+  );
+}
+
+function FeedHeader({ activeTab }) {
+  return (
+    <View style={s.feedHeader}>
+      <View><Text style={s.feedTitle}>{activeTab}</Text><Text style={s.feedSubtitle}>Fresh conversations from your Freetopia world.</Text></View>
+    </View>
+  );
+}
+
+function PostCard({ post, onLike, onComments, desktop }) {
+  const author = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
+  const name = author?.display_name || author?.username || 'Freetopia member';
+  const handle = author?.username ? '@' + author.username : '';
+  const avatarUri = author?.avatar_url || null;
+  return (
+    <View style={[s.postCard, desktop && s.desktopPostCard]}>
+      <View style={s.postHead}>
+        <Avatar initials={name.charAt(0).toUpperCase()} uri={avatarUri} />
+        <View style={{ flex: 1 }}>
+          <Text style={s.postName}>{name}</Text>
+          {handle ? <Text style={s.postHandle}>{handle} · {relativeTime(post.created_at)}</Text> : <Text style={s.postHandle}>{relativeTime(post.created_at)}</Text>}
+        </View>
+        <Pressable onPress={onComments}><Text style={s.more}>•••</Text></Pressable>
+      </View>
+      <Pressable onPress={onComments}>
+        <Text style={s.postContent}>{post.content}</Text>
+      </Pressable>
+      <View style={s.postActions}>
+        <Pressable onPress={() => onLike(post.id, post.liked)} style={s.action}><Text style={[s.actionIcon, post.liked && s.liked]}>♥</Text><Text style={s.actionText}>{post.reactionCount}</Text></Pressable>
+        <Pressable onPress={onComments} style={s.action}><Text style={s.actionIcon}>□</Text><Text style={s.actionText}>Comment</Text></Pressable>
+        <Pressable onPress={onComments} style={s.action}><Text style={s.actionIcon}>↗</Text><Text style={s.actionText}>Share</Text></Pressable>
+        <View style={{ flex: 1 }} />
+        <Pressable onPress={onComments}><Text style={s.actionIcon}>♡</Text></Pressable>
+      </View>
+    </View>
+  );
+}
+
+function RightRail({ topics, communities, onCommunity, onCreate }) {
+  return (
+    <View style={s.rightRail}>
+      <View style={s.railCard}>
+        <View style={s.railHeader}><Text style={s.railTitle}>Trending Topics</Text><Text style={s.seeAll}>See all</Text></View>
+        {topics.length ? topics.map(([tag, count], index) => (
+          <View key={tag} style={s.topicRow}>
+            <View style={s.topicIcon}><Text style={s.topicIconText}>{['✦', '◈', '↗', '⌁', '✧'][index]}</Text></View>
+            <View><Text style={s.topicName}>{tag}</Text><Text style={s.topicCount}>{count} {count === 1 ? 'post' : 'posts'}</Text></View>
+          </View>
+        )) : <Text style={s.railEmpty}>Hashtags from real posts will appear here as your community grows.</Text>}
+      </View>
+      <View style={s.railCard}>
+        <View style={s.railHeader}><Text style={s.railTitle}>Communities</Text><Pressable onPress={() => onCreate()}><Text style={s.seeAll}>Create</Text></Pressable></View>
+        {communities.map((community) => (
+          <Pressable key={community.id} onPress={() => onCommunity(community.id)} style={s.communityRow}>
+            <View style={s.communityIcon}><Text style={s.communityIconText}>{community.name.charAt(0).toUpperCase()}</Text></View>
+            <View style={{ flex: 1 }}><Text style={s.communityName} numberOfLines={1}>{community.name}</Text><Text style={s.communityMeta}>{community.is_private ? 'Private community' : 'Public community'}</Text></View>
+            <Text style={s.joinArrow}>›</Text>
+          </Pressable>
+        ))}
+        {!communities.length ? <Text style={s.railEmpty}>Communities you create or discover will appear here.</Text> : null}
+      </View>
+      <Pressable onPress={onCreate} style={s.createRail}>
+        <Image source={require('../../public/brand/freetopia-mark.png')} style={s.createLogo} />
+        <Text style={s.createRailTitle}>Share your thoughts, inspire others.</Text>
+        <Text style={s.createRailBody}>Build your world on Freetopia.</Text>
+        <View style={s.createCta}><Text style={s.createCtaText}>Create Post →</Text></View>
+      </Pressable>
+    </View>
+  );
+}
+
+function Avatar({ initials, uri }) {
+  return uri ? <Image source={{ uri }} style={s.avatar} /> : <View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View>;
+}
+
+function LoadingBox() {
+  return <View style={s.loadingBox}><Text style={s.loadingText}>Loading your Freetopia…</Text></View>;
+}
+
+function ErrorBox({ message }) {
+  return <View style={s.errorBox}><Text style={s.errorTitle}>Couldn't load the feed</Text><Text style={s.errorBody}>{message}</Text></View>;
+}
+
+function EmptyState({ onCreate }) {
+  return <View style={s.empty}><View style={s.emptyIcon}><Text style={s.emptyIconText}>✦</Text></View><Text style={s.emptyTitle}>Your Freetopia starts here</Text><Text style={s.emptyBody}>Create your first post or join a community to start shaping your world.</Text><Pressable onPress={onCreate} style={s.primary}><Text style={s.primaryText}>Create a post</Text></Pressable></View>;
+}
+
+function relativeTime(value) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+  if (seconds < 60) return 'now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h';
+  const days = Math.floor(hours / 24);
+  return days + 'd';
+}
+
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: C.bg },
+  mobileSafe: { flex: 1, backgroundColor: C.bg },
+  desktopShell: { flex: 1, flexDirection: 'row', backgroundColor: C.bg, minHeight: '100%' },
+  sidebar: { width: 225, paddingHorizontal: 18, paddingTop: 26, paddingBottom: 20, borderRightWidth: 1, borderRightColor: C.line, backgroundColor: '#060D16' },
+  sidebarBrand: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, marginBottom: 34 },
+  sidebarLogo: { width: 34, height: 34 },
+  sidebarWordmark: { color: C.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.4 },
+  sideNav: { gap: 5 },
+  sideItem: { minHeight: 48, paddingHorizontal: 13, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  sideItemActive: { backgroundColor: '#241B62' },
+  sideIcon: { width: 22, color: C.muted, fontSize: 21, textAlign: 'center' },
+  sideIconActive: { color: C.text },
+  sideLabel: { color: '#C5CFDC', fontSize: 13, fontWeight: '600', flex: 1 },
+  sideLabelActive: { color: C.text },
+  badge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: '#6D35FF', alignItems: 'center', justifyContent: 'center' },
+  badgeText: { color: C.white, fontSize: 9, fontWeight: '800' },
+  sideProfile: { marginTop: 'auto', padding: 10, borderTopWidth: 1, borderTopColor: C.line, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  sideProfileName: { color: C.text, fontSize: 12, fontWeight: '700' },
+  sideProfileHandle: { color: C.muted, fontSize: 10, marginTop: 2 },
+  sideChevron: { color: C.muted, fontSize: 16 },
+  desktopMain: { flex: 1, minWidth: 0 },
+  desktopHeader: { height: 74, borderBottomWidth: 1, borderBottomColor: C.line, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 22, gap: 20 },
+  searchBar: { flex: 1, maxWidth: 560, height: 42, borderRadius: 12, backgroundColor: '#0D1A2B', borderWidth: 1, borderColor: '#142942', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14 },
+  searchIcon: { color: '#9AB0CA', fontSize: 21, marginRight: 8 },
+  searchPlaceholder: { color: '#9AB0CA', fontSize: 12 },
+  desktopHeaderIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  desktopIconGlyph: { color: C.text, fontSize: 21 },
+  desktopAvatarLetter: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#26374A', color: C.text, textAlign: 'center', paddingTop: 9, fontSize: 12, fontWeight: '800' },
+  headerActions: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dot: { position: 'absolute', width: 7, height: 7, borderRadius: 4, backgroundColor: '#F43F8D', right: 3, top: 4 },
+  desktopColumns: { flex: 1, flexDirection: 'row', minHeight: 0 },
+  feedContent: { width: '100%', maxWidth: 650, paddingHorizontal: 14, paddingBottom: 40, alignSelf: 'center' },
+  feedTabs: { height: 56, flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.line, marginBottom: 12 },
+  mobileTabs: { marginHorizontal: -16, paddingHorizontal: 16, marginBottom: 10 },
+  feedTab: { flex: 1, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  feedTabText: { color: C.muted, fontSize: 12, fontWeight: '600' },
+  feedTabActive: { color: C.text, fontWeight: '800' },
+  tabIndicator: { position: 'absolute', bottom: -1, left: 10, right: 10, height: 3, borderRadius: 3, backgroundColor: C.blue },
+  composer: { borderWidth: 1, borderColor: '#142942', borderRadius: 14, backgroundColor: C.panel, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  desktopComposer: { marginBottom: 12 },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#26384D', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: C.text, fontSize: 13, fontWeight: '800' },
+  composerPrompt: { color: '#9DB1C7', fontSize: 12, fontWeight: '600' },
+  composerHint: { color: C.muted, fontSize: 10, marginTop: 3 },
+  composerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  composerAction: { color: '#B8C7D8', fontSize: 10, fontWeight: '600' },
+  postButton: { minWidth: 58, height: 32, borderRadius: 16, backgroundColor: C.violet, alignItems: 'center', justifyContent: 'center' },
+  postButtonText: { color: C.white, fontSize: 10, fontWeight: '800' },
+  feedHeader: { paddingVertical: 10 },
+  feedTitle: { color: C.text, fontSize: 15, fontWeight: '800' },
+  feedSubtitle: { color: C.muted, fontSize: 10, marginTop: 3 },
+  postCard: { marginTop: 10, padding: 14, borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: C.panel },
+  desktopPostCard: { padding: 16 },
+  postHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  postName: { color: C.text, fontSize: 13, fontWeight: '800' },
+  postHandle: { color: C.muted, fontSize: 10, marginTop: 2 },
+  more: { color: C.muted, fontSize: 14, letterSpacing: 2 },
+  postContent: { color: '#E4EAF1', fontSize: 14, lineHeight: 21, marginTop: 12 },
+  postActions: { flexDirection: 'row', alignItems: 'center', gap: 19, marginTop: 14, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.line },
+  action: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  actionIcon: { color: '#AAB8C8', fontSize: 16 },
+  liked: { color: '#F43F8D' },
+  actionText: { color: '#9EADBE', fontSize: 10, fontWeight: '700' },
+  rightRail: { width: 310, padding: 14, paddingLeft: 4, paddingRight: 18, gap: 14 },
+  railCard: { borderWidth: 1, borderColor: C.line, borderRadius: 13, backgroundColor: C.panel, padding: 14 },
+  railHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  railTitle: { color: C.text, fontSize: 13, fontWeight: '800' },
+  seeAll: { color: '#9AB0CA', fontSize: 10, fontWeight: '700' },
+  topicRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#111E2E' },
+  topicIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: '#1A2B42', alignItems: 'center', justifyContent: 'center' },
+  topicIconText: { color: '#A9C4FF', fontSize: 15 },
+  topicName: { color: C.text, fontSize: 11, fontWeight: '750' },
+  topicCount: { color: C.muted, fontSize: 9, marginTop: 2 },
+  communityRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#111E2E' },
+  communityIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#263B5A', alignItems: 'center', justifyContent: 'center' },
+  communityIconText: { color: C.text, fontSize: 12, fontWeight: '800' },
+  communityName: { color: C.text, fontSize: 11, fontWeight: '750' },
+  communityMeta: { color: C.muted, fontSize: 9, marginTop: 2 },
+  joinArrow: { color: '#9AB0CA', fontSize: 18 },
+  railEmpty: { color: C.muted, fontSize: 10, lineHeight: 15, paddingVertical: 8 },
+  createRail: { borderWidth: 1, borderColor: '#3030A2', borderRadius: 13, padding: 15, backgroundColor: '#171044' },
+  createLogo: { width: 34, height: 34 },
+  createRailTitle: { color: C.text, fontSize: 14, fontWeight: '800', marginTop: 10, lineHeight: 19 },
+  createRailBody: { color: '#B9B4E5', fontSize: 10, marginTop: 5 },
+  createCta: { alignSelf: 'flex-start', marginTop: 12, paddingHorizontal: 13, height: 32, borderRadius: 16, backgroundColor: C.blue, justifyContent: 'center' },
+  createCtaText: { color: C.white, fontSize: 10, fontWeight: '800' },
+  mobileContent: { paddingHorizontal: 16, paddingBottom: 30 },
+  mobileHeader: { height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logo: { width: 31, height: 31 },
+  wordmark: { color: C.text, fontSize: 18, fontWeight: '800', letterSpacing: -0.5 },
+  iconButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  iconGlyph: { color: C.text, fontSize: 22 },
+  loadingBox: { padding: 24, alignItems: 'center' },
+  loadingText: { color: C.muted, fontSize: 11 },
+  errorBox: { marginTop: 10, padding: 13, borderWidth: 1, borderColor: '#4B2630', borderRadius: 12, backgroundColor: '#1B0D14' },
+  errorTitle: { color: '#FF9BAD', fontSize: 12, fontWeight: '800' },
+  errorBody: { color: '#C88B96', fontSize: 10, marginTop: 4 },
+  empty: { marginTop: 10, padding: 24, borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: C.panel, alignItems: 'center' },
+  emptyIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#231B5B', alignItems: 'center', justifyContent: 'center' },
+  emptyIconText: { color: '#AFA3FF', fontSize: 19 },
+  emptyTitle: { marginTop: 13, color: C.text, fontSize: 16, fontWeight: '800' },
+  emptyBody: { marginTop: 7, color: C.muted, fontSize: 11, lineHeight: 17, textAlign: 'center' },
+  primary: { marginTop: 15, height: 40, paddingHorizontal: 16, borderRadius: 11, backgroundColor: C.violet, alignItems: 'center', justifyContent: 'center' },
+  primaryText: { color: C.white, fontSize: 11, fontWeight: '800' },
 });
+
+export default Home;
