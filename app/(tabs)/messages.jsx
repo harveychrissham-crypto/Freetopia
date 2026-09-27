@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { getImageUrl } from '../../lib/imageUrl/imageUrl';
 import { Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -135,7 +136,7 @@ function Sidebar({profile,router,requestCount}) {
   </View>;
 }
 function Topbar({query,setQuery,router,profile}) {
-  return <View style={s.topbar}><TextInput value={query} onChangeText={setQuery} placeholder="Search Freetopia..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Pressable accessibilityLabel="Notifications" onPress={()=>router.push('/notifications')} style={s.topIconButton}><Text style={s.topIcon}>♧</Text></Pressable><Pressable accessibilityLabel="Messages" onPress={()=>router.push('/messages')} style={s.topIconButton}><Text style={s.topIcon}>□</Text></Pressable><Pressable onPress={()=>router.push('/profile')}>{profile?.avatar_url?<Image source={{uri:profile.avatar_url}} style={s.topAvatar}/>:<View style={s.topAvatar}><Text style={s.topAvatarText}>{(profile?.display_name||profile?.username||'F')[0].toUpperCase()}</Text></View>}</Pressable></View></View>;
+  return <View style={s.topbar}><TextInput value={query} onChangeText={setQuery} placeholder="Search Freetopia..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Pressable accessibilityLabel="Notifications" onPress={()=>router.push('/notifications')} style={s.topIconButton}><Text style={s.topIcon}>♧</Text></Pressable><Pressable accessibilityLabel="Messages" onPress={()=>router.push('/messages')} style={s.topIconButton}><Text style={s.topIcon}>□</Text></Pressable><Pressable onPress={()=>router.push('/profile')}>{profile?.avatar_url?<Image source={{uri:getImageUrl(profile.avatar_url,{width:800,height:800,quality:100})}} style={s.topAvatar}/>:<View style={s.topAvatar}><Text style={s.topAvatarText}>{(profile?.display_name||profile?.username||'F')[0].toUpperCase()}</Text></View>}</Pressable></View></View>;
 }
 function Tabs({tab,setTab,requestCount}) {
   return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>{['Messages','Requests','Communities','Archived'].map(x=><Pressable key={x} onPress={()=>setTab(x)} style={[s.tab,tab===x&&s.tabSelected]}><Text style={[s.tabText,tab===x&&s.tabSelectedText]}>{x}</Text>{x==='Requests'&&requestCount>0?<View style={s.count}><Text style={s.countText}>{requestCount}</Text></View>:null}</Pressable>)}</ScrollView>;
@@ -147,7 +148,7 @@ function Row({c,tab,open,accept,decline,archive}) {
   const mine=c.lastMessage?.sender_id===c.me?.user_id;
   return <View style={s.row}>
     <Pressable onPress={open} style={s.rowMain}>
-      {p?.avatar_url?<Image source={{uri:p.avatar_url}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
+      {p?.avatar_url?<Image source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
       <View style={s.rowInfo}><View style={s.rowTop}><Text style={s.name} numberOfLines={1}>{n}</Text>{c.lastMessage?<Text style={s.time}>{relative(c.lastMessage.created_at)}</Text>:null}</View><Text style={s.preview} numberOfLines={1}>{mine?'You: ':''}{preview}</Text></View>
     </Pressable>
     {tab==='Requests' ? <View style={s.requestActions}><Pressable onPress={accept} style={s.accept}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={decline} style={s.decline}><Text style={s.declineText}>Decline</Text></Pressable></View> : <Pressable onPress={archive} style={s.archive}><Text style={s.archiveText}>{tab==='Archived'?'Unarchive':'Archive'}</Text></Pressable>}
@@ -163,7 +164,7 @@ function CommunityList({communities,router,query=''}) {
   return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.communityList}>
     <Pressable onPress={()=>router.push('/create-community')} style={s.createCommunity}><Text style={s.createCommunityText}>＋ Create Community</Text></Pressable>
     {visible.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={s.communityRow}>
-      {c.avatar_url?<Image source={{uri:c.avatar_url}} style={s.communityAvatar}/>:<View style={s.communityAvatar}><Text style={s.communityAvatarText}>{c.name?.[0]?.toUpperCase()}</Text></View>}
+      {c.avatar_url?<Image source={{uri:getImageUrl(c.avatar_url,{width:800,height:800,quality:100})}} style={s.communityAvatar}/>:<View style={s.communityAvatar}><Text style={s.communityAvatarText}>{c.name?.[0]?.toUpperCase()}</Text></View>}
       <View style={{flex:1}}><Text style={s.communityName}>{c.name}</Text><Text style={s.communityMembers}>{c.is_private?'Private community':'Public community'}</Text></View>
       <Text style={s.joined}>View</Text>
     </Pressable>)}
