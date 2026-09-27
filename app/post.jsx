@@ -56,6 +56,7 @@ export default function PostScreen(){
 
  const author=Array.isArray(post?.profiles)?post.profiles[0]:post?.profiles;
  const name=author?.display_name||author?.username||'Freetopia member';
+ const openAuthor=()=>{if(author?.id)r.push({pathname:'/profile',params:{id:author.id}})};
  const postReportKey=post?'post:'+post.id:'';
  const canReport=!!user&&post?.author_id!==user.id&&!reportedTargets.includes(postReportKey);
 
@@ -65,8 +66,8 @@ export default function PostScreen(){
    {loading&&<Text style={s.muted}>Loading post…</Text>}
    {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
    {!!post&&<View style={s.post}>
-    <View style={s.postTop}><View style={s.authorWrap}>{author?.avatar_url?<Image source={{uri:author.avatar_url}} style={s.authorAvatar}/>:<View style={s.authorFallback}><Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text></View>}<View style={{flex:1}}><Text style={s.author}>{name}</Text>{author?.username&&<Text style={s.handle}>@{author.username}</Text>}</View>
-    {canReport&&<Pressable onPress={()=>openReport({post_id:post.id,reported_user_id:post.author_id})}><Text style={s.reportLink}>Report</Text></Pressable>}
+    <View style={s.postTop}><Pressable onPress={openAuthor} style={s.authorWrap}>{author?.avatar_url?<Image source={{uri:author.avatar_url}} style={s.authorAvatar}/>:<View style={s.authorFallback}><Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text></View>}<View style={{flex:1}}><Text style={s.author}>{name}</Text>{author?.username&&<Text style={s.handle}>@{author.username}</Text>}</View>
+    </Pressable>{canReport&&<Pressable onPress={()=>openReport({post_id:post.id,reported_user_id:post.author_id})}><Text style={s.reportLink}>Report</Text></Pressable>}
     {reportedTargets.includes(postReportKey)&&<Text style={s.reported}>Reported</Text>}
     </View>
     <Text style={s.contentText}>{post.content}</Text><Text style={s.time}>{new Date(post.created_at).toLocaleString()}</Text><View style={s.postActions}><Pressable onPress={toggleLike} style={s.postAction}><Text style={[s.postActionIcon,liked&&s.liked]}>♥</Text><Text style={s.postActionText}>{reactionCount}</Text></Pressable><Pressable onPress={sharePost} style={s.postAction}><Text style={s.postActionIcon}>↗</Text><Text style={s.postActionText}>Share</Text></Pressable></View>
