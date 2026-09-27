@@ -4,6 +4,7 @@
     "slug": "freetopia",
     "scheme": "freetopia",
     "version": "0.2.0",
+    "owner": "itsharveys-team",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./public/brand/freetopia-mark.png",
