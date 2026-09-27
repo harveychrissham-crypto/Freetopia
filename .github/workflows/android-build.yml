@@ -33,5 +33,11 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Ensure EAS project is linked
+        run: |
+          if ! eas project:info --non-interactive; then
+            eas init --account itsharveys-team --non-interactive
+          fi
+
       - name: Build Android
         run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive
