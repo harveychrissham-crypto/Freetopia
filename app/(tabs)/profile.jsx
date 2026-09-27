@@ -85,7 +85,7 @@ export default function Profile() {
               {error ? <ErrorBox message={error}/> : null}
               {loading ? <Loading/> : <ProfilePosts posts={visiblePosts} activeTab={activeTab} profile={profile} name={name} onPost={(id)=>router.push({pathname:'/post',params:{id}})} />}
             </View>
-            <ProfileRail profile={profile} completion={completion} percent={completionPercent} counts={counts} communities={communities} />
+            <ProfileRail profile={profile} completion={completion} percent={completionPercent} counts={counts} communities={communities} router={router} />
           </View>
         </ScrollView>
       </View>
@@ -143,13 +143,13 @@ function ProfilePosts({posts,activeTab,profile,name,onPost}) {
     <View style={s.postActions}><Text style={s.action}>♡ {post.post_reactions?.filter(x=>x.reaction_type==='like').length||0}</Text><Text style={s.action}>□ Reply</Text><Text style={s.action}>↗ Share</Text><Text style={s.action}>♧</Text></View>
   </Pressable>)}</View>;
 }
-function ProfileRail({profile,completion,percent,counts,communities}) {
+function ProfileRail({profile,completion,percent,counts,communities,router}) {
   return <View style={s.rail}>
     <View style={s.railCard}><Text style={s.railTitle}>Profile Completion</Text><View style={s.progressRow}><View style={s.progress}><View style={[s.progressFill,{width:percent+'%'}]}/></View><Text style={s.percent}>{percent}%</Text></View>{[['Add a profile photo',completion[0]],['Write a bio',completion[1]],['Add a cover photo',completion[2]],['Follow 5 people',completion[3]],['Join 3 communities',completion[4]]].map(([label,done])=><View key={label} style={s.checkRow}><View style={[s.check,done&&s.checkDone]}><Text style={s.checkText}>{done?'✓':''}</Text></View><Text style={s.checkLabel}>{label}</Text></View>)}</View>
     <View style={s.railCard}><Text style={s.railTitle}>Your Interests</Text><Text style={s.railEmpty}>Interests will appear here when interest preferences are added to your profile.</Text></View>
     <View style={s.railCard}><Text style={s.railTitle}>Stats</Text><View style={s.statGrid}><MiniStat n={counts.posts} label="Posts"/><MiniStat n={counts.followers} label="Followers"/><MiniStat n={counts.following} label="Following"/></View></View>
     <View style={s.railCard}><Text style={s.railTitle}>Your communities</Text><Text style={s.railEmpty}>{communities ? communities+' active communit'+(communities===1?'y':'ies') : 'No active communities yet.'}</Text></View>
-    <View style={s.promo}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Real people. Real conversations.</Text><Text style={s.promoBody}>A bigger world starts with your voice.</Text><Pressable onPress={()=>null} style={s.promoButton}><Text style={s.promoButtonText}>Explore Communities →</Text></Pressable></View>
+    <View style={s.promo}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Real people. Real conversations.</Text><Text style={s.promoBody}>A bigger world starts with your voice.</Text><Pressable onPress={()=>router.push('/communities')} style={s.promoButton}><Text style={s.promoButtonText}>Explore Communities →</Text></Pressable></View>
   </View>;
 }
 function MiniStat({n,label}){return <View style={s.mini}><Text style={s.miniIcon}>◌</Text><Text style={s.miniN}>{n>=1000?(n/1000).toFixed(1).replace('.0','')+'K':n}</Text><Text style={s.miniLabel}>{label}</Text></View>}
