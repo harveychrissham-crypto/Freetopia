@@ -48,11 +48,11 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Ensure EAS project is linked
+      - name: Validate build environment
         run: |
-          if ! eas project:info --non-interactive; then
-            eas init --account itsharveys-team --non-interactive
-          fi
+          test -n "$EXPO_PUBLIC_SUPABASE_URL" || (echo "Missing EXPO_PUBLIC_SUPABASE_URL" && exit 1)
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" || (echo "Missing EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" && exit 1)
+          test -n "$EXPO_TOKEN" || (echo "Missing EXPO_TOKEN" && exit 1)
 
       - name: Validate Expo prebuild
         run: |
@@ -60,4 +60,4 @@ jobs:
           npx expo prebuild --platform android --no-install --non-interactive
 
       - name: Build Android
-        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive
+        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive --verbose
