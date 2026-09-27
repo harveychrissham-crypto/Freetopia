@@ -28,7 +28,7 @@ export default function Communities(){
  },[user?.id]);
  useFocusEffect(useCallback(()=>{load();},[load]));
 
- const searched=useMemo(()=>{const q=query.trim().toLowerCase();return items.filter(x=>!q||x.name.toLowerCase().includes(q)||x.description?.toLowerCase().includes(q)||x.slug.toLowerCase().includes(q));},[items,query]);
+ const searched=useMemo(()=>{const q=query.trim().toLowerCase();return items.filter(x=>!q||String(x.name||'').toLowerCase().includes(q)||String(x.description||'').toLowerCase().includes(q)||String(x.slug||'').toLowerCase().includes(q));},[items,query]);
  const filtered=useMemo(()=>{
   if(tab==='Your Communities')return searched.filter(x=>mine.has(x.id));
   if(tab==='New')return [...searched].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
