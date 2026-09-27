@@ -11,7 +11,7 @@ import { useAuth } from '../providers/AuthProvider';
 const c={bg:'#060B12',ink:'#E9EEF4',muted:'#7F8D9D',line:'#182533',accent:'#4B78A8',danger:'#A95B69'};
 const reasons=['Spam or misleading','Harassment or bullying','Hate or abusive content','Violence or threats','Sexual content','Other'];
 
-function PostVideo({media}){const url=supabase.storage.from('post-media').getPublicUrl(media.storage_path).data.publicUrl;const player=useVideoPlayer({uri:url,contentType:'auto',useCaching:true},p=>{p.muted=false;});return <View style={s.videoWrap}><VideoView player={player} style={s.video} nativeControls fullscreenOptions={{enable:true}} contentFit="contain" surfaceType={Platform.OS==='android'?'textureView':undefined}/></View>}
+function PostVideo({media}){const url=media.playback_url||supabase.storage.from('post-media').getPublicUrl(media.storage_path).data.publicUrl;const player=useVideoPlayer({uri:url,contentType:'auto',useCaching:true},p=>{p.muted=false;});return <View style={s.videoWrap}><VideoView player={player} style={s.video} nativeControls fullscreenOptions={{enable:true}} contentFit="contain" surfaceType={Platform.OS==='android'?'textureView':undefined}/></View>}
 
 export default function PostScreen(){
  const params=useLocalSearchParams(),id=Array.isArray(params.id)?params.id[0]:params.id,r=useRouter(),{user}=useAuth();
@@ -23,7 +23,7 @@ export default function PostScreen(){
   if(!id)return;
   setLoading(true);setError('');
   const [postResult,commentsResult]=await Promise.all([
-   supabase.from('posts').select('id,content,created_at,author_id,community_id,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name),post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,duration_seconds,sort_order)').eq('id',id).maybeSingle(),
+   supabase.from('posts').select('id,content,created_at,author_id,community_id,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name),post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,duration_seconds,sort_order,processing_status,playback_url)').eq('id',id).maybeSingle(),
    supabase.from('comments').select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').eq('post_id',id).is('parent_id',null).order('created_at',{ascending:true}),
   ]);
   if(postResult.error)setError(postResult.error.message);else { setPost(postResult.data); const reactions=postResult.data?.post_reactions||[]; setReactionCount(reactions.filter(x=>x.reaction_type==='like').length); setLiked(reactions.some(x=>x.user_id===user?.id&&x.reaction_type==='like')); }
