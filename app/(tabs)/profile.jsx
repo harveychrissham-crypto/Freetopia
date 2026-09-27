@@ -118,7 +118,7 @@ function ProfileHeader({profile,name,handle,initials,counts,onEdit,onSettings}) 
   return <View style={s.profileHeader}>
     <View style={s.cover}>{profile?.cover_url?<Image source={{uri:profile.cover_url}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/><Text style={s.coverStars}>✦  ·  ✧   ·   ✦</Text></>}</View>
     <View style={s.profileBody}>
-      <View style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/><View style={s.camera}><Text style={s.cameraText}>⌾</Text></View></View>
+      <Pressable onPress={onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/><View style={s.camera}><Text style={s.cameraText}>⌾</Text></View></Pressable>
       <View style={s.profileActions}><Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable><Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable></View>
       <Text style={s.name}>{name}</Text>
       <Text style={s.handle}>{handle}</Text>
@@ -135,7 +135,7 @@ function Chip({label}){return <View style={s.chip}><Text style={s.chipText}>{lab
 function ProfileTabs({tabs,activeTab,onChange}){return <View style={s.tabs} accessibilityRole="tablist">{tabs.map(tab=><Pressable key={tab} onPress={()=>onChange(tab)} style={s.tab}><Text style={[s.tabText,activeTab===tab&&s.tabActive]}>{tab}</Text>{activeTab===tab?<View style={s.tabLine}/>:null}</Pressable>)}</View>}
 
 function ProfilePosts({posts,activeTab,profile,name,onPost}) {
-  if (activeTab==='Replies') return <Empty title="Replies are coming from your conversations" body="Your authored replies will appear here once the replies view is connected." />;
+  if (activeTab==='Replies') return <Empty title="No replies to show" body="Replies will appear here when you reply to posts." />;
   if (!posts.length) return <Empty title={activeTab==='Media'?'No media posts yet':activeTab==='Likes'?'No liked posts in your profile view':'Nothing here yet'} body={activeTab==='Posts'?'Your posts will appear here as you share them.':'This section only shows data that is currently available.'}/>;
   return <View>{posts.map(post=><Pressable key={post.id} onPress={()=>onPost(post.id)} style={s.post}>
     <View style={s.postHead}><Avatar initials={name?.charAt(0).toUpperCase()||"F"} uri={profile?.avatar_url}/><View style={{flex:1}}><Text style={s.postAuthor}>{name||"Freetopia member"} <Text style={s.postHandle}>· {relative(post.created_at)}</Text></Text><Text style={s.postText}>{post.content||''}</Text></View><Text style={s.more}>•••</Text></View>
