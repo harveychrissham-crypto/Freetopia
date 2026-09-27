@@ -17,8 +17,20 @@ export default function Notifications(){
   setLoading(false);setRefreshing(false);
  },[]);
  useFocusEffect(useCallback(()=>{load();},[load]));
- const markRead=async id=>{setItems(current=>current.map(item=>item.id===id?{...item,read_at:item.read_at||new Date().toISOString()}:item));await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('id',id);};
- const markAll=async()=>{const now=new Date().toISOString();setItems(current=>current.map(item=>({...item,read_at:item.read_at||now})));await supabase.from('notifications').update({read_at:now}).is('read_at',null);};
+ const markRead=async id=>{
+  const previous=items;
+  const now=new Date().toISOString();
+  setItems(current=>current.map(item=>item.id===id?{...item,read_at:item.read_at||now}:item));
+  const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('id',id);
+  if(e){setItems(previous);setError(e.message);}
+ };
+ const markAll=async()=>{
+  const previous=items;
+  const now=new Date().toISOString();
+  setItems(current=>current.map(item=>({...item,read_at:item.read_at||now})));
+  const {error:e}=await supabase.from('notifications').update({read_at:now}).is('read_at',null);
+  if(e){setItems(previous);setError(e.message);}
+ };
  const unread=items.filter(x=>!x.read_at).length;
  return <SafeAreaView style={s.safe}><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)}/>} contentContainerStyle={s.content}>
   <View style={s.top}><View><Text style={s.eyebrow}>ACTIVITY</Text><View style={s.titleRow}><Text style={s.title}>Notifications</Text>{unread>0&&<View style={s.count}><Text style={s.countText}>{unread>99?'99+':unread}</Text></View>}</View></View>{unread>0&&<Pressable onPress={markAll} style={s.mark}><Text style={s.markText}>Mark all read</Text></Pressable>}</View>
