@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 
-const C={bg:'#050A11',panel:'#08121E',panel2:'#0D1A2B',line:'#1A3047',text:'#F5F7FA',muted:'#8FA1B5',blue:'#3B82F6',violet:'#7C3AED',pink:'#D946EF',green:'#22C55E'};
+const C={bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',blue:'#4B78A8',violet:'#4A3F78',pink:'#7A496F',green:'#4D705D'};
 
 export default function Communities(){
  const router=useRouter(); const {user}=useAuth(); const {width}=useWindowDimensions(); const desktop=Platform.OS==='web'&&width>=1000;
