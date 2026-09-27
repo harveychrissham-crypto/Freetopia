@@ -53,6 +53,7 @@ The app is a native iOS and Android project using Expo SDK 57 and React Native. 
 - The supplied brief assumed an existing app, but the remote repository was README-only. A small app foundation was introduced.
 - The user clarified that Freetopia is an iOS and Android app. The earlier web-only React/Vite foundation was replaced by Expo/React Native screens and native application configuration.
 - The app currently uses one honest, usable welcome screen rather than simulated login, feed, tabs, or messaging.
+- The previous web dependency lockfile was removed during the platform change. `npm install` regenerates a native dependency lockfile; that generated file should be committed before release to make installs reproducible.
 - No iOS/Android simulator or native build environment was available during this implementation. Bundle export checks verify JavaScript bundling for each platform, not installation or runtime behavior on a physical device.
 
 ## Phase checks
