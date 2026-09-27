@@ -1,4 +1,4 @@
-import { Platform, useWindowDimensions, Text } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
