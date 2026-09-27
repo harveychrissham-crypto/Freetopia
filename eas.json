@@ -6,7 +6,8 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "image": "sdk-57"
       },
       "ios": {
         "simulator": true
@@ -14,19 +15,18 @@
       "env": {
         "EAS_NO_FROZEN_LOCKFILE": "1",
         "EAS_BUILD_DISABLE_NPM_CACHE": "1"
-      },
-      "image": "sdk-57"
+      }
     },
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "image": "sdk-57"
       },
       "env": {
         "EAS_NO_FROZEN_LOCKFILE": "1",
         "EAS_BUILD_DISABLE_NPM_CACHE": "1"
-      },
-      "image": "sdk-57"
+      }
     }
   }
 }
