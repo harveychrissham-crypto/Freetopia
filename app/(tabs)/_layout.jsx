@@ -27,8 +27,8 @@ export default function TabLayout() {
         <Tabs.Screen name="home" options={{ title: 'Home' }} />
         <Tabs.Screen name="explore" options={{ title: 'Explore' }} />
         <Tabs.Screen name="communities" options={{ title: 'Communities' }} />
-        <Tabs.Screen name="messages" options={{ title: 'Messages' }} />
-        <Tabs.Screen name="notifications" options={{ title: 'Activity' }} />
+        <Tabs.Screen name="messages" options={{ title: 'Messages', href: null }} />
+        <Tabs.Screen name="notifications" options={{ title: 'Activity', href: null }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
       </Tabs>
     </>
