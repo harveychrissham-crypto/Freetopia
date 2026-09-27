@@ -20,7 +20,7 @@ export default function Explore(){
    supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url)').order('created_at',{ascending:false}).limit(12)
   ]);
   if(p.error||c.error||po.error){setError((p.error||c.error||po.error).message);}
-  setPeople(p.data||[]);setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
+  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted').in('following_id',ids);followed=new Set((f.data||[]).map(x=>x.following_id));} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
  },[user?.id]);
  useEffect(()=>{load()},[load]);
 
@@ -33,7 +33,7 @@ export default function Explore(){
    supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url)').ilike('content','%'+value+'%').order('created_at',{ascending:false}).limit(20)
   ]);
   if(p.error||c.error||po.error)setError((p.error||c.error||po.error).message);
-  setPeople(p.data||[]);setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
+  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted').in('following_id',ids);followed=new Set((f.data||[]).map(x=>x.following_id));} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
  };
  const follow=async person=>{
   if(!user)return;
@@ -50,10 +50,8 @@ export default function Explore(){
 function Desktop(p){
  return <View style={s.shell}><Sidebar router={p.router}/><View style={s.main}><Topbar router={p.router} q={p.q} setQ={p.setQ} search={p.search}/><View style={s.body}><View style={s.center}>
   <Text style={s.title}>Explore</Text><Text style={s.lead}>Discover new people, communities and ideas.</Text>
-  <Tabs tab={p.tab} setTab={p.setTab}/><Hero router={p.router}/>
-  <SectionTitle icon="♨" title="Trending Topics" action="See all"/><TopicStrip posts={p.posts}/>
-  <SectionTitle icon="♧" title="Popular Communities" action="See all"/><CommunityCards communities={p.communities} router={p.router}/>
-  <SectionTitle icon="♧" title="Recommended for You" action="Sort by: Latest"/><PostList posts={p.posts} router={p.router}/>
+  <Tabs tab={p.tab} setTab={p.setTab}/>
+  {p.tab==='For You'?<><Hero router={p.router}/><SectionTitle icon="♨" title="Trending Topics" action="See all"/><TopicStrip posts={p.posts}/><SectionTitle icon="♧" title="Popular Communities" action="See all"/><CommunityCards communities={p.communities} router={p.router}/><SectionTitle icon="♙" title="Recommended for You" action="Sort by: Latest"/><PostList posts={p.posts} router={p.router}/></>:p.tab==='Communities'?<><SectionTitle icon="♧" title="Communities" action="Latest"/><CommunityList communities={p.communities} router={p.router} follow={p.follow}/></>:p.tab==='People'?<><SectionTitle icon="♙" title="People" action="Latest"/><PeopleList people={p.people} follow={p.follow} router={p.router}/></>:<><SectionTitle icon="♨" title="Topics" action="Recent"/><TopicStrip posts={p.posts}/><SectionTitle icon="▱" title="Recent conversations" action="Latest"/><PostList posts={p.posts} router={p.router}/></>}
   {p.error&&<Error text={p.error}/>} {p.loading&&<Text style={s.loading}>Loading Explore…</Text>}
  </View><View style={s.rail}><Rail title="Top Communities"><CommunityRank communities={p.communities.slice(0,5)} router={p.router}/></Rail><Rail title="Trending Now"><TopicList posts={p.posts}/></Rail><Rail title="Featured Creators"><PeopleList people={p.people.slice(0,5)} follow={p.follow} router={p.router}/></Rail><Promo router={p.router}/></View></View></View></View>;
 }
@@ -62,10 +60,7 @@ function Mobile(p){
  return <ScrollView contentContainerStyle={s.mobileContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
   <View style={s.mobileHeader}><View><Text style={s.mobileTitle}>Explore</Text><Text style={s.mobileLead}>Discover new people, communities and ideas.</Text></View><Pressable onPress={()=>p.search()} style={s.filter}><Text style={s.filterText}>☷</Text></Pressable></View>
   <Search q={p.q} setQ={p.setQ} search={p.search}/><Tabs tab={p.tab} setTab={p.setTab}/>
-  <Hero router={p.router}/>
-  <SectionTitle icon="♨" title="Trending Topics" action="See all"/><TopicStrip posts={p.posts}/>
-  <SectionTitle icon="♧" title="Popular Communities" action="See all"/><CommunityList communities={p.communities} router={p.router} follow={p.follow}/>
-  <SectionTitle icon="♙" title="Recommended for You" action="See all"/><PostList posts={p.posts.slice(0,5)} router={p.router}/>
+  {p.tab==='For You'?<><Hero router={p.router}/><SectionTitle icon="♨" title="Trending Topics" action="See all"/><TopicStrip posts={p.posts}/><SectionTitle icon="♧" title="Popular Communities" action="See all"/><CommunityList communities={p.communities} router={p.router} follow={p.follow}/><SectionTitle icon="♙" title="Recommended for You" action="See all"/><PostList posts={p.posts.slice(0,5)} router={p.router}/></>:p.tab==='Communities'?<><SectionTitle icon="♧" title="Communities" action="Latest"/><CommunityList communities={p.communities} router={p.router} follow={p.follow}/></>:p.tab==='People'?<><SectionTitle icon="♙" title="People" action="Latest"/><PeopleList people={p.people} follow={p.follow} router={p.router}/></>:<><SectionTitle icon="♨" title="Topics" action="Recent"/><TopicStrip posts={p.posts}/><SectionTitle icon="▱" title="Recent conversations" action="Latest"/><PostList posts={p.posts} router={p.router}/></>}
   {p.error&&<Error text={p.error}/>} {p.loading&&<Text style={s.loading}>Loading Explore…</Text>}
  </ScrollView>;
 }
