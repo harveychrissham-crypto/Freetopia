@@ -1,4 +1,4 @@
-import { Platform, useWindowDimensions } from 'react-native';
+import { Platform, useWindowDimensions, Text } from 'react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -23,6 +23,9 @@ export default function TabLayout() {
               backgroundColor: '#050A11',
             },
         tabBarLabelStyle: { fontSize: 10, fontWeight: '700' },
+        tabBarItemStyle: { paddingTop: 1 },
+        tabBarHideOnKeyboard: true,
+        sceneStyle: { backgroundColor: '#060B12' },
       }}>
         <Tabs.Screen name="home" options={{ title: 'Home' }} />
         <Tabs.Screen name="explore" options={{ title: 'Explore' }} />
