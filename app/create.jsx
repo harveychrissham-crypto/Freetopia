@@ -1,45 +1,52 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
 
-export default function Create() {
-  const r = useRouter();
-  const { user, profile } = useAuth();
-  const [text, setText] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+const C={bg:'#040A12',panel:'#071321',panel2:'#0B1B2E',line:'#1B3550',text:'#F5F7FA',muted:'#8EA2B8',blue:'#168BFF',violet:'#6538FF'};
 
-  const submit = async () => {
-    const content = text.trim();
-    if (!content || !user || saving) return;
-    setSaving(true);
-    setError('');
-    const { error: insertError } = await supabase.from('posts').insert({
-      author_id: user.id,
-      content,
-      visibility: 'public',
-    });
-    setSaving(false);
-    if (insertError) {
-      setError(insertError.message);
-      return;
-    }
-    r.replace('/home');
-  };
-
-  const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Your profile';
-  const handle = profile?.username ? '@' + profile.username : '';
-
-  return <SafeAreaView style={s.safe}><KeyboardAvoidingView style={s.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <View style={s.header}><Pressable onPress={() => r.back()}><Text style={s.cancel}>Cancel</Text></Pressable><Text style={s.title}>Create a post</Text><Pressable disabled={!text.trim() || saving} onPress={submit}><Text style={[s.post, (!text.trim() || saving) && s.disabled]}>{saving ? 'Posting…' : 'Post'}</Text></Pressable></View>
-    <View style={s.identity}><View style={s.avatar}><Text style={s.avatarText}>{displayName.charAt(0).toUpperCase()}</Text></View><View><Text style={s.name}>{displayName}</Text>{!!handle && <Text style={s.handle}>{handle}</Text>}</View></View>
-    <TextInput autoFocus multiline maxLength={5000} value={text} onChangeText={setText} placeholder="What’s on your mind?" placeholderTextColor="#9a9aa3" style={s.input}/>
-    {!!error && <Text style={s.error}>{error}</Text>}
-    <View style={s.tools}><Text style={s.toolDisabled}>Media</Text><Text style={s.toolDisabled}>Poll</Text><Text style={s.toolDisabled}>Link</Text></View>
-    <View style={s.visibility}><Text style={s.visLabel}>Visibility</Text><Text style={s.visValue}>Public</Text></View>
-  </KeyboardAvoidingView></SafeAreaView>
+export default function Create(){
+ const r=useRouter(); const {user,profile}=useAuth(); const {width}=useWindowDimensions(); const desktop=Platform.OS==='web'&&width>=1000;
+ const [text,setText]=useState(''); const [visibility,setVisibility]=useState('public'); const [showVisibility,setShowVisibility]=useState(false); const [saving,setSaving]=useState(false); const [error,setError]=useState('');
+ const displayName=profile?.display_name||user?.email?.split('@')[0]||'Your profile';
+ const submit=async()=>{const content=text.trim();if(!content||!user||saving)return;setSaving(true);setError('');const {error:e}=await supabase.from('posts').insert({author_id:user.id,content,visibility});setSaving(false);if(e){setError(e.message);return;}r.replace('/home');};
+ const setVis=v=>{setVisibility(v);setShowVisibility(false);};
+ return <SafeAreaView style={s.safe}><KeyboardAvoidingView style={s.flex} behavior={Platform.OS==='ios'?'padding':undefined}>
+  {desktop?<DesktopHeader router={r}/>:<MobileHeader router={r} saving={saving} canPost={!!text.trim()} submit={submit}/>}
+  <View style={[s.layout,desktop&&s.desktopLayout]}>
+   <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <View style={s.identity}><Avatar profile={profile} displayName={displayName}/><View style={s.identityText}><Text style={s.name}>{displayName}</Text>{profile?.username&&<Text style={s.handle}>@{profile.username}</Text>}</View><View style={s.visibilityWrap}>
+      <Pressable onPress={()=>setShowVisibility(v=>!v)} style={s.visibilityButton}><Text style={s.globe}>◎</Text><Text style={s.visibilityText}>{visibility==='public'?'Public':'Followers'}</Text><Text style={s.chevron}>⌄</Text></Pressable>
+      {showVisibility&&<View style={s.visibilityMenu}><Pressable onPress={()=>setVis('public')} style={s.menuRow}><Text style={s.menuTitle}>Public</Text><Text style={s.menuSub}>Anyone can see this post</Text></Pressable><Pressable onPress={()=>setVis('followers')} style={s.menuRow}><Text style={s.menuTitle}>Followers</Text><Text style={s.menuSub}>Only your followers can see it</Text></Pressable></View>}
+    </View></View>
+    <TextInput autoFocus multiline maxLength={5000} value={text} onChangeText={setText} placeholder={"What's on your mind, "+displayName.split(' ')[0]+"?"} placeholderTextColor="#8093AA" style={s.input}/>
+    <View style={s.actionGrid}><Action icon="▧" label="Photo"/><Action icon="▶" label="Video"/><Action icon="▥" label="Poll"/><Action icon="☷" label="Write" active/></View>
+    <View style={s.mediaBox}><Text style={s.mediaIcon}>▧</Text><Text style={s.mediaTitle}>Photos and videos</Text><Text style={s.mediaSub}>Media uploads will be available once Freetopia Storage is connected.</Text></View>
+    <OptionRow icon="⌖" title="Add location" subtitle="Optional"/><OptionRow icon="♙" title="Tag people" subtitle="Mention friends"/><OptionRow icon="♧" title="Add to community" subtitle="Share with a community"/><OptionRow icon="☺" title="Feeling / Activity" subtitle="How are you feeling?"/>
+    <View style={s.optionBlock}><View style={s.optionIcon}><Text style={s.optionIconText}>▣</Text></View><View style={s.optionCopy}><Text style={s.optionTitle}>Privacy</Text><Text style={s.optionSub}>{visibility==='public'?'Public':'Followers'}</Text></View><Text style={s.rowChevron}>⌄</Text></View>
+    {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
+    <Pressable disabled={!text.trim()||saving} onPress={submit} style={[s.submit,(!text.trim()||saving)&&s.submitDisabled]}><Text style={s.submitText}>{saving?'Posting…':'Post  →'}</Text></Pressable>
+   </ScrollView>
+   {desktop&&<DesktopRail/>}
+  </View>
+ </KeyboardAvoidingView></SafeAreaView>;
 }
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:'#fff'},wrap:{flex:1,paddingHorizontal:20},header:{height:60,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:'#e8e8ec'},cancel:{fontSize:13,color:'#696974'},title:{fontSize:16,fontWeight:'750',color:'#17171b'},post:{fontSize:13,fontWeight:'750',color:'#6546f5'},disabled:{opacity:.35},identity:{flexDirection:'row',alignItems:'center',gap:10,paddingVertical:18},avatar:{width:40,height:40,borderRadius:20,backgroundColor:'#17171b',alignItems:'center',justifyContent:'center'},avatarText:{color:'#fff',fontWeight:'750'},name:{fontSize:13,fontWeight:'700',color:'#17171b'},handle:{marginTop:2,fontSize:11,color:'#8a8a94'},input:{minHeight:180,fontSize:18,lineHeight:27,color:'#17171b',textAlignVertical:'top'},error:{fontSize:12,lineHeight:18,color:'#c93636',marginBottom:8},tools:{flexDirection:'row',gap:20,paddingVertical:13,borderTopWidth:1,borderBottomWidth:1,borderColor:'#e8e8ec'},toolDisabled:{fontSize:12,color:'#a2a2aa'},visibility:{marginTop:15,flexDirection:'row',justifyContent:'space-between',padding:14,borderWidth:1,borderColor:'#e8e8ec',borderRadius:14},visLabel:{fontSize:12,color:'#696974'},visValue:{fontSize:12,fontWeight:'700',color:'#17171b'}});
+function DesktopHeader(){return <View style={s.top}><View style={s.brand}><Image source={require('../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View><View style={s.topActions}><Text style={s.topIcon}>♧</Text><Text style={s.topIcon}>▱</Text><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></View></View>}
+function MobileHeader({router,saving,canPost,submit}){return <View style={s.mobileTop}><Pressable onPress={()=>router.back()}><Text style={s.back}>‹</Text></Pressable><Image source={require('../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.mobileBrand}>Freetopia</Text><View style={{flex:1}}/><Pressable disabled={!canPost||saving} onPress={submit} style={[s.headerPost,(!canPost||saving)&&s.submitDisabled]}><Text style={s.headerPostText}>{saving?'…':'Post'}</Text></Pressable></View>}
+function Avatar({profile,displayName}){return profile?.avatar_url?<Image source={{uri:profile.avatar_url}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{displayName.charAt(0).toUpperCase()}</Text></View>}
+function Action({icon,label,active}){return <View style={[s.action,active&&s.actionActive]}><Text style={s.actionIcon}>{icon}</Text><Text style={s.actionText}>{label}</Text></View>}
+function OptionRow({icon,title,subtitle}){return <View style={s.optionRow}><View style={s.optionIcon}><Text style={s.optionIconText}>{icon}</Text></View><View style={s.optionCopy}><Text style={s.optionTitle}>{title}</Text><Text style={s.optionSub}>{subtitle}</Text></View><Text style={s.rowChevron}>›</Text></View>}
+function DesktopRail(){return <View style={s.rail}><View style={s.railCard}><Text style={s.railTitle}>Suggested Communities</Text>{['Tech & Innovation','Fitness & Health','Music Vibes','Business & Finance','Travel Diaries'].map(x=><View key={x} style={s.suggest}><View style={s.suggestIcon}><Text>✦</Text></View><View style={{flex:1}}><Text style={s.suggestName}>{x}</Text><Text style={s.suggestMeta}>Discover shared interests</Text></View><Text style={s.joinText}>Join</Text></View>)}</View><View style={s.railCard}><Text style={s.railTitle}>Trending Topics</Text>{['#Mindset','#Tech','#Fitness','#Business','#Freetopia'].map(x=><View key={x} style={s.topic}><Text style={s.topicIcon}>#</Text><Text style={s.topicText}>{x}</Text></View>)}</View><View style={s.promo}><Text style={s.promoBrand}>◈ Freetopia</Text><Text style={s.promoTitle}>Better people. Bigger dreams.</Text><Pressable style={s.promoButton}><Text style={s.promoButtonText}>Join Now  →</Text></Pressable></View></View>}
+
+const s=StyleSheet.create({
+ safe:{flex:1,backgroundColor:C.bg},flex:{flex:1},top:{height:68,borderBottomWidth:1,borderBottomColor:C.line,flexDirection:'row',alignItems:'center',paddingHorizontal:22},brand:{flexDirection:'row',alignItems:'center',gap:9},logo:{width:34,height:34},brandText:{color:C.text,fontSize:18,fontWeight:'850'},topActions:{marginLeft:'auto',flexDirection:'row',alignItems:'center',gap:20},topIcon:{color:C.text,fontSize:20},topAvatar:{width:32,height:32,borderRadius:16,backgroundColor:'#2B415B',alignItems:'center',justifyContent:'center'},topAvatarText:{color:'#fff',fontWeight:'900'},
+ mobileTop:{height:64,flexDirection:'row',alignItems:'center',paddingHorizontal:18,borderBottomWidth:1,borderBottomColor:C.line},back:{fontSize:36,color:C.text,lineHeight:36,marginRight:10},mobileBrand:{fontSize:18,fontWeight:'850',color:C.text,marginLeft:7},headerPost:{height:38,minWidth:70,paddingHorizontal:18,borderRadius:20,backgroundColor:C.violet,alignItems:'center',justifyContent:'center'},headerPostText:{color:'#fff',fontWeight:'850',fontSize:13},
+ layout:{flex:1},desktopLayout:{flexDirection:'row',maxWidth:1200,alignSelf:'center',width:'100%'},scroll:{flex:1},scrollContent:{padding:18,paddingBottom:45,maxWidth:760,width:'100%',alignSelf:'center'},identity:{flexDirection:'row',alignItems:'center',paddingVertical:12},identityText:{marginLeft:11,flex:1},avatar:{width:46,height:46,borderRadius:23,backgroundColor:'#223850',alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#58718D'},avatarText:{color:'#fff',fontWeight:'900',fontSize:17},name:{color:C.text,fontSize:15,fontWeight:'850'},handle:{color:C.muted,fontSize:11,marginTop:2},
+ visibilityWrap:{position:'relative'},visibilityButton:{height:34,paddingHorizontal:11,borderRadius:9,backgroundColor:C.panel2,borderWidth:1,borderColor:'#193652',flexDirection:'row',alignItems:'center',gap:6},globe:{color:'#B7C9DE',fontSize:12},visibilityText:{color:'#D8E4F1',fontSize:10,fontWeight:'750'},chevron:{color:'#A6B9CE',fontSize:14},visibilityMenu:{position:'absolute',right:0,top:40,width:190,zIndex:20,borderWidth:1,borderColor:C.line,borderRadius:10,backgroundColor:'#0A1828',overflow:'hidden'},menuRow:{padding:12,borderBottomWidth:1,borderBottomColor:C.line},menuTitle:{color:C.text,fontSize:11,fontWeight:'800'},menuSub:{color:C.muted,fontSize:8,marginTop:3},
+ input:{minHeight:145,fontSize:20,lineHeight:29,color:C.text,textAlignVertical:'top',paddingTop:10},actionGrid:{flexDirection:'row',gap:10,marginVertical:8},action:{flex:1,height:48,borderRadius:10,backgroundColor:C.panel2,borderWidth:1,borderColor:'#183450',alignItems:'center',justifyContent:'center',flexDirection:'row',gap:7},actionActive:{borderColor:'#344DFF',backgroundColor:'#101F3A'},actionIcon:{color:'#7EA5FF',fontSize:17},actionText:{color:'#D7E2EF',fontSize:10,fontWeight:'750'},
+ mediaBox:{height:150,borderWidth:1,borderColor:'#21415F',borderStyle:'dashed',borderRadius:11,alignItems:'center',justifyContent:'center',backgroundColor:'#061321',marginTop:9},mediaIcon:{fontSize:30,color:'#6F7CFF'},mediaTitle:{color:'#D8E4F2',fontSize:12,fontWeight:'800',marginTop:8},mediaSub:{color:C.muted,fontSize:9,marginTop:4,textAlign:'center',paddingHorizontal:20},
+ optionRow:{minHeight:64,borderBottomWidth:1,borderBottomColor:C.line,flexDirection:'row',alignItems:'center',gap:12},optionIcon:{width:30,alignItems:'center'},optionIconText:{color:'#D2DEEA',fontSize:22},optionCopy:{flex:1},optionTitle:{color:C.text,fontSize:12,fontWeight:'650'},optionSub:{color:C.muted,fontSize:9,marginTop:3},rowChevron:{color:'#A8BCD0',fontSize:25},optionBlock:{minHeight:64,flexDirection:'row',alignItems:'center',gap:12,borderBottomWidth:1,borderBottomColor:C.line},error:{padding:10,borderRadius:9,backgroundColor:'#26111A',borderWidth:1,borderColor:'#6B3041',marginTop:12},errorText:{color:'#FFB1BE',fontSize:10},submit:{height:46,borderRadius:23,backgroundColor:C.violet,alignItems:'center',justifyContent:'center',marginTop:14},submitDisabled:{opacity:.4},submitText:{color:'#fff',fontSize:13,fontWeight:'900'},
+ rail:{width:290,padding:18,paddingLeft:0,gap:12},railCard:{borderWidth:1,borderColor:C.line,borderRadius:11,backgroundColor:C.panel,padding:13},railTitle:{color:C.text,fontSize:13,fontWeight:'850',marginBottom:9},suggest:{minHeight:51,flexDirection:'row',alignItems:'center',gap:8,borderBottomWidth:1,borderBottomColor:C.line},suggestIcon:{width:33,height:33,borderRadius:9,backgroundColor:'#193C67',alignItems:'center',justifyContent:'center'},suggestName:{color:C.text,fontSize:9,fontWeight:'800'},suggestMeta:{color:C.muted,fontSize:7,marginTop:2},joinText:{color:'#B8C8FF',fontSize:8,fontWeight:'850'},topic:{height:40,flexDirection:'row',alignItems:'center',gap:9,borderBottomWidth:1,borderBottomColor:C.line},topicIcon:{width:28,height:28,borderRadius:8,backgroundColor:'#17345A',color:'#B9D4FF',textAlign:'center',textAlignVertical:'center',fontWeight:'900'},topicText:{color:'#D4DFEB',fontSize:10,fontWeight:'700'},promo:{borderRadius:11,borderWidth:1,borderColor:'#4B3486',backgroundColor:'#261344',padding:16,minHeight:145},promoBrand:{color:'#DCE7FF',fontSize:13,fontWeight:'900'},promoTitle:{color:'#fff',fontSize:15,fontWeight:'850',marginTop:15,lineHeight:20},promoButton:{height:35,borderRadius:18,backgroundColor:C.blue,alignItems:'center',justifyContent:'center',marginTop:15},promoButtonText:{color:'#fff',fontSize:9,fontWeight:'850'}
+});
