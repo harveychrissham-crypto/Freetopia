@@ -56,7 +56,7 @@ Deno.serve(async(req:Request)=>{
 
   const {data,error}=await query.order("created_at",{ascending:false}).limit(1).maybeSingle();
   if(error) return new Response(JSON.stringify({error:error.message}),{status:500});
-  if(!data) return new Response("Media not found", {status:202});
+  if(!data) return new Response("Media not found", {status:500});
 
   const update=failed||!hls
     ? {processing_status:"failed",playback_url:null}
