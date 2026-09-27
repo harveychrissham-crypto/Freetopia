@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
@@ -19,7 +19,7 @@ export default function PostScreen(){
   if(!id)return;
   setLoading(true);setError('');
   const [postResult,commentsResult]=await Promise.all([
-   supabase.from('posts').select('id,content,created_at,author_id,profiles:author_id(id,username,display_name)').eq('id',id).maybeSingle(),
+   supabase.from('posts').select('id,content,created_at,author_id,profiles:author_id(id,username,display_name,avatar_url)').eq('id',id).maybeSingle(),
    supabase.from('comments').select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').eq('post_id',id).is('parent_id',null).order('created_at',{ascending:true}),
   ]);
   if(postResult.error)setError(postResult.error.message);else setPost(postResult.data);
@@ -59,7 +59,7 @@ export default function PostScreen(){
    {loading&&<Text style={s.muted}>Loading post…</Text>}
    {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
    {!!post&&<View style={s.post}>
-    <View style={s.postTop}><View style={{flex:1}}><Text style={s.author}>{name}</Text>{author?.username&&<Text style={s.handle}>@{author.username}</Text>}</View>
+    <View style={s.postTop}><View style={s.authorWrap}>{author?.avatar_url?<Image source={{uri:author.avatar_url}} style={s.authorAvatar}/>:<View style={s.authorFallback}><Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text></View>}<View style={{flex:1}}><Text style={s.author}>{name}</Text>{author?.username&&<Text style={s.handle}>@{author.username}</Text>}</View>
     {canReport&&<Pressable onPress={()=>reportOpen&&reportTarget?.post_id===post.id?setReportOpen(false):openReport({post_id:post.id,reported_user_id:post.author_id})}><Text style={s.reportLink}>Report</Text></Pressable>}
     {reported&&<Text style={s.reported}>Reported</Text>}
     </View>
@@ -73,7 +73,7 @@ export default function PostScreen(){
    </View>}
    <Text style={s.section}>Replies · {comments.length}</Text>
    {!loading&&comments.length===0&&<View style={s.empty}><Text style={s.emptyTitle}>No replies yet</Text><Text style={s.muted}>Start the conversation.</Text></View>}
-   {comments.map(comment=>{const a=Array.isArray(comment.profiles)?comment.profiles[0]:comment.profiles;const n=a?.display_name||a?.username||'Freetopia member';const canCommentReport=!!user&&a?.id!==user.id;return <View key={comment.id} style={s.comment}><View style={s.commentAvatar}><Text style={s.avatarText}>{n.charAt(0).toUpperCase()}</Text></View><View style={{flex:1}}><View style={s.commentTop}><Text style={s.commentAuthor}>{n}</Text>{canCommentReport&&<Pressable onPress={()=>reportOpen&&reportTarget?.comment_id===comment.id?setReportOpen(false):openReport({comment_id:comment.id,post_id:post.id,reported_user_id:a?.id||null})}><Text style={s.commentReport}>{reportOpen&&reportTarget?.comment_id===comment.id?'Close':'Report'}</Text></Pressable>}</View><Text style={s.commentText}>{comment.content}</Text><Text style={s.time}>{new Date(comment.created_at).toLocaleString()}</Text></View></View>})}
+   {comments.map(comment=>{const a=Array.isArray(comment.profiles)?comment.profiles[0]:comment.profiles;const n=a?.display_name||a?.username||'Freetopia member';const canCommentReport=!!user&&a?.id!==user.id;return <View key={comment.id} style={s.comment}>{a?.avatar_url?<Image source={{uri:a.avatar_url}} style={s.commentAvatar}/>:<View style={s.commentAvatar}><Text style={s.avatarText}>{n.charAt(0).toUpperCase()}</Text></View>}<View style={{flex:1}}><View style={s.commentTop}><Text style={s.commentAuthor}>{n}</Text>{canCommentReport&&<Pressable onPress={()=>reportOpen&&reportTarget?.comment_id===comment.id?setReportOpen(false):openReport({comment_id:comment.id,post_id:post.id,reported_user_id:a?.id||null})}><Text style={s.commentReport}>{reportOpen&&reportTarget?.comment_id===comment.id?'Close':'Report'}</Text></Pressable>}</View><Text style={s.commentText}>{comment.content}</Text><Text style={s.time}>{new Date(comment.created_at).toLocaleString()}</Text></View></View>})}
   </ScrollView>
   <View style={s.composer}><TextInput value={text} onChangeText={setText} placeholder="Write a reply…" placeholderTextColor="#9a9aa4" style={s.input} multiline maxLength={1000}/><Pressable onPress={addComment} disabled={saving||!text.trim()} style={[s.send,(saving||!text.trim())&&s.sendDisabled]}><Text style={s.sendText}>{saving?'…':'Send'}</Text></Pressable></View>
  </KeyboardAvoidingView></SafeAreaView>
@@ -82,7 +82,7 @@ export default function PostScreen(){
 const s=StyleSheet.create({
  safe:{flex:1,backgroundColor:'#fff'},header:{height:58,paddingHorizontal:20,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:c.line},back:{fontSize:34,color:c.ink,lineHeight:34},headerTitle:{fontSize:15,fontWeight:'750',color:c.ink},
  content:{padding:20,paddingBottom:30},muted:{fontSize:12,color:c.muted},error:{padding:12,borderRadius:12,backgroundColor:'#fff7f7',marginBottom:12},errorText:{fontSize:12,color:c.danger},
- post:{paddingBottom:20,borderBottomWidth:1,borderBottomColor:c.line},postTop:{flexDirection:'row',alignItems:'flex-start'},author:{fontSize:14,fontWeight:'750',color:c.ink},handle:{marginTop:2,fontSize:10,color:c.muted},reportLink:{fontSize:11,fontWeight:'750',color:c.danger},reported:{fontSize:11,fontWeight:'750',color:'#777'},
+ post:{paddingBottom:20,borderBottomWidth:1,borderBottomColor:c.line},postTop:{flexDirection:'row',alignItems:'flex-start'},authorWrap:{flex:1,flexDirection:'row',gap:10,alignItems:'center'},authorAvatar:{width:42,height:42,borderRadius:21},authorFallback:{width:42,height:42,borderRadius:21,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},author:{fontSize:14,fontWeight:'750',color:c.ink},handle:{marginTop:2,fontSize:10,color:c.muted},reportLink:{fontSize:11,fontWeight:'750',color:c.danger},reported:{fontSize:11,fontWeight:'750',color:'#777'},
  contentText:{marginTop:10,fontSize:16,lineHeight:24,color:c.ink},time:{marginTop:7,fontSize:10,color:'#9a9aa4'},reportBox:{marginTop:14,padding:14,borderWidth:1,borderColor:c.line,borderRadius:15,backgroundColor:'#fafafa'},reportTitle:{fontSize:14,fontWeight:'750',color:c.ink},reportLead:{marginTop:4,fontSize:11,lineHeight:16,color:c.muted},reasonList:{marginTop:10},reason:{paddingVertical:9,paddingHorizontal:10,borderWidth:1,borderColor:c.line,borderRadius:9,marginBottom:6,backgroundColor:'#fff'},reasonSelected:{borderColor:c.accent,backgroundColor:'#f4f1ff'},reasonText:{fontSize:11,color:c.ink},reasonTextSelected:{fontWeight:'750',color:c.accent},details:{minHeight:70,maxHeight:100,borderWidth:1,borderColor:c.line,borderRadius:10,padding:10,fontSize:11,color:c.ink,backgroundColor:'#fff'},reportActions:{marginTop:10,flexDirection:'row',justifyContent:'flex-end',gap:8},cancel:{height:38,paddingHorizontal:13,justifyContent:'center'},cancelText:{fontSize:11,fontWeight:'700',color:c.muted},submit:{height:38,paddingHorizontal:14,borderRadius:10,backgroundColor:c.ink,justifyContent:'center'},submitDisabled:{opacity:.35},submitText:{fontSize:11,fontWeight:'750',color:'#fff'},
  section:{marginTop:22,fontSize:15,fontWeight:'750',color:c.ink},empty:{marginTop:12,padding:18,borderWidth:1,borderColor:c.line,borderRadius:14,alignItems:'center'},emptyTitle:{fontSize:14,fontWeight:'700',color:c.ink,marginBottom:5},
  comment:{flexDirection:'row',gap:10,paddingVertical:14,borderBottomWidth:1,borderBottomColor:c.line},commentTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},commentReport:{fontSize:10,fontWeight:'750',color:c.danger},commentAvatar:{width:34,height:34,borderRadius:17,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},avatarText:{color:'#fff',fontWeight:'750'},commentAuthor:{fontSize:12,fontWeight:'750',color:c.ink},commentText:{marginTop:4,fontSize:13,lineHeight:20,color:c.ink},
