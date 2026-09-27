@@ -32,16 +32,18 @@ export default function NewMessage(){
  };
 
  const start=async id=>{
+  if(busy)return;
   setBusy(true);setError('');
   const{data,error:e}=await supabase.rpc('create_direct_conversation',{target_user_id:id});
-  if(e)setError(e.message);else router.replace({pathname:'/conversation',params:{id:data}});
+  if(e){setError(e.message);setBusy(false);return}
+  router.replace({pathname:'/conversation',params:{id:data}});
   setBusy(false);
  };
 
  return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-  <Pressable onPress={()=>router.back()} hitSlop={8}><Text style={s.back}>‹  Back</Text></Pressable>
-  <View style={s.hero}><View style={s.icon}><Text style={s.iconText}>✦</Text></View><Text style={s.title}>New message</Text><Text style={s.lead}>{userId?'Start a conversation with this Freetopia member.':'Find someone on Freetopia and start a conversation.'}</Text></View>
-  <View style={s.search}><TextInput value={q} onChangeText={setQ} onSubmitEditing={search} returnKeyType="search" placeholder="Search by name or username" placeholderTextColor="#999" style={s.input}/><Pressable onPress={search} style={s.go}><Text style={s.wh}>Search</Text></Pressable></View>
+  <View style={s.top}><Pressable onPress={()=>router.back()} hitSlop={8} style={s.backButton}><Text style={s.back}>‹</Text></Pressable><Text style={s.topTitle}>New message</Text><View style={s.topSpacer}/></View>
+  <View style={s.hero}><View style={s.icon}><Text style={s.iconText}>✦</Text></View><Text style={s.title}>Start a conversation</Text><Text style={s.lead}>{userId?'Message this Freetopia member directly.':'Find someone on Freetopia and start a conversation.'}</Text></View>
+  <View style={s.search}><TextInput value={q} onChangeText={setQ} onSubmitEditing={search} returnKeyType="search" placeholder="Search by name or username" placeholderTextColor="#718092" style={s.input}/><Pressable onPress={search} disabled={!q.trim()||busy} style={[s.go,(!q.trim()||busy)&&s.goDisabled]}><Text style={s.wh}>Search</Text></Pressable></View>
   {error&&<Text style={s.err}>{error}</Text>}
   {searched&&!people.length&&!error&&<View style={s.empty}><Text style={s.emptyTitle}>No members found</Text><Text style={s.emptyText}>Try a different name or username.</Text></View>}
   {!!people.length&&<Text style={s.section}>MEMBERS</Text>}
@@ -54,8 +56,8 @@ export default function NewMessage(){
 }
 
 const s=StyleSheet.create({
- safe:{flex:1,backgroundColor:'#060B12},content:{padding:20,paddingBottom:40},back:{color:'#7F96B0',fontSize:13,fontWeight:'750'},
+ safe:{flex:1,backgroundColor:'#060B12'},content:{padding:20,paddingBottom:40},top:{height:44,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},backButton:{width:32,height:36,justifyContent:'center'},back:{fontSize:30,lineHeight:32,color:'#E9EEF4',fontWeight:'300'},topTitle:{fontSize:15,fontWeight:'800',color:'#E9EEF4'},topSpacer:{width:32},
  hero:{marginTop:24,alignItems:'center'},icon:{width:50,height:50,borderRadius:25,backgroundColor:'#253447',alignItems:'center',justifyContent:'center'},iconText:{color:'#F4F6F8',fontSize:18},title:{marginTop:16,fontSize:30,fontWeight:'800',color:'#E9EEF4'},lead:{marginTop:7,maxWidth:330,textAlign:'center',fontSize:13,lineHeight:20,color:'#7F8D9D'},
- search:{marginTop:24,height:48,flexDirection:'row',borderWidth:1,borderColor:'#182533',borderRadius:14,overflow:'hidden',backgroundColor:'#0A121C'},input:{flex:1,paddingHorizontal:13,color:'#17171b',fontSize:13},go:{paddingHorizontal:16,justifyContent:'center',backgroundColor:'#253447'},wh:{color:'#fff',fontSize:10,fontWeight:'800'},
- err:{marginTop:14,color:'#9e2f2f',fontSize:12},section:{marginTop:24,marginBottom:4,fontSize:10,fontWeight:'800',letterSpacing:1.2,color:'#68798C'},person:{flexDirection:'row',alignItems:'center',gap:11,paddingVertical:14,borderBottomWidth:1,borderBottomColor:'#182533'},pressed:{opacity:.65},avatar:{width:44,height:44,borderRadius:22,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},avatarImage:{width:'100%',height:'100%'},avt:{color:'#fff',fontWeight:'800',fontSize:13},name:{fontSize:13,fontWeight:'750',color:'#17171b'},handle:{marginTop:2,fontSize:10,color:'#696974'},bio:{marginTop:3,fontSize:10,color:'#9999a1'},next:{fontSize:23,color:'#68798C'},empty:{marginTop:50,alignItems:'center'},emptyTitle:{fontSize:14,fontWeight:'750',color:'#303038'},emptyText:{marginTop:5,fontSize:12,color:'#8a8a92'}
+ search:{marginTop:24,height:48,flexDirection:'row',borderWidth:1,borderColor:'#182533',borderRadius:14,overflow:'hidden',backgroundColor:'#0A121C'},input:{flex:1,paddingHorizontal:13,color:'#E9EEF4',fontSize:13},go:{paddingHorizontal:16,justifyContent:'center',backgroundColor:'#4B78A8'},goDisabled:{backgroundColor:'#202B3A'},wh:{color:'#F4F6F8',fontSize:10,fontWeight:'800'},
+ err:{marginTop:14,padding:10,borderRadius:10,backgroundColor:'#21151B',color:'#D78A98',fontSize:12},section:{marginTop:24,marginBottom:4,fontSize:10,fontWeight:'800',letterSpacing:1.2,color:'#68798C'},person:{flexDirection:'row',alignItems:'center',gap:11,paddingVertical:14,borderBottomWidth:1,borderBottomColor:'#182533'},pressed:{opacity:.65},avatar:{width:44,height:44,borderRadius:22,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},avatarImage:{width:'100%',height:'100%'},avt:{color:'#E9EEF4',fontWeight:'800',fontSize:13},name:{fontSize:13,fontWeight:'750',color:'#E9EEF4'},handle:{marginTop:2,fontSize:10,color:'#7F8D9D'},bio:{marginTop:3,fontSize:10,color:'#8B98A7'},next:{fontSize:23,color:'#68798C'},empty:{marginTop:50,alignItems:'center'},emptyTitle:{fontSize:14,fontWeight:'800',color:'#DCE5ED'},emptyText:{marginTop:5,fontSize:12,color:'#7F8D9D'}
 });
