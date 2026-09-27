@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
@@ -8,10 +8,10 @@ import { useAuth } from '../../providers/AuthProvider';
 const C={bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',blue:'#4B78A8',violet:'#4A3F78',pink:'#7A496F',green:'#4D705D'};
 
 export default function Explore(){
- const router=useRouter(); const {user,profile}=useAuth(); const {width}=useWindowDimensions();
+ const router=useRouter(); const params=useLocalSearchParams(); const {user,profile}=useAuth(); const {width}=useWindowDimensions();
  const desktop=Platform.OS==='web'&&width>=1000;
  const [q,setQ]=useState(''); const [tab,setTab]=useState('For You'); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
- const [people,setPeople]=useState([]); const [communities,setCommunities]=useState([]); const [posts,setPosts]=useState([]);
+ const [people,setPeople]=useState([]); const [communities,setCommunities]=useState([]); const [posts,setPosts]=useState([]); const [initialSearchApplied,setInitialSearchApplied]=useState(false);
  const load=useCallback(async()=>{
   setLoading(true);setError('');
   const [p,c,po]=await Promise.all([
@@ -23,6 +23,7 @@ export default function Explore(){
   const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted').in('following_id',ids);followed=new Set((f.data||[]).map(x=>x.following_id));} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
  },[user?.id]);
  useEffect(()=>{load()},[load]);
+ useEffect(()=>{const incoming=Array.isArray(params.q)?params.q[0]:params.q;if(incoming&&incoming!==q&&!initialSearchApplied){setQ(incoming);setTab('Posts');setInitialSearchApplied(true);search(incoming)}},[params.q,q,initialSearchApplied]);
 
  const search=async(nextValue)=>{
   const value=(nextValue??q).trim(); if(!value){load();return;}
