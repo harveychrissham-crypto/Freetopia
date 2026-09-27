@@ -32,7 +32,7 @@ export default function Profile() {
     setError('');
     const profileRequest = isOwn
       ? Promise.resolve({ data: profile, error: null })
-      : supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private').eq('id',targetId).maybeSingle();
+      : supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private,created_at').eq('id',targetId).maybeSingle();
     const [targetProfile, following, followers, ownPostCount, ownPosts, memberships] = await Promise.all([
       profileRequest,
       supabase.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',targetId).eq('status','accepted'),
@@ -79,7 +79,7 @@ export default function Profile() {
       handle={handle}
       initials={initials}
       counts={counts}
-      joinedAt={user?.created_at}
+      joinedAt={displayedProfile?.created_at || user?.created_at}
       onEdit={isOwn ? ()=>router.push('/edit-profile') : undefined}
       onSettings={isOwn ? ()=>router.push('/settings') : undefined}
       isOwn={isOwn}
@@ -108,7 +108,7 @@ export default function Profile() {
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />} contentContainerStyle={s.mobileContent}>
-        <View style={s.mobileTop}><Pressable onPress={()=>router.push('/home')}><Text style={s.back}>‹</Text></Pressable><Text style={s.mobileTitle}>Profile</Text><Pressable onPress={()=>router.push('/settings')}><Text style={s.mobileMore}>•••</Text></Pressable></View>
+        <View style={s.mobileTop}><Pressable onPress={()=>router.back()}><Text style={s.back}>‹</Text></Pressable><Text style={s.mobileTitle}>{isOwn?'Profile':'Profile'}</Text>{isOwn?<Pressable onPress={()=>router.push('/settings')}><Text style={s.mobileMore}>•••</Text></Pressable>:<View style={{width:20}}/>}</View>
         {profileHeader}
         <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         {error ? <ErrorBox message={error}/> : null}
@@ -124,7 +124,7 @@ function ProfileSidebar({name,initials,onNavigate}) {
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.brandLogo}/><Text style={s.brandText}>Freetopia</Text></View>
     <View style={s.sideNav}>{items.map(([icon,label,path])=><Pressable key={label} onPress={()=>onNavigate(path)} style={[s.sideItem,label==='Profile'&&s.activeSide]}><Text style={s.sideIcon}>{icon}</Text><Text style={s.sideLabel}>{label}</Text></Pressable>)}</View>
-    <Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials}/><View style={{flex:1}}><Text style={s.sideName}>{name}</Text><Text style={s.sideSub}>Your profile</Text></View><Text style={s.sideChevron}>⌄</Text></Pressable>
+    <Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials}/><View style={{flex:1}}><Text style={s.sideName}>{name}</Text><Text style={s.sideSub}>Profile</Text></View><Text style={s.sideChevron}>⌄</Text></Pressable>
   </View>;
 }
 function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn}) {
