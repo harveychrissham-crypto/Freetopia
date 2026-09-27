@@ -2,7 +2,6 @@
   "name": "freetopia",
   "version": "0.2.0",
   "private": true,
-  "type": "module",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
