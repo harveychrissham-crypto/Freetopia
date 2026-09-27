@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
@@ -8,7 +9,7 @@ import { useAuth } from '../providers/AuthProvider';
 const C={bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',blue:'#4B78A8',violet:'#4A3F78'};
 
 export default function Create(){
- const r=useRouter(); const { communityId } = useLocalSearchParams(); const {user,profile}=useAuth(); const {width}=useWindowDimensions(); const desktop=Platform.OS==='web'&&width>=1000;
+ const r=useRouter(); const params=useLocalSearchParams(); const communityId=useMemo(()=>Array.isArray(params.communityId)?params.communityId[0]:params.communityId,[params.communityId]); const {user,profile}=useAuth(); const {width}=useWindowDimensions(); const desktop=Platform.OS==='web'&&width>=1000;
  const [text,setText]=useState(''); const [visibility,setVisibility]=useState('public'); const [community,setCommunity]=useState(null); const [communityError,setCommunityError]=useState(''); const [showVisibility,setShowVisibility]=useState(false); const [saving,setSaving]=useState(false); const [error,setError]=useState('');
  const displayName=profile?.display_name||user?.email?.split('@')[0]||'Your profile';
  const loadCommunity=async()=>{if(!communityId||!user?.id)return;const [{data:c,error:ce},{data:m,error:me}]=await Promise.all([supabase.from('communities').select('id,name,is_private').eq('id',communityId).single(),supabase.from('community_members').select('status').eq('community_id',communityId).eq('user_id',user.id).maybeSingle()]);if(ce||me||!m?.status||m.status!=='active'){setCommunityError('You need to be an active member to post in this community.');return;}setCommunity(c);};
