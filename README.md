@@ -4,12 +4,15 @@ Freetopia is a social world built around freedom, expression, connection, discov
 
 ## Run the app
 
-Requirements: Node.js LTS and npm. Install dependencies, then start Expo:
+Requirements: Node.js LTS and npm. Install dependencies, configure Supabase, then start Expo:
 
 ```sh
 npm install
+copy .env.example .env
 npm start
 ```
+
+Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env`. The publishable key is intended for client apps; database access is protected by Supabase Auth and Row Level Security. Do not put service-role keys in the mobile app.
 
 Use Expo Go or a configured iOS/Android simulator/device to open the app. `npm run ios` and `npm run android` launch on an available local simulator. Expo Router handles native routes and deep links.
 
@@ -22,7 +25,7 @@ Use Expo Go or a configured iOS/Android simulator/device to open the app. `npm r
 
 ## Current product state
 
-The app has a branded, accessible welcome screen and a truthful empty state. It does not display fabricated profiles, posts, communities, messages, or notifications. Accounts, social data, uploads, and messaging require a real backend, database, storage, and server-side authorization design before those screens can behave as product features.
+The app now has a branded authentication flow backed by Supabase Auth, session-protected Expo Router navigation, real profile loading/editing, real post creation, and a Supabase-backed feed. It still keeps communities, messaging, notifications, media uploads, reactions, and comments as truthful UI states until their corresponding data flows are wired.
 
 ## Checks
 
