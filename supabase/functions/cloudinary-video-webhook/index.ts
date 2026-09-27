@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const url=Deno.env.get("SUPABASE_URL")!;
 const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const apiSecret=Deno.env.get("CLOUDINARY_API_SECRET")!;\nconst cloud=Deno.env.get("CLOUDINARY_CLOUD_NAME")!;
+const apiSecret=Deno.env.get("CLOUDINARY_API_SECRET")!;
+const cloud=Deno.env.get("CLOUDINARY_CLOUD_NAME")!;
 
 async function sha1(value:string){
   const digest=await crypto.subtle.digest("SHA-1",new TextEncoder().encode(value));
@@ -33,10 +34,6 @@ Deno.serve(async(req:Request)=>{
 
   const publicId=typeof payload?.public_id==="string"?payload.public_id:"";
   const contextId=payload?.context?.custom?.media_id||payload?.context?.media_id||payload?.notification_context?.custom?.media_id||payload?.notification_context?.media_id;
-
-  // Eager notifications can omit the original upload context. Our public_id
-  // format is freetopia/posts/<user_id>/<post_id>-<uuid>, so recover post_id
-  // from the asset name when context is unavailable.
   const postId=typeof contextId==="string"&&contextId?contextId:publicId.match(/^freetopia\/posts\/[^/]+\/([0-9a-f-]{36})-/i)?.[1];
 
   if(!postId&&!publicId) return new Response("Ignored",{status:202});
@@ -48,6 +45,9 @@ Deno.serve(async(req:Request)=>{
     const transformation=String(item?.transformation||"").toLowerCase();
     return format==="m3u8"||transformation.includes("f_m3u8");
   })?.secure_url||null;
+  const thumbnail=publicId&&cloud
+    ? `https://res.cloudinary.com/${cloud}/video/upload/so_0,w_720,q_auto/${publicId}.jpg`
+    : null;
 
   const admin=createClient(url,service);
   let query=admin.from("post_media").select("id").eq("media_type","video");
@@ -56,11 +56,11 @@ Deno.serve(async(req:Request)=>{
 
   const {data,error}=await query.order("created_at",{ascending:false}).limit(1).maybeSingle();
   if(error) return new Response(JSON.stringify({error:error.message}),{status:500});
-  if(!data) return new Response("Media not found", {status:500});
+  if(!data) return new Response("Media not found",{status:500});
 
   const update=failed||!hls
-    ? {processing_status:"failed",playback_url:null}
-    : {processing_status:"ready",playback_url:hls};
+    ? {processing_status:"failed",playback_url:null,thumbnail_path:thumbnail}
+    : {processing_status:"ready",playback_url:hls,thumbnail_path:thumbnail};
 
   const {error:updateError}=await admin.from("post_media").update(update).eq("id",data.id);
   if(updateError) return new Response(JSON.stringify({error:updateError.message}),{status:500});
