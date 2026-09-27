@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import { getImageUrl } from '../lib/imageUrl/imageUrl';
 import {Image,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useLocalSearchParams,useRouter} from 'expo-router';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -48,7 +49,7 @@ export default function NewMessage(){
   {searched&&!people.length&&!error&&<View style={s.empty}><Text style={s.emptyTitle}>No members found</Text><Text style={s.emptyText}>Try a different name or username.</Text></View>}
   {!!people.length&&<Text style={s.section}>MEMBERS</Text>}
   {people.map(p=><Pressable key={p.id} disabled={busy} onPress={()=>start(p.id)} style={({pressed})=>[s.person,pressed&&s.pressed]}>
-   <View style={s.avatar}>{p.avatar_url?<Image source={{uri:p.avatar_url}} style={s.avatarImage}/>:<Text style={s.avt}>{(p.display_name||p.username||'?')[0].toUpperCase()}</Text>}</View>
+   <View style={s.avatar}>{p.avatar_url?<Image source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text style={s.avt}>{(p.display_name||p.username||'?')[0].toUpperCase()}</Text>}</View>
    <View style={{flex:1}}><Text style={s.name}>{p.display_name||p.username}</Text>{p.username&&<Text style={s.handle}>@{p.username}</Text>}{p.bio&&<Text style={s.bio} numberOfLines={1}>{p.bio}</Text>}</View>
    <Text style={s.next}>›</Text>
   </Pressable>)}
