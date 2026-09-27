@@ -50,5 +50,10 @@ jobs:
             eas init --account itsharveys-team --non-interactive
           fi
 
+      - name: Validate Expo prebuild
+        run: |
+          npx expo config --type public
+          npx expo prebuild --platform android --no-install --non-interactive
+
       - name: Build Android
         run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive
