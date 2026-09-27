@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const url=Deno.env.get("SUPABASE_URL")!;
 const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const apiSecret=Deno.env.get("CLOUDINARY_API_SECRET")!;
+const apiSecret=Deno.env.get("CLOUDINARY_API_SECRET")!;\nconst cloud=Deno.env.get("CLOUDINARY_CLOUD_NAME")!;
 
 async function sha1(value:string){
   const digest=await crypto.subtle.digest("SHA-1",new TextEncoder().encode(value));
