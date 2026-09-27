@@ -19,6 +19,7 @@ export default function Messages() {
   const [refreshing,setRefreshing] = useState(false);
   const [error,setError] = useState('');
   const [query,setQuery] = useState('');
+  const [communities,setCommunities] = useState([]);
 
   const load = useCallback(async (pull=false) => {
     if (!user?.id) return;
@@ -117,7 +118,7 @@ function Sidebar({profile,router}) {
   const items=[['⌂','Home','/home'],['⌕','Explore','/explore'],['♧','Communities','/communities'],['▱','Messages','/messages'],['♧','Notifications','/notifications'],['＋','Create','/create'],['♙','Profile','/profile']];
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
-    <View style={s.sideNav}>{items.map(([ic,label,path])=><Pressable key={label} onPress={()=>router.push(path)} style={[s.sideItem,label==='Messages'&&s.active]}><Text style={s.sideIcon}>{ic}</Text><Text style={s.sideLabel}>{label}</Text>{label==='Messages'?<Badge n="3"/>:null}{label==='Notifications'?<Badge n="5"/>:null}</Pressable>)}</View>
+    <View style={s.sideNav}>{items.map(([ic,label,path])=><Pressable key={label} onPress={()=>router.push(path)} style={[s.sideItem,label==='Messages'&&s.active]}><Text style={s.sideIcon}>{ic}</Text><Text style={s.sideLabel}>{label}</Text>{label==='Messages'&&requestCount>0?<Badge n={requestCount}/>:null}</Pressable>)}</View>
     <View style={s.proCard}><Text style={s.proTitle}>✦ Freetopia Pro</Text><Text style={s.proBody}>Unlock more features, customize your experience, and get closer to your community.</Text><Pressable style={s.proButton}><Text style={s.proButtonText}>Upgrade →</Text></Pressable></View>
   </View>;
 }
@@ -158,7 +159,7 @@ function CommunityList({communities,router}) {
 function Empty({tab}){return <View style={s.empty}><Text style={s.emptyIcon}>{tab==='Archived'?'▣':'✉'}</Text><Text style={s.emptyTitle}>{tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'}</Text><Text style={s.emptyBody}>{tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'}</Text></View>}
 function Error({text}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load messages</Text><Text style={s.errorText}>{text}</Text></View>}
 function Loading(){return <View style={s.loading}><Text style={s.muted}>Loading conversations…</Text></View>}
-function Badge({n}){return <View style={s.badge}><Text style={s.badgeText}>{n}</Text></View>}
+function Badge({n}){return <View style={s.badge}><Text style={s.badgeText}>{n>99?'99+':n}</Text></View>}
 function relative(v){const m=Math.max(0,Math.floor((Date.now()-new Date(v).getTime())/60000));if(m<1)return 'now';if(m<60)return m+'m';const h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d'}
 
 const s=StyleSheet.create({
