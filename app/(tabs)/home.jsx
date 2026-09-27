@@ -128,7 +128,7 @@ export default function Home() {
     return (
       <SafeAreaView style={s.safe}>
         <View style={s.desktopShell}>
-          <DesktopSidebar displayName={displayName} initials={initials} activeTab={activeTab} onNavigate={nav} />
+          <DesktopSidebar displayName={displayName} initials={initials} activeTab={activeTab} onNavigate={nav} profile={profile} />
           <View style={s.desktopMain}>
             <DesktopHeader displayName={displayName} onNavigate={nav} />
             <View style={s.desktopColumns}>
@@ -147,7 +147,7 @@ export default function Home() {
                   <PostCard key={post.id} post={post} onLike={toggleLike} onComments={() => nav({ pathname: '/post', params: { id: post.id } })} desktop />
                 ))}
               </ScrollView>
-              <RightRail topics={topics} communities={communities} onCommunity={(id) => nav({ pathname: '/community', params: { id } })} onCreate={() => nav('/create')} />
+              <RightRail topics={topics} communities={communities} onCommunity={(id) => nav({ pathname: '/community', params: { id } })} onCommunities={() => nav('/communities')} onCreate={() => nav('/create')} />
             </View>
           </View>
         </View>
@@ -186,7 +186,7 @@ export default function Home() {
   );
 }
 
-function DesktopSidebar({ displayName, initials, onNavigate }) {
+function DesktopSidebar({ displayName, initials, onNavigate, profile }) {
   const items = [
     ['⌂', 'Home', '/home'],
     ['⊕', 'Explore', '/explore'],
@@ -212,7 +212,7 @@ function DesktopSidebar({ displayName, initials, onNavigate }) {
         ))}
       </View>
       <Pressable onPress={() => onNavigate('/profile')} style={s.sideProfile}>
-        <Avatar initials={initials} uri={null} />
+        <Avatar initials={initials} uri={profile?.avatar_url || null} />
         <View style={{ flex: 1 }}><Text style={s.sideProfileName}>{displayName}</Text><Text style={s.sideProfileHandle}>Your profile</Text></View>
         <Text style={s.sideChevron}>⌄</Text>
       </Pressable>
@@ -304,11 +304,11 @@ function PostCard({ post, onLike, onComments, desktop }) {
   );
 }
 
-function RightRail({ topics, communities, onCommunity, onCreate }) {
+function RightRail({ topics, communities, onCommunity, onCommunities, onCreate }) {
   return (
     <View style={s.rightRail}>
       <View style={s.railCard}>
-        <View style={s.railHeader}><Text style={s.railTitle}>Trending Topics</Text><Text style={s.seeAll}>See all</Text></View>
+        <View style={s.railHeader}><Text style={s.railTitle}>Trending Topics</Text><Pressable onPress={onCommunities}><Text style={s.seeAll}>See all</Text></Pressable></View>
         {topics.length ? topics.map(([tag, count], index) => (
           <View key={tag} style={s.topicRow}>
             <View style={s.topicIcon}><Text style={s.topicIconText}>{['✦', '◈', '↗', '⌁', '✧'][index]}</Text></View>
@@ -317,7 +317,7 @@ function RightRail({ topics, communities, onCommunity, onCreate }) {
         )) : <Text style={s.railEmpty}>Hashtags from real posts will appear here as your community grows.</Text>}
       </View>
       <View style={s.railCard}>
-        <View style={s.railHeader}><Text style={s.railTitle}>Communities</Text><Pressable onPress={() => onCreate()}><Text style={s.seeAll}>Create</Text></Pressable></View>
+        <View style={s.railHeader}><Text style={s.railTitle}>Communities</Text><Pressable onPress={() => onCommunity()}><Text style={s.seeAll}>See all</Text></Pressable></View>
         {communities.map((community) => (
           <Pressable key={community.id} onPress={() => onCommunity(community.id)} style={s.communityRow}>
             <View style={s.communityIcon}><Text style={s.communityIconText}>{community.name.charAt(0).toUpperCase()}</Text></View>
