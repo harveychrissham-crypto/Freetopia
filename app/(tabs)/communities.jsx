@@ -10,21 +10,21 @@ const C={bg:'#050A11',panel:'#08121E',panel2:'#0D1A2B',line:'#1A3047',text:'#F5F
 
 export default function Communities(){
  const router=useRouter(); const {user}=useAuth(); const {width}=useWindowDimensions(); const desktop=Platform.OS==='web'&&width>=1000;
- const [items,setItems]=useState([]); const [posts,setPosts]=useState([]); const [mine,setMine]=useState(new Set()); const [tab,setTab]=useState('All');
+ const [items,setItems]=useState([]); const [posts,setPosts]=useState([]); const [mine,setMine]=useState(new Set()); const [membership,setMembership]=useState({}); const [tab,setTab]=useState('All');
  const [query,setQuery]=useState(''); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
  const load=useCallback(async()=>{
   setLoading(true); setError('');
   const [c,p,m]=await Promise.all([
    supabase.from('communities').select('id,name,slug,description,is_private,avatar_url,creator_id,created_at').order('created_at',{ascending:false}).limit(60),
    supabase.from('posts').select('id,community_id,created_at').not('community_id','is',null).order('created_at',{ascending:false}).limit(150),
-   user?supabase.from('community_members').select('community_id,status').eq('user_id',user.id).eq('status','active'):Promise.resolve({data:[],error:null})
+   user?supabase.from('community_members').select('community_id,status,role').eq('user_id',user.id):Promise.resolve({data:[],error:null})
   ]);
   const e=c.error||p.error||m.error;
   if(e)setError(e.message);
   const recent=p.data||[]; const postStats={};
   recent.forEach(x=>{if(!postStats[x.community_id])postStats[x.community_id]={count:0,last:x.created_at};postStats[x.community_id].count+=1;if(new Date(x.created_at)>new Date(postStats[x.community_id].last))postStats[x.community_id].last=x.created_at;});
   setItems((c.data||[]).map(x=>({...x,postCount:postStats[x.id]?.count||0,lastPostAt:postStats[x.id]?.last||null})));
-  setPosts(recent); setMine(new Set((m.data||[]).map(x=>x.community_id))); setLoading(false);
+  setPosts(recent); const memberships=(m.data||[]); setMembership(Object.fromEntries(memberships.map(x=>[x.community_id,x]))); setMine(new Set(memberships.filter(x=>x.status==='active').map(x=>x.community_id))); setLoading(false);
  },[user?.id]);
  useFocusEffect(useCallback(()=>{load();},[load]));
 
@@ -35,13 +35,13 @@ export default function Communities(){
   if(tab==='Popular')return [...searched].sort((a,b)=>(b.postCount||0)-(a.postCount||0));
   return searched;
  },[searched,tab,mine]);
- const featured=filtered.slice(0,4); const popular=filtered.slice(0,6);
+ const withMembership=filtered.map(c=>({...c,memberStatus:membership[c.id]?.status||null})); const featured=withMembership.slice(0,4); const popular=withMembership.slice(0,6);
  const join=async c=>{
   if(!user){router.push('/auth');return;}
-  if(mine.has(c.id))return router.push({pathname:'/community',params:{id:c.id}});
+  if(membership[c.id]?.status==='active')return router.push({pathname:'/community',params:{id:c.id}}); if(membership[c.id]?.status==='pending')return router.push({pathname:'/community',params:{id:c.id}});
   const {error:e}=await supabase.from('community_members').insert({community_id:c.id,user_id:user.id,role:'member',status:c.is_private?'pending':'active'});
   if(e){setError(e.message);return;}
-  if(!c.is_private)setMine(x=>new Set([...x,c.id]));
+  setMembership(x=>({...x,[c.id]:{community_id:c.id,status:c.is_private?'pending':'active',role:'member'}})); if(!c.is_private)setMine(x=>new Set([...x,c.id]));
   router.push({pathname:'/community',params:{id:c.id}});
  };
 
@@ -77,7 +77,7 @@ function Hero({router}){return <View style={s.hero}><View style={s.heroGlow}/><I
 function Chip({text}){return <View style={s.chip}><Text style={s.chipDot}>✦</Text><Text style={s.chipText}>{text}</Text></View>}
 function Section({title,action}){return <View style={s.section}><Text style={s.sectionTitle}>{title}</Text><Text style={s.sectionAction}>{action}</Text></View>}
 function CommunityCards({communities,join,router,compact,mobile}){
- return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cards}>{communities.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={[s.card,compact&&s.compactCard,mobile&&s.mobileCard]}><CommunityVisual c={c}/><Text style={s.cardName} numberOfLines={1}>{c.name}</Text><Text style={s.cardMeta}>{c.postCount?c.postCount+' recent posts':c.is_private?'Private community':'Public community'}</Text><Text style={s.cardDesc} numberOfLines={2}>{c.description||'A space for people with shared interests.'}</Text><Pressable onPress={()=>join(c)} style={s.join}><Text style={s.joinText}>{c.is_private&&!false?'Join':'Join'}</Text></Pressable></Pressable>)}</ScrollView>;
+ return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.cards}>{communities.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={[s.card,compact&&s.compactCard,mobile&&s.mobileCard]}><CommunityVisual c={c}/><Text style={s.cardName} numberOfLines={1}>{c.name}</Text><Text style={s.cardMeta}>{c.postCount?c.postCount+' recent posts':c.is_private?'Private community':'Public community'}</Text><Text style={s.cardDesc} numberOfLines={2}>{c.description||'A space for people with shared interests.'}</Text><Pressable onPress={()=>join(c)} style={s.join}><Text style={s.joinText}>{c.memberStatus==='active'?'Joined':c.memberStatus==='pending'?'Requested':c.is_private?'Request to join':'Join'}</Text></Pressable></Pressable>)}</ScrollView>;
 }
 function CommunityList({communities,router,join}){return <View>{communities.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={s.listRow}><CommunityVisual c={c} small/><View style={{flex:1}}><Text style={s.listName}>{c.name}</Text><Text style={s.listMeta}>{c.postCount?c.postCount+' recent posts':c.is_private?'Private':'Public'}</Text></View><Text style={s.chevron}>›</Text></Pressable>)}</View>}
 function CommunityRank({communities,router}){return <View>{communities.map((c,i)=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={s.rankRow}><Text style={s.rank}>{i+1}</Text><CommunityVisual c={c} small/><View style={{flex:1}}><Text style={s.listName}>{c.name}</Text><Text style={s.listMeta}>{c.postCount?c.postCount+' recent posts':'New community'}</Text></View></Pressable>)}</View>}
