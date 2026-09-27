@@ -75,7 +75,7 @@ export default function Messages() {
   if (desktop) return (
     <SafeAreaView style={s.safe}>
       <View style={s.desktopShell}>
-        <Sidebar profile={profile} router={router} />
+        <Sidebar profile={profile} router={router} requestCount={requestCount} />
         <View style={s.desktopMain}>
           <Topbar query={query} setQuery={setQuery} router={router} />
           <View style={s.desktopBody}>
@@ -104,7 +104,7 @@ export default function Messages() {
       </View>
       <View style={s.mobileTitleRow}><Text style={s.mobileTitle}>Messages</Text><Pressable onPress={()=>router.push('/new-message')}><Text style={s.compose}>↗</Text></Pressable></View>
       <Tabs tab={tab} setTab={setTab} requestCount={requestCount}/>
-      {tab==='Communities' ? <CommunityPlaceholder/> :
+      {tab==='Communities' ? <CommunityList communities={communities} router={router}/> :
         <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />} contentContainerStyle={s.mobileList}>
           {error ? <Error text={error}/> : null}
           {loading ? <Loading/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
@@ -114,7 +114,7 @@ export default function Messages() {
   );
 }
 
-function Sidebar({profile,router}) {
+function Sidebar({profile,router,requestCount}) {
   const items=[['⌂','Home','/home'],['⌕','Explore','/explore'],['♧','Communities','/communities'],['▱','Messages','/messages'],['♧','Notifications','/notifications'],['＋','Create','/create'],['♙','Profile','/profile']];
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
@@ -123,7 +123,7 @@ function Sidebar({profile,router}) {
   </View>;
 }
 function Topbar({query,setQuery,router}) {
-  return <View style={s.topbar}><TextInput value={query} onChangeText={setQuery} placeholder="Search Freetopia..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Text style={s.topIcon}>♧</Text><Text style={s.topIcon}>□</Text><Pressable onPress={()=>router.push('/profile')}><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></Pressable></View></View>;
+  return <View style={s.topbar}><TextInput value={query} onChangeText={setQuery} placeholder="Search Freetopia..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Text style={s.topIcon}>♧</Text><Text style={s.topIcon}>□</Text><Pressable onPress={()=>router.push('/profile')}>{profile?.avatar_url?<Image source={{uri:profile.avatar_url}} style={s.topAvatar}/>:<View style={s.topAvatar}><Text style={s.topAvatarText}>{(profile?.display_name||profile?.username||'F')[0].toUpperCase()}</Text></View>}</Pressable></View></View>;
 }
 function Tabs({tab,setTab,requestCount}) {
   return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>{['Messages','Requests','Communities','Archived'].map(x=><Pressable key={x} onPress={()=>setTab(x)} style={[s.tab,tab===x&&s.tabSelected]}><Text style={[s.tabText,tab===x&&s.tabSelectedText]}>{x}</Text>{x==='Requests'&&requestCount>0?<View style={s.count}><Text style={s.countText}>{requestCount}</Text></View>:null}</Pressable>)}</ScrollView>;
