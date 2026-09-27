@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { getImageUrl } from '../../lib/imageUrl/imageUrl';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams,useRouter } from 'expo-router';
@@ -147,7 +148,7 @@ function ProfileSidebar({name,initials,onNavigate}) {
 }
 function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,followBusy,onFollow}) {
   return <View style={s.profileHeader}>
-    <View style={s.cover}>{profile?.cover_url?<Image source={{uri:profile.cover_url}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/><Text style={s.coverStars}>✦  ·  ✧   ·   ✦</Text></>}</View>
+    <View style={s.cover}>{profile?.cover_url?<Image source={{uri:getImageUrl(profile.cover_url,{width:2000,height:1000,quality:100})}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/><Text style={s.coverStars}>✦  ·  ✧   ·   ✦</Text></>}</View>
     <View style={s.profileBody}>
       <Pressable onPress={onEdit} disabled={!onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><Text style={s.cameraText}>⌾</Text></View>}</Pressable>
       <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={[s.followButton,following&&s.followingButton]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable>}</View>
