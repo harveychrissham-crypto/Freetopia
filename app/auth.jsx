@@ -50,27 +50,31 @@ export default function Auth() {
 
     setLoading(true);
 
-    const result = mode === 'sign-in'
-      ? await supabase.auth.signInWithPassword({ email: cleanEmail, password })
-      : await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: { data: { display_name: cleanName } },
-        });
+    try {
+      const result = mode === 'sign-in'
+        ? await supabase.auth.signInWithPassword({ email: cleanEmail, password })
+        : await supabase.auth.signUp({
+            email: cleanEmail,
+            password,
+            options: { data: { display_name: cleanName } },
+          });
 
-    setLoading(false);
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
 
-    if (result.error) {
-      setError(result.error.message);
-      return;
+      if (mode === 'sign-up' && !result.data.session) {
+        setMessage('Check your email to confirm your account, then come back to Freetopia.');
+        return;
+      }
+
+      router.replace('/home');
+    } catch (submitError) {
+      setError(submitError?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    if (mode === 'sign-up' && !result.data.session) {
-      setMessage('Check your email to confirm your account, then come back to Freetopia.');
-      return;
-    }
-
-    router.replace('/home');
   };
 
   return (
