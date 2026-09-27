@@ -53,7 +53,7 @@ function Desktop(p){
   <Hero router={p.router}/><CategoryTabs tab={p.tab} setTab={p.setTab}/>
   <Section title="Featured Communities" action="See all" onPress={()=>p.setTab("All")}/><CommunityCards communities={p.featured} join={p.join} router={p.router}/>
   <Section title="Popular Communities" action="See all" onPress={()=>p.setTab("Popular")}/><CommunityCards communities={p.popular.slice(0,5)} join={p.join} router={p.router} compact/>
-  <Section title="Recent Posts" action="Latest"/><RecentPosts posts={p.posts} router={p.router}/>
+  <Section title="Recent Posts" action="Latest" onPress={()=>p.router.push({pathname:'/explore',params:{tab:'Posts'}})}/><RecentPosts posts={p.posts} router={p.router}/>
   {p.error&&<Error text={p.error}/>} {p.loading&&<Text style={s.loading}>Loading communities…</Text>}
  </View><View style={s.rail}><Rail title="Top Communities"><CommunityRank communities={p.popular.slice(0,5)} router={p.router}/></Rail><Rail title="Recently Active"><RecentActive communities={p.popular.slice(0,6)} router={p.router}/></Rail><View style={s.createCard}><Text style={s.createIcon}>♧</Text><Text style={s.createTitle}>Join a Community</Text><Text style={s.createBody}>Can't find what you're looking for? Create your own community.</Text><Pressable onPress={()=>p.router.push('/create-community')} style={s.cta}><Text style={s.ctaText}>Create Community  →</Text></Pressable></View></View></View></View></View>;
 }
