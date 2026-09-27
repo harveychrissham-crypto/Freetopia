@@ -98,6 +98,9 @@ export default function Profile() {
       onEdit={isOwn ? ()=>router.push('/edit-profile') : undefined}
       onSettings={isOwn ? ()=>router.push('/settings') : undefined}
       isOwn={isOwn}
+      following={followingUser}
+      followBusy={followBusy}
+      onFollow={toggleFollow}
     />
   );
 
