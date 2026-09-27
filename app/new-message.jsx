@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import { getImageUrl } from '../lib/imageUrl/imageUrl';
+import { getImageUrl } from '../lib/imageUrl';
 import {Image,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useLocalSearchParams,useRouter} from 'expo-router';
 import {SafeAreaView} from 'react-native-safe-area-context';
