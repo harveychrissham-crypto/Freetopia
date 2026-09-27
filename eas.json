@@ -14,7 +14,8 @@
       "env": {
         "EAS_NO_FROZEN_LOCKFILE": "1",
         "EAS_BUILD_DISABLE_NPM_CACHE": "1"
-      }
+      },
+      "image": "sdk-57"
     },
     "production": {
       "autoIncrement": true,
@@ -24,7 +25,8 @@
       "env": {
         "EAS_NO_FROZEN_LOCKFILE": "1",
         "EAS_BUILD_DISABLE_NPM_CACHE": "1"
-      }
+      },
+      "image": "sdk-57"
     }
   }
 }
