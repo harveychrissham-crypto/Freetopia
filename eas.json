@@ -6,8 +6,7 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "image": "sdk-57"
+        "buildType": "apk"
       },
       "ios": {
         "simulator": true
@@ -20,8 +19,7 @@
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle",
-        "image": "sdk-57"
+        "buildType": "app-bundle"
       },
       "env": {
         "EAS_NO_FROZEN_LOCKFILE": "1",
