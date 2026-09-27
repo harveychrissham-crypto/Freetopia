@@ -17,7 +17,7 @@ export default function App() {
   return <>
     <a href="#main" className="skip-link">Skip to main content</a>
     <header className="topbar">
-      <a className="brand" href="#top" aria-label="Freetopia home"><span className="brand__mark"><Icon name="spark" size={21}/></span><span>freetopia</span></a>
+      <a className="brand" href="#top" aria-label="Freetopia home"><span className="brand__mark"><img className="brand__image" src="/brand/freetopia-mark.png" alt=""/></span><span>freetopia</span></a>
       <span className="topbar__status"><span className="status-dot"/> Product foundations</span>
       <a className="topbar__link" href="#foundations">Explore the foundations <Icon name="arrow" size={16}/></a>
     </header>
@@ -33,7 +33,7 @@ export default function App() {
         </div>
         <div className="hero-art" aria-hidden="true">
           <div className="hero-art__halo hero-art__halo--one"/><div className="hero-art__halo hero-art__halo--two"/>
-          <div className="hero-art__orb"><span className="hero-art__orb-inner"><Icon name="spark" size={62}/></span></div>
+          <div className="hero-art__orb"><span className="hero-art__orb-inner"><img className="hero-art__brand-mark" src="/brand/freetopia-mark.png" alt=""/></span></div>
           <span className="hero-art__label hero-art__label--one">EXPRESS</span><span className="hero-art__label hero-art__label--two">DISCOVER</span><span className="hero-art__label hero-art__label--three">BELONG</span>
           <span className="hero-art__dot hero-art__dot--one"/><span className="hero-art__dot hero-art__dot--two"/>
         </div>
@@ -52,7 +52,7 @@ export default function App() {
             <Tabs label="Foundation showcase" items={[{ value: 'primitives', label: 'Primitives' }, { value: 'states', label: 'States' }, { value: 'tokens', label: 'Tokens' }]} value={activeTab} onChange={setActiveTab}/>
             {activeTab === 'primitives' && <div className="showcase-grid">
               <section className="demo-card demo-card--wide"><h3>Actions</h3><p>Clear hierarchy. One expressive accent.</p><div className="demo-row"><Button variant="primary" onClick={() => notify('Action confirmed')}>Primary action <Icon name="arrow" size={16}/></Button><Button onClick={() => notify('Changes saved')}>Secondary</Button><Button variant="quiet" onClick={() => notify('More information selected')}>Quiet action</Button></div><div className="demo-row demo-row--spaced"><Badge tone="brand">Selected</Badge><Badge>Member</Badge><Badge tone="success">Ready</Badge><Dropdown label="Options"><button type="button" role="menuitem" onClick={() => setMenuNote('Settings selected')}>Settings</button><button type="button" role="menuitem" onClick={() => setMenuNote('Help selected')}>Help</button></Dropdown></div>{menuNote && <p className="demo-note" role="status">{menuNote}</p>}</section>
-              <section className="demo-card"><h3>Identity</h3><p>Human, simple, recognizable.</p><div className="identity-row"><Avatar initials="FT" label="Freetopia mark" size="lg"/><Avatar initials="••" label="Illustrative avatar placeholder"/><span className="identity-caption">Identity, without the noise.</span></div></section>
+              <section className="demo-card"><h3>Identity</h3><p>Human, simple, recognizable.</p><div className="identity-row"><Avatar initials="FT" label="Illustrative initials placeholder" size="lg"/><Avatar initials="••" label="Illustrative avatar placeholder"/><span className="identity-caption">Identity, without the noise.</span></div></section>
               <section className="demo-card"><h3>Form fields</h3><p>Helpful labels and clear focus.</p><Input label="Your name" placeholder="How should we call you?" hint="You can change this later."/><div className="demo-row demo-row--spaced"><Button onClick={() => setModalOpen(true)}>Open dialog</Button><Button onClick={() => setDrawerOpen(true)}>Open side panel</Button><Tooltip label="Helpful context"><Icon name="spark" size={13}/></Tooltip></div></section>
             </div>}
             {activeTab === 'states' && <div className="showcase-grid showcase-grid--states"><section className="demo-card"><h3>Loading</h3><p>Quiet placeholders while content arrives.</p><div className="loading-preview"><Skeleton width="40%" height={13}/><Skeleton width="100%" height={12}/><Skeleton width="78%" height={12}/></div></section><section className="demo-card"><h3>Empty</h3><p>Helpful direction when a space has no content.</p><EmptyState title="A little room to begin">This space is ready for its first conversation.</EmptyState></section><section className="demo-card demo-card--wide"><h3>Error recovery</h3><p>Say what happened and offer a next step.</p>{error ? <ErrorState title="That didn’t load. Give it another try." onRetry={() => setError(false)}/> : <Button onClick={() => setError(true)}>Preview an error state</Button>}</section></div>}
@@ -61,9 +61,9 @@ export default function App() {
         </div>
       </section>
 
-      <section className="closing wrap"><div><p className="eyebrow">A PLACE FOR PEOPLE AND IDEAS</p><h2>Come as you are.</h2><p>Freetopia is being built from its foundations upward.</p></div><span className="closing__mark"><Icon name="spark" size={30}/></span></section>
+      <section className="closing wrap"><div><p className="eyebrow">A PLACE FOR PEOPLE AND IDEAS</p><h2>Come as you are.</h2><p>Freetopia is being built from its foundations upward.</p></div><span className="closing__mark"><img className="brand__image" src="/brand/freetopia-mark.png" alt=""/></span></section>
     </main>
-    <footer className="footer wrap"><a className="brand brand--small" href="#top"><span className="brand__mark"><Icon name="spark" size={16}/></span><span>freetopia</span></a><span>Freedom to express. Space to connect.</span><span>© 2026 Freetopia</span></footer>
+    <footer className="footer wrap"><a className="brand brand--small" href="#top"><span className="brand__mark"><img className="brand__image" src="/brand/freetopia-mark.png" alt=""/></span><span>freetopia</span></a><span>Freedom to express. Space to connect.</span><span>© 2026 Freetopia</span></footer>
     <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="A space for conversation"><p className="modal__copy">This dialog shows the shared Freetopia modal pattern. Its content is only a design preview; account and conversation features will be connected in later phases.</p><Button variant="primary" onClick={() => setModalOpen(false)}>Got it</Button></Modal>
     <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="A flexible side panel"><p className="modal__copy">Drawers keep supporting actions close by while leaving the current page in view.</p><Button variant="primary" onClick={() => setDrawerOpen(false)}>Close panel</Button></Drawer>
     <Toast message={toast} onDismiss={() => setToast('')}/>

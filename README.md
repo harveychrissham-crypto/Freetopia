@@ -20,6 +20,7 @@ Use `npm run build` for the production build and `npm run lint` for static check
 ## Project map
 
 - `src/styles/tokens.css` — color, type, spacing, radius, motion, and breakpoint foundations.
+- `public/brand/freetopia-mark.png` — transparent 512 px app-optimized version of the supplied Freetopia logo and icon.
 - `src/components/ui/` — reusable accessible design primitives.
 - `src/App.jsx` — responsive foundation and component showcase.
 - `docs/implementation-audit.md` — Phase 0 audit and phase status.

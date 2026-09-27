@@ -37,7 +37,7 @@ No existing application architecture, routes, data, or backend can be mapped. Th
 ### Phase decisions
 
 - **Phase 0: complete.** The repository and absent baseline were recorded above.
-- **Phase 1: implemented as a foundation.** Freetopia identity, monochrome-first tokens, selective blue-violet gradient, type scale, spacing, radii, motion, and responsive breakpoint are centralized.
+- **Phase 1: implemented as a foundation.** Freetopia identity, the supplied transparent logo/app mark, monochrome-first tokens, selective blue-violet gradient, type scale, spacing, radii, motion, and responsive breakpoint are centralized. The provided mark is resized to 512 px for lighter app delivery and used in the header, hero, footer, closing brand moment, favicon, and Apple touch icon. The original file supplied by the user remains unchanged in Downloads.
 - **Phase 2: implemented for the foundation surface.** Buttons, inputs, avatars, badges, tabs, dropdown, native modal and drawer dialogs, tooltip, skeleton, empty/error states, and toast feedback are available. Navigation primitives remain deferred until real destinations exist.
 - **Phase 3 onward: blocked by missing product infrastructure.** No backend/auth provider, database, storage, deployment environment, or API contracts are supplied. Choosing and wiring those would introduce material infrastructure and data-handling decisions. No users, feed entries, or social actions are fabricated in the UI.
 
@@ -61,6 +61,7 @@ No existing application architecture, routes, data, or backend can be mapped. Th
 - `npm run lint`: passed (ESLint, no warnings/errors).
 - Browser review at 1280 px: hero, brand mark, desktop layout, and right-side orbital accent render without visible overflow.
 - Browser review at 390 px: single-column showcase and mobile spacing render without visible horizontal overflow.
+- Supplied 1254×1254 transparent PNG mark, resized to 512×512 for app delivery, renders in the header, hero, footer, favicon, and Apple touch icon references.
 - Interaction review: primary action toast, showcase tabs, error preview and retry, native modal open/close, and native drawer open/Escape close all behaved as intended.
 - Accessibility structure review: skip link, main landmark, heading hierarchy, tab roles and selected state, visible input label/hint, named avatar previews, and labelled dialogs were present in the accessibility tree.
 - No automated component or end-to-end test suite was introduced; there was no baseline harness. Manual browser checks do not replace assistive technology testing.
