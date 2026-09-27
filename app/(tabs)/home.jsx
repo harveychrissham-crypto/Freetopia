@@ -470,5 +470,3 @@ const s = StyleSheet.create({
   primary: { marginTop: 15, height: 40, paddingHorizontal: 16, borderRadius: 11, backgroundColor: C.violet, alignItems: 'center', justifyContent: 'center' },
   primaryText: { color: C.white, fontSize: 11, fontWeight: '800' },
 });
-
-export default Home;
