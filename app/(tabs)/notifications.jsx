@@ -32,7 +32,7 @@ export default function Notifications(){
 
 function NotificationRow({item,onRead,onOpen:r}){
  const actor=Array.isArray(item.actor)?item.actor[0]:item.actor; const name=actor?.display_name||actor?.username||'Someone';
- const map={post_like:'liked your post',comment:'replied to your post',follow:'started following you'}; const text=map[item.type]||'interacted with you';
+ const map={reaction:'liked your post',comment:'replied to your post',follow:'started following you',follow_request:'sent you a follow request',mention:'mentioned you',message:'sent you a message',community:'updated a community',system:'sent you an update'}; const text=map[item.type]||'interacted with you';
  const open=()=>{onRead(item.id);if(item.post_id)r.push({pathname:'/post',params:{id:item.post_id}});};
  return <Pressable onPress={open} style={[s.row,!item.read_at&&s.unread]}><View style={s.avatar}><Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text></View><View style={{flex:1}}><Text style={s.message}><Text style={s.name}>{name}</Text>{' '+text}</Text><Text style={s.time}>{new Date(item.created_at).toLocaleString()}</Text></View>{!item.read_at&&<View style={s.dot}/>}</Pressable>
 }
