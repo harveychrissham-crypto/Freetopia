@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams,useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
@@ -12,6 +12,9 @@ export default function Profile() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { user, profile, signOut } = useAuth();
+  const { id:routeId } = useLocalSearchParams();
+  const profileId = Array.isArray(routeId) ? routeId[0] : routeId;
+  const isOwn = !profileId || profileId === user?.id;
   const desktop = Platform.OS === 'web' && width >= 1000;
   const [counts, setCounts] = useState({ posts:0, following:0, followers:0 });
   const [communities, setCommunities] = useState(0);
@@ -20,35 +23,43 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [viewProfile, setViewProfile] = useState(null);
 
   const load = useCallback(async (pull=false) => {
-    if (!user?.id) return;
+    const targetId = profileId || user?.id;
+    if (!targetId) return;
     pull ? setRefreshing(true) : setLoading(true);
     setError('');
-    const [following, followers, ownPostCount, ownPosts, memberships] = await Promise.all([
-      supabase.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',user.id).eq('status','accepted'),
-      supabase.from('follows').select('*',{count:'exact',head:true}).eq('following_id',user.id).eq('status','accepted'),
-      supabase.from('posts').select('*',{count:'exact',head:true}).eq('author_id',user.id),
-      supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,post_reactions(user_id,reaction_type),post_media(storage_path,media_type)').eq('author_id',user.id).order('created_at',{ascending:false}).limit(30),
-      supabase.from('community_members').select('*',{count:'exact',head:true}).eq('user_id',user.id).eq('status','active'),
+    const profileRequest = isOwn
+      ? Promise.resolve({ data: profile, error: null })
+      : supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private').eq('id',targetId).maybeSingle();
+    const [targetProfile, following, followers, ownPostCount, ownPosts, memberships] = await Promise.all([
+      profileRequest,
+      supabase.from('follows').select('*',{count:'exact',head:true}).eq('following_id',targetId).eq('status','accepted'),
+      supabase.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',targetId).eq('status','accepted'),
+      supabase.from('posts').select('*',{count:'exact',head:true}).eq('author_id',targetId),
+      supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,post_reactions(user_id,reaction_type),post_media(storage_path,media_type)').eq('author_id',targetId).order('created_at',{ascending:false}).limit(30),
+      supabase.from('community_members').select('*',{count:'exact',head:true}).eq('user_id',targetId).eq('status','active'),
     ]);
-    const firstError = [following,followers,ownPostCount,ownPosts,memberships].find(x=>x.error)?.error;
+    const firstError = [targetProfile,following,followers,ownPostCount,ownPosts,memberships].find(x=>x.error)?.error;
     if (firstError) setError(firstError.message);
+    setViewProfile(targetProfile.data || null);
     setCounts({ posts:ownPostCount.count || 0, following:following.count||0, followers:followers.count||0 });
     setCommunities(memberships.count||0);
     setPosts(ownPosts.data||[]);
     setLoading(false); setRefreshing(false);
-  },[user?.id]);
+  },[user?.id,profileId,isOwn,profile]);
 
   useFocusEffect(useCallback(()=>{load();},[load]));
 
-  const name = profile?.display_name || user?.email?.split('@')[0] || 'Your profile';
-  const handle = profile?.username ? '@'+profile.username : '@freetopia_member';
+  const displayedProfile = isOwn ? profile : viewProfile;
+  const name = displayedProfile?.display_name || displayedProfile?.username || (isOwn ? user?.email?.split('@')[0] : 'Freetopia member');
+  const handle = displayedProfile?.username ? '@'+displayedProfile.username : '@freetopia_member';
   const initials = name.charAt(0).toUpperCase();
   const completion = [
-    !!profile?.avatar_url,
-    !!profile?.bio,
-    !!profile?.cover_url,
+    !!displayedProfile?.avatar_url,
+    !!displayedProfile?.bio,
+    !!displayedProfile?.cover_url,
     counts.following >= 5,
     communities >= 3,
   ];
@@ -63,14 +74,15 @@ export default function Profile() {
 
   const profileHeader = (
     <ProfileHeader
-      profile={profile}
+      profile={displayedProfile}
       name={name}
       handle={handle}
       initials={initials}
       counts={counts}
       joinedAt={user?.created_at}
-      onEdit={()=>router.push('/edit-profile')}
+      onEdit={isOwn ? ()=>router.push('/edit-profile') : undefined}
       onSettings={()=>router.push('/settings')}
+      isOwn={isOwn}
     />
   );
 
@@ -84,9 +96,9 @@ export default function Profile() {
               {profileHeader}
               <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
               {error ? <ErrorBox message={error}/> : null}
-              {loading ? <Loading/> : <ProfilePosts posts={visiblePosts} activeTab={activeTab} profile={profile} name={name} onPost={(id)=>router.push({pathname:'/post',params:{id}})} />}
+              {loading ? <Loading/> : <ProfilePosts posts={visiblePosts} activeTab={activeTab} profile={displayedProfile} name={name} onPost={(id)=>router.push({pathname:'/post',params:{id}})} />}
             </View>
-            <ProfileRail profile={profile} completion={completion} percent={completionPercent} counts={counts} communities={communities} router={router} />
+            <ProfileRail profile={displayedProfile} completion={completion} percent={completionPercent} counts={counts} communities={communities} router={router} isOwn={isOwn} />
           </View>
         </ScrollView>
       </View>
@@ -100,8 +112,8 @@ export default function Profile() {
         {profileHeader}
         <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         {error ? <ErrorBox message={error}/> : null}
-        {loading ? <Loading/> : <ProfilePosts posts={visiblePosts} activeTab={activeTab} profile={profile} name={name} onPost={(id)=>router.push({pathname:'/post',params:{id}})} />}
-        <Pressable onPress={signOut} style={s.signOut}><Text style={s.signOutText}>Sign out</Text></Pressable>
+        {loading ? <Loading/> : <ProfilePosts posts={visiblePosts} activeTab={activeTab} profile={displayedProfile} name={name} onPost={(id)=>router.push({pathname:'/post',params:{id}})} />}
+        {isOwn&&<Pressable onPress={signOut} style={s.signOut}><Text style={s.signOutText}>Sign out</Text></Pressable>}
       </ScrollView>
     </SafeAreaView>
   );
@@ -115,12 +127,12 @@ function ProfileSidebar({name,initials,onNavigate}) {
     <Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials}/><View style={{flex:1}}><Text style={s.sideName}>{name}</Text><Text style={s.sideSub}>Your profile</Text></View><Text style={s.sideChevron}>⌄</Text></Pressable>
   </View>;
 }
-function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings}) {
+function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn}) {
   return <View style={s.profileHeader}>
     <View style={s.cover}>{profile?.cover_url?<Image source={{uri:profile.cover_url}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/><Text style={s.coverStars}>✦  ·  ✧   ·   ✦</Text></>}</View>
     <View style={s.profileBody}>
-      <Pressable onPress={onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/><View style={s.camera}><Text style={s.cameraText}>⌾</Text></View></Pressable>
-      <View style={s.profileActions}><Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable><Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable></View>
+      <Pressable onPress={onEdit} disabled={!onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><Text style={s.cameraText}>⌾</Text></View>}</Pressable>
+      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}<Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable></View>
       <Text style={s.name}>{name}</Text>
       <Text style={s.handle}>{handle}</Text>
       <Text style={s.bio}>{profile?.bio || 'Dream big. Build bigger. Share your world with Freetopia.'}</Text>
@@ -140,12 +152,12 @@ function ProfilePosts({posts,activeTab,profile,name,onPost}) {
     <View style={s.postActions}><Text style={s.action}>♡ {post.post_reactions?.filter(x=>x.reaction_type==='like').length||0}</Text><Text style={s.action}>□ Reply</Text><Text style={s.action}>↗ Share</Text><Text style={s.action}>♧</Text></View>
   </Pressable>)}</View>;
 }
-function ProfileRail({profile,completion,percent,counts,communities,router}) {
+function ProfileRail({profile,completion,percent,counts,communities,router,isOwn}) {
   return <View style={s.rail}>
-    <View style={s.railCard}><Text style={s.railTitle}>Profile Completion</Text><View style={s.progressRow}><View style={s.progress}><View style={[s.progressFill,{width:percent+'%'}]}/></View><Text style={s.percent}>{percent}%</Text></View>{[['Add a profile photo',completion[0]],['Write a bio',completion[1]],['Add a cover photo',completion[2]],['Follow 5 people',completion[3]],['Join 3 communities',completion[4]]].map(([label,done])=><View key={label} style={s.checkRow}><View style={[s.check,done&&s.checkDone]}><Text style={s.checkText}>{done?'✓':''}</Text></View><Text style={s.checkLabel}>{label}</Text></View>)}</View>
-    <View style={s.railCard}><Text style={s.railTitle}>Profile details</Text><Text style={s.railEmpty}>{profile?.website ? 'Website added to your profile.' : 'Add a website from Edit Profile when you are ready.'}</Text></View>
+    {isOwn&&<View style={s.railCard}><Text style={s.railTitle}>Profile Completion</Text><View style={s.progressRow}><View style={s.progress}><View style={[s.progressFill,{width:percent+'%'}]}/></View><Text style={s.percent}>{percent}%</Text></View>{[['Add a profile photo',completion[0]],['Write a bio',completion[1]],['Add a cover photo',completion[2]],['Follow 5 people',completion[3]],['Join 3 communities',completion[4]]].map(([label,done])=><View key={label} style={s.checkRow}><View style={[s.check,done&&s.checkDone]}><Text style={s.checkText}>{done?'✓':''}</Text></View><Text style={s.checkLabel}>{label}</Text></View>)}</View>}
+    <View style={s.railCard}><Text style={s.railTitle}>Profile details</Text><Text style={s.railEmpty}>{profile?.website ? 'Website added to this profile.' : 'No website added.'}</Text></View>
     <View style={s.railCard}><Text style={s.railTitle}>Stats</Text><View style={s.statGrid}><MiniStat n={counts.posts} label="Posts"/><MiniStat n={counts.followers} label="Followers"/><MiniStat n={counts.following} label="Following"/></View></View>
-    <View style={s.railCard}><Text style={s.railTitle}>Your communities</Text><Text style={s.railEmpty}>{communities ? communities+' active communit'+(communities===1?'y':'ies') : 'No active communities yet.'}</Text></View>
+    <View style={s.railCard}><Text style={s.railTitle}>Communities</Text><Text style={s.railEmpty}>{communities ? communities+' active communit'+(communities===1?'y':'ies') : 'No active communities yet.'}</Text></View>
     <View style={s.promo}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Real people. Real conversations.</Text><Text style={s.promoBody}>A bigger world starts with your voice.</Text><Pressable onPress={()=>router.push('/communities')} style={s.promoButton}><Text style={s.promoButtonText}>Explore Communities →</Text></Pressable></View>
   </View>;
 }
