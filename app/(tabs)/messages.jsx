@@ -72,7 +72,7 @@ export default function Messages() {
     const filtered = items.filter(c => {
       const p=c.other?.profiles;
       const n=p?.display_name||p?.username||c.title||'Conversation';
-      return !query.trim() || n.toLowerCase().includes(query.trim().toLowerCase());
+      const term=query.trim().toLowerCase(); return !term || String(n).toLowerCase().includes(term);
     });
     return filtered.filter(c =>
       tab==='Requests' ? c.me.request_status==='pending' :
