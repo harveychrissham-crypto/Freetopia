@@ -73,8 +73,7 @@ function Hero({router}){
     <View style={s.hero}>
       <View style={s.heroShade}/>
       <View style={s.heroCopy}>
-        <Text style={s.heroTitle}>Find your people.{'
-'}Build your world.</Text>
+        <Text style={s.heroTitle}>Find your people.{'\n'}Build your world.</Text>
         <Text style={s.heroBody}>Communities, ideas, and conversations that match what matters to you.</Text>
         <Pressable onPress={()=>router.push('/communities')} style={s.heroButton}>
           <Text style={s.heroButtonText}>Explore Communities  →</Text>
