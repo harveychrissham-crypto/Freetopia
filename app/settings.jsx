@@ -289,7 +289,7 @@ function Sidebar({ router }) {
   const items = [['home','Home','/home'],['compass','Explore','/explore'],['users','Communities','/communities'],['message','Messages','/messages'],['bell','Notifications','/notifications'],['plus','Create','/create'],['profile','Profile','/profile']];
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
-    <View style={s.sideNav}>{items.map(([icon,label,path]) => <Pressable key={label} onPress={() => router.push(path)} style={s.sideItem}><Text style={s.sideIcon}>{icon}</Text><Text style={s.sideLabel}>{label}</Text>{label === 'Messages' ? <Badge n="3"/> : null}{label === 'Notifications' ? <Badge n="5"/> : null}</Pressable>)}</View>
+    <View style={s.sideNav}>{items.map(([icon,label,path]) => <Pressable key={label} onPress={() => router.push(path)} style={s.sideItem}><AppIcon name={icon} size={18} color="#AFC0D3"/><Text style={s.sideLabel}>{label}</Text>{label === 'Messages' ? <Badge n="3"/> : null}{label === 'Notifications' ? <Badge n="5"/> : null}</Pressable>)}</View>
     <View style={s.sidebarPromo}><Image source={require('../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.sidebarPromoTitle}>Your journey matters.</Text><Text style={s.sidebarPromoBody}>Keep building.</Text><Pressable style={s.promoButton}><Text style={s.promoButtonText}>Upgrade →</Text></Pressable></View>
   </View>;
 }
