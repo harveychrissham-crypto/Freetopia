@@ -21,7 +21,8 @@ export default function Messages() {
   const [refreshing,setRefreshing] = useState(false);
   const [error,setError] = useState('');
   const [query,setQuery] = useState('');
-  const [communities,setCommunities] = useState([]);\n  const [unreadTotal,setUnreadTotal] = useState(0);
+  const [communities,setCommunities] = useState([]);
+  const [unreadTotal,setUnreadTotal] = useState(0);
 
   const load = useCallback(async (pull=false) => {
     if (!user?.id) return;
