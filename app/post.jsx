@@ -112,7 +112,7 @@ export default function PostScreen(){
  const canReport=!!user&&post?.author_id!==user.id&&!reportedTargets.includes(postReportKey);
 
  return <SafeAreaView style={s.safe}><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':undefined}>
-  <View style={s.header}><Pressable onPress={()=>r.back()}><Text style={s.back}>‹</Text></Pressable><Text style={s.headerTitle}>Post</Text><View style={{width:30}}/></View>
+  <View style={s.header}><Pressable onPress={()=>r.back()}><AppIcon name="arrow-left" size={18}/></Pressable><Text style={s.headerTitle}>Post</Text><View style={{width:30}}/></View>
   <ScrollView contentContainerStyle={s.content}>
    {loading&&<Text style={s.muted}>Loading post…</Text>}
    {!loading&&!post&&!error&&<Text style={s.muted}>This post is unavailable or has been removed.</Text>}
