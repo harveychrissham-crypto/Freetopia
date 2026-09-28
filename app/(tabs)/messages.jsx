@@ -72,7 +72,6 @@ export default function Messages() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reads', filter: 'user_id=eq.' + user.id }, () => { load(); })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, () => { load(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, () => { load(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, () => { load(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user?.id, load]);
