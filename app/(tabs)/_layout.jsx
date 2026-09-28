@@ -12,7 +12,7 @@ export default function TabLayout() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const mountedRef = useRef(true);
-  const refreshSequence = useRef(0);
+  const messageRefreshSequence = useRef(0);\n  const notificationRefreshSequence = useRef(0);
 
   const refreshUnread = useCallback(async () => {
     const userId = session?.user?.id;
@@ -21,9 +21,9 @@ export default function TabLayout() {
       return;
     }
 
-    const sequence = ++refreshSequence.current;
+    const sequence = ++messageRefreshSequence.current;
     const { data, error } = await supabase.rpc('get_message_inbox');
-    if (!mountedRef.current || sequence !== refreshSequence.current) return;
+    if (!mountedRef.current || sequence !== messageRefreshSequence.current) return;
     if (error) {
       setUnreadMessages(0);
       return;
@@ -40,19 +40,19 @@ export default function TabLayout() {
       return;
     }
 
-    const sequence = ++refreshSequence.current;
+    const sequence = ++notificationRefreshSequence.current;
     const { count, error } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
       .eq('recipient_id', userId)
       .is('read_at', null);
-    if (!mountedRef.current || sequence !== refreshSequence.current) return;
+    if (!mountedRef.current || sequence !== notificationRefreshSequence.current) return;
     setUnreadNotifications(error ? 0 : Number(count || 0));
   }, [session?.user?.id]);
 
   useEffect(() => {
     mountedRef.current = true;
-    refreshSequence.current += 1;
+    messageRefreshSequence.current += 1;\n    notificationRefreshSequence.current += 1;
     refreshUnread();
     refreshNotifications();
 
@@ -76,7 +76,7 @@ export default function TabLayout() {
 
     return () => {
       mountedRef.current = false;
-      refreshSequence.current += 1;
+      messageRefreshSequence.current += 1;\n      notificationRefreshSequence.current += 1;
       appStateSubscription.remove();
       supabase.removeChannel(channel);
     };
