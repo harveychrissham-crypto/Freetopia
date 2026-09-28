@@ -71,18 +71,22 @@ export default function Notifications(){
   return()=>{supabase.removeChannel(channel);};
  },[user?.id]);
  const markRead=async id=>{
-  const previous=items;
   const now=new Date().toISOString();
   setItems(current=>current.map(item=>item.id===id?{...item,read_at:item.read_at||now}:item));
   const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('id',id).eq('recipient_id',user.id);
-  if(e){setItems(previous);setError(e.message);}
+  if(e){
+   setItems(current=>current.map(item=>item.id===id?{...item,read_at:null}:item));
+   setError(e.message);
+  }
  };
  const markAll=async()=>{
-  const previous=items;
   const now=new Date().toISOString();
   setItems(current=>current.map(item=>({...item,read_at:item.read_at||now})));
   const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('recipient_id',user.id).is('read_at',null);
-  if(e){setItems(previous);setError(e.message);}
+  if(e){
+   setItems(current=>current.map(item=>item.read_at===now?{...item,read_at:null}:item));
+   setError(e.message);
+  }
  };
  const respond=async(item,accept)=>{
   const actor=Array.isArray(item.actor)?item.actor[0]:item.actor;
