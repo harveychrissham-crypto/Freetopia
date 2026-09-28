@@ -232,7 +232,7 @@ export default function Conversation(){
  const archiveChat=async()=>{if(!user?.id)return;const{error:e}=await supabase.from('conversation_members').update({is_archived:true}).eq('conversation_id',id).eq('user_id',user.id);if(e)setError(e.message);else router.back();};
  const sharedMedia=sharedItems.filter(m=>['image','video','audio'].includes(m.media_type));
  const sharedFiles=sharedItems.filter(m=>m.media_type==='file');
- const sharedLinks=sharedItems.filter(m=>/(https?:\\/\\/|www\\.)\\S+/i.test(m.content||''));
+ const sharedLinks=sharedItems.filter(m=>/(https?:\/\/|www\.)\S+/i.test(m.content||''));
  const sharedList=sharedTab==='media'?sharedMedia:sharedTab==='files'?sharedFiles:sharedLinks;
  const jumpToMessage=(messageId)=>{const idx=messages.findIndex(m=>m.id===messageId);if(idx>=0){setChatInfoOpen(false);requestAnimationFrame(()=>scrollRef.current?.scrollTo({y:Math.max(0,idx*82),animated:true}));}};
  const startReply=(m)=>{setReplyTo(m);setSelectedMessage(null);};
