@@ -134,6 +134,7 @@ export default function Conversation(){
  const disappearingLabel=(seconds)=>seconds===86400?'24 hours':seconds===604800?'7 days':seconds===2592000?'30 days':'Off';
  const toggleMute=async()=>{if(!user?.id||!info?.me)return;const next=!info.me.is_muted;const{error:e}=await supabase.from('conversation_members').update({is_muted:next}).eq('conversation_id',id).eq('user_id',user.id);if(e)setError(e.message);else setInfo(current=>current?{...current,me:{...current.me,is_muted:next}}:current);};
  const sharedItems=messages.filter(m=>!m.deleted_at&&m.media_url&&(!m.expires_at||new Date(m.expires_at)>new Date()));
+ const archiveChat=async()=>{if(!user?.id)return;const{error:e}=await supabase.from('conversation_members').update({is_archived:true}).eq('conversation_id',id).eq('user_id',user.id);if(e)setError(e.message);else router.back();};
  const sharedMedia=sharedItems.filter(m=>['image','video','audio'].includes(m.media_type));
  const sharedFiles=sharedItems.filter(m=>m.media_type==='file');
  const sharedLinks=sharedItems.filter(m=>/(https?:\\/\\/|www\\.)\\S+/i.test(m.content||''));
