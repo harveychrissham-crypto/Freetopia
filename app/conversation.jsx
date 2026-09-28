@@ -76,6 +76,14 @@ export default function Conversation(){
    if(!messageId)return;
    const{count}=await supabase.from('message_reads').select('message_id',{count:'exact',head:true}).eq('message_id',messageId);
    setMessages(current=>current.map(m=>m.id===messageId?{...m,readCount:count||0}:m));
+  }).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:'conversation_id=eq.'+id},async payload=>{
+   const member=payload.new||payload.old;
+   if(!member?.conversation_id)return;
+   const accepted=payload.eventType==='DELETE'?false:member.request_status==='accepted';
+   setInfo(current=>current?{...current,conversation_members:(current.conversation_members||[]).filter(x=>x.user_id!==member.user_id).concat(payload.eventType==='DELETE'||!accepted?[]:[member])}:current);
+   const{data:members}=await supabase.from('conversation_members').select('user_id,request_status').eq('conversation_id',id);
+   const recipientCount=(members||[]).filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
+   setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
   }).subscribe(async status=>{if(status==='SUBSCRIBED'){await ch.track({user_id:user.id});}});
   return()=>{channelRef.current=null;setOnlineUsers([]);supabase.removeChannel(ch)}
  },[id,load,user?.id]);
