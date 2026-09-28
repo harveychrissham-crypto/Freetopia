@@ -289,6 +289,7 @@ export default function Conversation(){
     setOnlineUsers([]);
     supabase.removeChannel(ch);
    };
+ },[id,user?.id]);
 
  const previousMessageCountRef=useRef(0);
  useEffect(()=>{
