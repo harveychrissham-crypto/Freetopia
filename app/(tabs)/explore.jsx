@@ -16,12 +16,12 @@ export default function Explore(){
  const load=useCallback(async()=>{
   setLoading(true);setError('');
   const [p,c,po]=await Promise.all([
-   supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').order('created_at',{ascending:false}).limit(12),
+   supabase.from('profiles').select('id,username,display_name,bio,avatar_url,is_private').neq('id',user?.id||'').order('created_at',{ascending:false}).limit(12),
    supabase.from('communities').select('id,name,slug,description,is_private,avatar_url,created_at').order('created_at',{ascending:false}).limit(12),
    supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').order('created_at',{ascending:false}).limit(12)
   ]);
   if(p.error||c.error||po.error){setError((p.error||c.error||po.error).message);}
-  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted').in('following_id',ids);followed=new Set((f.data||[]).map(x=>x.following_id));} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
+  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); let requested=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id,status').eq('follower_id',user.id).in('status',['accepted','pending']).in('following_id',ids);(f.data||[]).forEach(x=>{if(x.status==='accepted')followed.add(x.following_id);else requested.add(x.following_id);});} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id),requested:requested.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
  },[user?.id]);
  useEffect(()=>{load()},[load]);
  useEffect(()=>{const incoming=Array.isArray(params.q)?params.q[0]:params.q;const incomingTab=Array.isArray(params.tab)?params.tab[0]:params.tab;const validTabs=['For You','Communities','Topics','Posts','People'];if(incomingTab&&validTabs.includes(incomingTab))setTab(incomingTab);if(incoming&&incoming!==q&&!initialSearchApplied){setQ(incoming);setTab('Posts');setInitialSearchApplied(true);search(incoming)}},[params.q,params.tab,q,initialSearchApplied]);
@@ -30,19 +30,22 @@ export default function Explore(){
   const value=(nextValue??q).replace(/[,()%_*\\]/g,' ').trim(); if(!value){load();return;} if(tab==='For You')setTab('Posts');
   setLoading(true);setError('');
   const [p,c,po]=await Promise.all([
-   supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').or('username.ilike.%'+value+'%,display_name.ilike.%'+value+'%,bio.ilike.%'+value+'%').limit(20),
+   supabase.from('profiles').select('id,username,display_name,bio,avatar_url,is_private').neq('id',user?.id||'').or('username.ilike.%'+value+'%,display_name.ilike.%'+value+'%,bio.ilike.%'+value+'%').limit(20),
    supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').or('name.ilike.%'+value+'%,description.ilike.%'+value+'%,slug.ilike.%'+value+'%').limit(20),
    supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').ilike('content','%'+value+'%').order('created_at',{ascending:false}).limit(20)
   ]);
   if(p.error||c.error||po.error)setError((p.error||c.error||po.error).message);
-  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted').in('following_id',ids);followed=new Set((f.data||[]).map(x=>x.following_id));} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
+  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); let requested=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id,status').eq('follower_id',user.id).in('status',['accepted','pending']).in('following_id',ids);(f.data||[]).forEach(x=>{if(x.status==='accepted')followed.add(x.following_id);else requested.add(x.following_id);});} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id),requested:requested.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
  };
  const follow=async person=>{
   if(!user)return;
-  const existing=person.followed;
-  setPeople(x=>x.map(p=>p.id===person.id?{...p,followed:!existing}:p));
-  const {error:e}=existing?await supabase.from('follows').delete().eq('follower_id',user.id).eq('following_id',person.id):await supabase.from('follows').insert({follower_id:user.id,following_id:person.id,status:'accepted'});
-  if(e)setPeople(x=>x.map(p=>p.id===person.id?{...p,followed:existing}:p));
+  const was={followed:!!person.followed,requested:!!person.requested};
+  const active=was.followed||was.requested;
+  const status=person.is_private?'pending':'accepted';
+  const next=active?{followed:false,requested:false}:{followed:status==='accepted',requested:status==='pending'};
+  setPeople(x=>x.map(p=>p.id===person.id?{...p,...next}:p));
+  const {error:e}=active?await supabase.from('follows').delete().eq('follower_id',user.id).eq('following_id',person.id):await supabase.from('follows').insert({follower_id:user.id,following_id:person.id,status});
+  if(e)setPeople(x=>x.map(p=>p.id===person.id?{...p,...was}:p));
  };
  const filtered=tab==='People'?people:tab==='Communities'?communities:tab==='Posts'?posts:[...people.slice(0,4),...communities.slice(0,5),...posts.slice(0,5)];
 
@@ -91,7 +94,7 @@ function CommunityImage({c,small}){return c.avatar_url?<Image source={{uri:getIm
 function PostList({posts,router}){if(!posts.length)return <View style={s.empty}><Text style={s.emptyTitle}>No posts found</Text><Text style={s.emptyBody}>Try a different search or check back for new conversations.</Text></View>;return <View>{posts.slice(0,6).map(p=><Pressable key={p.id} onPress={()=>router.push({pathname:'/post',params:{id:p.id}})} style={s.postRow}><Avatar profile={p.profiles}/><View style={{flex:1}}><Text style={s.postAuthor}>{p.profiles?.display_name||p.profiles?.username||'Freetopia member'} <Text style={s.postTime}>· {relative(p.created_at)}</Text></Text><Text style={s.postText} numberOfLines={2}>{p.content||'Shared a post.'}</Text>{p.post_media?.length?<ExploreMedia media={p.post_media}/>:null}<Text style={s.postMeta}>Open post  ·  Join the conversation</Text></View></Pressable>)}</View>}
 function ExploreMedia({media}){const item=[...media].sort((a,b)=>(a.sort_order||0)-(b.sort_order||0))[0];if(!item)return null;const uri=item.thumbnail_path||item.storage_path;return item.media_type==='image'?<Image source={{uri:getImageUrl(uri,{width:600,height:300,quality:85,resize:'contain'})}} style={s.exploreMedia}/>:<View style={s.exploreVideo}><Text style={s.exploreVideoText}>Video attachment</Text></View>}
 function TopicList({posts,onTopic}){return <View>{deriveTopics(posts).map((x,i)=><Pressable key={x} onPress={()=>onTopic?.(x)} style={s.topicListRow}><Text style={s.hash}>#</Text><View style={{flex:1}}><Text style={s.topicName}>{x.replace(/^#/,'')}</Text><Text style={s.communitySub}>Active in recent content · tap to explore</Text></View><Text style={s.topicArrow}>›</Text></Pressable>)}</View>}
-function PeopleList({people,follow,router}){if(!people.length)return <View style={s.empty}><Text style={s.emptyTitle}>No people found</Text><Text style={s.emptyBody}>Try another search to discover more people.</Text></View>;return <View>{people.map(p=><View key={p.id} style={s.personRow}><Pressable onPress={()=>router.push({pathname:'/profile',params:{id:p.id}})} style={s.personMain}><Avatar profile={p}/><View style={{flex:1}}><Text style={s.personName}>{p.display_name||p.username||'Freetopia member'}</Text><Text style={s.handle}>@{p.username||'member'}</Text></View></Pressable><Pressable onPress={()=>follow(p)} style={[s.follow,p.followed&&s.following]}><Text style={s.followText}>{p.followed?'Following':'Follow'}</Text></Pressable></View>)}</View>}
+function PeopleList({people,follow,router}){if(!people.length)return <View style={s.empty}><Text style={s.emptyTitle}>No people found</Text><Text style={s.emptyBody}>Try another search to discover more people.</Text></View>;return <View>{people.map(p=><View key={p.id} style={s.personRow}><Pressable onPress={()=>router.push({pathname:'/profile',params:{id:p.id}})} style={s.personMain}><Avatar profile={p}/><View style={{flex:1}}><Text style={s.personName}>{p.display_name||p.username||'Freetopia member'}</Text><Text style={s.handle}>@{p.username||'member'}</Text></View></Pressable><Pressable onPress={()=>follow(p)} style={[s.follow,(p.followed||p.requested)&&s.following]}><Text style={s.followText}>{p.followed?'Following':p.requested?'Requested':'Follow'}</Text></Pressable></View>)}</View>}
 function Avatar({profile,size=38}){return profile?.avatar_url?<Image source={{uri:getImageUrl(profile.avatar_url,{width:800,height:800,quality:100})}} style={[s.avatar,{width:size,height:size,borderRadius:size/2}]}/>:<View style={[s.avatar,s.avatarFallback,{width:size,height:size,borderRadius:size/2}]}><Text style={s.avatarText}>{(profile?.display_name||profile?.username||'?')[0].toUpperCase()}</Text></View>}
 function SectionTitle({icon,title,action,onPress}){return <View style={s.sectionTitleRow}><View style={s.sectionTitleLeft}><Text style={s.sectionIcon}>{icon}</Text><Text style={s.sectionTitle}>{title}</Text></View>{onPress?<Pressable onPress={onPress}><Text style={s.sectionAction}>{action}</Text></Pressable>:<Text style={s.sectionAction}>{action}</Text>}</View>}
 function Rail({title,children,onPress}){return <View style={s.railCard}><View style={s.railTitleRow}><Text style={s.railTitle}>{title}</Text>{onPress?<Pressable onPress={onPress}><Text style={s.sectionAction}>See all</Text></Pressable>:null}</View>{children}</View>}

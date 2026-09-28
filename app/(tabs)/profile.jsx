@@ -24,7 +24,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [viewProfile, setViewProfile] = useState(null); const [followingUser, setFollowingUser] = useState(false); const [followBusy, setFollowBusy] = useState(false);
+  const [viewProfile, setViewProfile] = useState(null); const [followingUser, setFollowingUser] = useState(false); const [followPending, setFollowPending] = useState(false); const [followBusy, setFollowBusy] = useState(false);
 
   const load = useCallback(async (pull=false) => {
     const targetId = profileId || user?.id;
@@ -47,6 +47,7 @@ export default function Profile() {
     if (firstError) setError(firstError.message);
     setViewProfile(targetProfile.data || null);
     setFollowingUser(relationship?.data?.status === 'accepted');
+    setFollowPending(relationship?.data?.status === 'pending');
     setCounts({ posts:ownPostCount.count || 0, following:following.count||0, followers:followers.count||0 });
     setCommunities(memberships.count||0);
     setPosts(ownPosts.data||[]);
@@ -77,14 +78,18 @@ export default function Profile() {
 
   const toggleFollow = async () => {
     if (!user || isOwn || followBusy || !displayedProfile?.id) return;
-    const next = !followingUser;
-    setFollowingUser(next); setFollowBusy(true); setError('');
-    const query = next
-      ? supabase.from('follows').insert({follower_id:user.id,following_id:displayedProfile.id,status:'accepted'})
+    const wasFollowing = followingUser, wasPending = followPending;
+    const nextActive = !(wasFollowing || wasPending);
+    const status = displayedProfile.is_private ? 'pending' : 'accepted';
+    if (nextActive) { if (status === 'accepted') setFollowingUser(true); else setFollowPending(true); }
+    else { setFollowingUser(false); setFollowPending(false); }
+    setFollowBusy(true); setError('');
+    const query = nextActive
+      ? supabase.from('follows').insert({follower_id:user.id,following_id:displayedProfile.id,status})
       : supabase.from('follows').delete().eq('follower_id',user.id).eq('following_id',displayedProfile.id);
     const { error: e } = await query;
-    if (e) { setFollowingUser(!next); setError(e.message); }
-    else setCounts(x=>({...x,followers:Math.max(0,x.followers+(next?1:-1))}));
+    if (e) { setFollowingUser(wasFollowing); setFollowPending(wasPending); setError(e.message); }
+    else if (nextActive ? status === 'accepted' : wasFollowing) setCounts(x=>({...x,followers:Math.max(0,x.followers+(nextActive?1:-1))}));
     setFollowBusy(false);
   };
 
@@ -100,6 +105,7 @@ export default function Profile() {
       onSettings={isOwn ? ()=>router.push('/settings') : undefined}
       isOwn={isOwn}
       following={followingUser}
+      pending={followPending}
       followBusy={followBusy}
       onFollow={toggleFollow}
     />
@@ -146,12 +152,12 @@ function ProfileSidebar({name,initials,onNavigate}) {
     <Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials}/><View style={{flex:1}}><Text style={s.sideName}>{name}</Text><Text style={s.sideSub}>Profile</Text></View><Text style={s.sideChevron}>⌄</Text></Pressable>
   </View>;
 }
-function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,followBusy,onFollow}) {
+function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,pending,followBusy,onFollow}) {
   return <View style={s.profileHeader}>
     <View style={s.cover}>{profile?.cover_url?<Image source={{uri:getImageUrl(profile.cover_url,{width:2000,height:1000,quality:100})}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/><Text style={s.coverStars}>✦  ·  ✧   ·   ✦</Text></>}</View>
     <View style={s.profileBody}>
       <Pressable onPress={onEdit} disabled={!onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><Text style={s.cameraText}>⌾</Text></View>}</Pressable>
-      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={[s.followButton,following&&s.followingButton]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable>}</View>
+      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={s.outline}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={[s.followButton,(following||pending)&&s.followingButton]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':pending?'Requested':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={s.circle}><Text style={s.circleText}>•••</Text></Pressable>}</View>
       <Text style={s.name}>{name}</Text>
       <Text style={s.handle}>{handle}</Text>
       <Text style={s.bio}>{profile?.bio || 'Dream big. Build bigger. Share your world with Freetopia.'}</Text>
