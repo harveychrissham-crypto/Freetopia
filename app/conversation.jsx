@@ -17,27 +17,55 @@ function ChatVideo({uri}){ const player=useVideoPlayer(uri,p=>{p.loop=false}); r
 function ChatAudio({uri}){ const player=useAudioPlayer(uri,{updateInterval:250}); const status=useAudioPlayerStatus(player); const duration=status.duration||0; const current=status.currentTime||0; const fmt=(v)=>{const total=Math.max(0,Math.round(v));return Math.floor(total/60)+':'+String(total%60).padStart(2,'0')}; return <View style={s.audioBubble}><Pressable onPress={()=>status.playing?player.pause():player.play()} style={s.audioPlay}><Text style={s.audioPlayText}>{status.playing?'❚❚':'▶'}</Text></Pressable><View style={s.audioTrack}><View style={[s.audioProgress,{width:(duration?Math.min(100,(current/duration)*100):0)+'%'}]}/></View><Text style={s.audioDuration}>{fmt(current||duration)}</Text></View>; }
 
 export default function Conversation(){
- const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false);
+ const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false);
 
  const saveDraft=useCallback((value)=>{
-  if(!id||!user?.id)return;
+  if(!id||!user?.id||applyingRemoteDraftRef.current)return;
   const content=value||'';
+  draftDirtyRef.current=true;
   setDraftSaved(false);
   if(draftTimerRef.current)clearTimeout(draftTimerRef.current);
+  const updatedAt=new Date().toISOString();
+  draftLocalUpdatedAtRef.current=new Date(updatedAt).getTime();
   draftTimerRef.current=setTimeout(async()=>{
    if(!content.trim()){
-    await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);
-    setDraftSaved(true);return;
+    const{error:e}=await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);
+    if(!e){draftDirtyRef.current=false;setDraftSaved(true);}
+    return;
    }
-   const{error:e}=await supabase.from('message_drafts').upsert({user_id:user.id,conversation_id:id,content,updated_at:new Date().toISOString()},{onConflict:'user_id,conversation_id'});
-   if(!e)setDraftSaved(true);
+   const{error:e}=await supabase.from('message_drafts').upsert({user_id:user.id,conversation_id:id,content,updated_at:updatedAt},{onConflict:'user_id,conversation_id'});
+   if(!e){draftDirtyRef.current=false;setDraftSaved(true);}
   },450);
  },[id,user?.id]);
+
+ const applyRemoteDraft=useCallback((row)=>{
+  if(!row||row.user_id!==user?.id||row.conversation_id!==id)return;
+  const remoteTime=new Date(row.updated_at||0).getTime();
+  if(!remoteTime||remoteTime<=draftLocalUpdatedAtRef.current||draftDirtyRef.current)return;
+  applyingRemoteDraftRef.current=true;
+  draftLocalUpdatedAtRef.current=remoteTime;
+  setText(row.content||'');
+  setDraftSaved(true);
+  requestAnimationFrame(()=>{applyingRemoteDraftRef.current=false;});
+ },[id,user?.id]);
+
  useEffect(()=>()=>{if(draftTimerRef.current)clearTimeout(draftTimerRef.current)},[]);
  const loadDraft=useCallback(async()=>{
   if(!id||!user?.id)return;
-  const{data}=await supabase.from('message_drafts').select('content').eq('user_id',user.id).eq('conversation_id',id).maybeSingle();
-  if(data?.content)setText(data.content);
+  const{data}=await supabase.from('message_drafts').select('content,updated_at').eq('user_id',user.id).eq('conversation_id',id).maybeSingle();
+  if(data){
+   const remoteTime=new Date(data.updated_at||0).getTime();
+   draftLocalUpdatedAtRef.current=remoteTime||0;
+   draftDirtyRef.current=false;
+   applyingRemoteDraftRef.current=true;
+   setText(data.content||'');
+   setDraftSaved(!!data.content);
+   requestAnimationFrame(()=>{applyingRemoteDraftRef.current=false;});
+  }else{
+   draftLocalUpdatedAtRef.current=0;
+   draftDirtyRef.current=false;
+   setDraftSaved(false);
+  }
  },[id,user?.id]);
  const load=useCallback(async()=>{
   if(!id||!user?.id)return;
@@ -74,7 +102,22 @@ export default function Conversation(){
   loadDraft();
 
   if(!id)return;
-  const ch=supabase.channel('conversation-'+id,{config:{broadcast:{self:false},presence:{key:user.id}}}); channelRef.current=ch.on('presence',{event:'sync'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(payload.payload?.typing)setTimeout(()=>setTyping(false),1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
+  const ch=supabase.channel('conversation-'+id,{config:{broadcast:{self:false},presence:{key:user.id}}}); channelRef.current=ch
+  .on('postgres_changes',{event:'*',schema:'public',table:'message_drafts',filter:'conversation_id=eq.'+id},payload=>{
+   const row=payload.new?.conversation_id?payload.new:payload.old;
+   if(!row||row.user_id!==user.id||row.conversation_id!==id)return;
+   if(payload.eventType==='DELETE'){
+    if(!draftDirtyRef.current){
+     applyingRemoteDraftRef.current=true;
+     draftLocalUpdatedAtRef.current=0;
+     setText('');
+     setDraftSaved(false);
+     requestAnimationFrame(()=>{applyingRemoteDraftRef.current=false;});
+    }
+    return;
+   }
+   applyRemoteDraft(row);
+  }).on('presence',{event:'sync'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(payload.payload?.typing)setTimeout(()=>setTyping(false),1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    const incoming=payload.new;
    if(!incoming?.id)return;
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
@@ -161,7 +204,7 @@ export default function Conversation(){
    if(e)setError(e.message);else{setText('');setEditingId(null);}
   }else{
    const{error:e}=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:v,reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()});
-   if(e)setError(e.message);else {setText('');setReplyTo(null);await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);setDraftSaved(false);} 
+   if(e)setError(e.message);else {setText('');setReplyTo(null);draftDirtyRef.current=false;draftLocalUpdatedAtRef.current=0;await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);setDraftSaved(false);} 
   }
   setSending(false);
  };
@@ -349,7 +392,7 @@ export default function Conversation(){
      {replyTo&&<View style={s.replying}><Text style={s.replyingLabel}>Replying to {replyTo.profiles?.display_name||replyTo.profiles?.username||'message'}{replyTo.content?' · '+replyTo.content.slice(0,70):' · media'}</Text><Pressable onPress={()=>setReplyTo(null)}><Text style={s.actionMuted}>Cancel</Text></Pressable></View>}
      {attachmentOpen&&<View style={s.attachTray}><Pressable onPress={()=>{setAttachmentOpen(false);pickMedia()}} style={s.attachOption}><View style={s.attachOptionIcon}><AppIcon name="photo" size={17} color="#AFC7E1"/></View><Text style={s.attachOptionText}>Photos & videos</Text></Pressable><Pressable onPress={pickDocument} style={s.attachOption}><View style={s.attachOptionIcon}><AppIcon name="archive" size={17} color="#AFC7E1"/></View><Text style={s.attachOptionText}>Document</Text></Pressable></View>}
      <View style={s.composer}>{text.trim()&&<Text style={s.draftLabel}>{draftSaved?'Draft saved':'Saving draft…'}</Text>}
-      <Pressable onPress={()=>setAttachmentOpen(v=>!v)} disabled={uploading||recorderState.isRecording} style={s.attach}><AppIcon name="plus" size={18} color="#AFC7E1"/></Pressable>{recorderState.isRecording?<View style={s.recordingWrap}><Pressable onPress={cancelVoice} style={s.recordCancel}><Text style={s.recordCancelText}>×</Text></Pressable><Pressable onPress={sendVoice} style={s.recordingButton}><Text style={s.recordingText}>● {Math.max(1,Math.round((recorderState.durationMillis||0)/1000))}s</Text></Pressable></View>:<Pressable onPress={sendVoice} disabled={uploading||sending} style={s.voiceButton}><Text style={s.voiceIcon}>🎙</Text></Pressable>}<TextInput value={text} onChangeText={v=>{setText(v);broadcastTyping(!!v.trim());saveDraft(v)}} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={s.input} multiline maxLength={2000} returnKeyType="send" blurOnSubmit={false}/>
+      <Pressable onPress={()=>setAttachmentOpen(v=>!v)} disabled={uploading||recorderState.isRecording} style={s.attach}><AppIcon name="plus" size={18} color="#AFC7E1"/></Pressable>{recorderState.isRecording?<View style={s.recordingWrap}><Pressable onPress={cancelVoice} style={s.recordCancel}><Text style={s.recordCancelText}>×</Text></Pressable><Pressable onPress={sendVoice} style={s.recordingButton}><Text style={s.recordingText}>● {Math.max(1,Math.round((recorderState.durationMillis||0)/1000))}s</Text></Pressable></View>:<Pressable onPress={sendVoice} disabled={uploading||sending} style={s.voiceButton}><Text style={s.voiceIcon}>🎙</Text></Pressable>}<TextInput value={text} onChangeText={v=>{if(!applyingRemoteDraftRef.current){draftDirtyRef.current=true;setText(v);broadcastTyping(!!v.trim());saveDraft(v)}}} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={s.input} multiline maxLength={2000} returnKeyType="send" blurOnSubmit={false}/>
       <Pressable disabled={sending||uploading||!text.trim()||recorderState.isRecording} onPress={send} style={[s.send,(!text.trim()||sending||recorderState.isRecording)&&s.sendDisabled]}><Text style={s.sendText}>{sending?'…':editingId?'Save':'Send'}</Text></Pressable>
      </View></>}
   </KeyboardAvoidingView>
