@@ -30,7 +30,16 @@
           "photosPermission": "Freetopia needs access to your photos and videos so you can share them in posts and on your profile."
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Freetopia needs microphone access to record voice messages.",
+          "recordAudioAndroid": true,
+          "enableBackgroundRecording": false,
+          "enableBackgroundPlayback": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
