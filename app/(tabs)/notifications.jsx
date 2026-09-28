@@ -46,7 +46,7 @@ export default function Notifications(){
    .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},async payload=>{
     const id=payload.new?.id;
     if(!id)return;
-    const {data:item}=await supabase
+    let {data:item}=await supabase
      .from('notifications')
      .select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url)')
      .eq('id',id)
