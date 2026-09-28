@@ -10,15 +10,19 @@ import { useAuth } from '../../providers/AuthProvider';
 const c={bg:'#060B12',ink:'#E9EEF4',muted:'#7F8D9D',line:'#182533',surface:'#0A121C',accent:'#4B78A8'};
 
 export default function Notifications(){
- const r=useRouter(); const {user}=useAuth(); const [items,setItems]=useState([]); const [loading,setLoading]=useState(true); const [refreshing,setRefreshing]=useState(false); const [error,setError]=useState('');
+ const r=useRouter(); const {user}=useAuth(); const loadSequenceRef=useRef(0); const mountedRef=useRef(true); const [items,setItems]=useState([]); const [loading,setLoading]=useState(true); const [refreshing,setRefreshing]=useState(false); const [error,setError]=useState('');
  const load=useCallback(async(pull=false)=>{
+  if(!user?.id)return;
+  const sequence=++loadSequenceRef.current;
   if(pull)setRefreshing(true);else setLoading(true);
   setError('');
   const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url)').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(50);
+  if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
   if(queryError){setError(queryError.message);setItems([]);}else setItems(data||[]);
-  setLoading(false);setRefreshing(false);
+  if(sequence===loadSequenceRef.current&&mountedRef.current){setLoading(false);setRefreshing(false);}
  },[user?.id]);
  useFocusEffect(useCallback(()=>{load();},[load]));
+ useEffect(()=>()=>{mountedRef.current=false;loadSequenceRef.current+=1;},[]);
  useEffect(()=>{
   if(!user?.id)return;
   const channel=supabase.channel('notifications-'+user.id)
@@ -31,10 +35,11 @@ export default function Notifications(){
      .eq('id',id)
      .eq('recipient_id',user.id)
      .maybeSingle();
-    if(!item)return;
+    if(!item||!mountedRef.current)return;
     setItems(current=>current.some(x=>x.id===item.id)?current:[item,...current].slice(0,50));
    })
    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},payload=>{
+    if(!mountedRef.current)return;
     setItems(current=>current.map(x=>x.id===payload.new?.id?{...x,...payload.new}:x));
    })
    .subscribe();
