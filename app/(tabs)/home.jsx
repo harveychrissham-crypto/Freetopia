@@ -19,7 +19,7 @@ export default function Home() {
  const load=useCallback(async(pull=false)=>{
   const seq=++loadSeq.current;
   pull?setRefreshing(true):setLoading(true);setError('');
-  const unreadPromise=user?.id?supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null):Promise.resolve({count:0,error:null});
+  const unreadPromise=user?.id?supabase.from('notifications').select('id',{count:'exact',head:true}).eq('recipient_id',user.id).is('read_at',null):Promise.resolve({count:0,error:null});
   const communitiesPromise=supabase.from('communities').select('id,name,slug,description,is_private').order('created_at',{ascending:false}).limit(5);
   let authorIds=null;
   if(activeTab==='Following'&&user?.id){const{data,error:e}=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted');if(e){setError(e.message);authorIds=[user.id]}else authorIds=[user.id,...(data||[]).map(r=>r.following_id)]}
