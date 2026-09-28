@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
     let startupFinished = false;
+    let timeoutId;
 
     const finishStartup = () => {
       if (!mounted || startupFinished) return;
@@ -28,7 +29,7 @@ export function AuthProvider({ children }) {
       return () => { mounted = false; };
     }
 
-    const timeoutId = setTimeout(() => {
+    timeoutId = setTimeout(() => {
       if (!mounted || startupFinished) return;
       startupFinished = true;
       setStartupError('Freetopia could not restore your session in time. Please continue to the sign-in screen.');
