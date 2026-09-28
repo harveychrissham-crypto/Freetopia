@@ -248,7 +248,7 @@ export default function Conversation(){
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_deliveries'},async payload=>{
    const messageId=payload.new?.message_id||payload.old?.message_id;
    if(!messageId)return;
-   const isRelevant=messages.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
+   const isRelevant=messagesRef.current.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
    if(!isRelevant)return;
    const delivered=payload.new?.delivered_at||payload.old?.delivered_at;
    const {count}=await supabase.from('message_deliveries').select('message_id',{count:'exact',head:true}).eq('message_id',messageId).not('delivered_at','is',null);
