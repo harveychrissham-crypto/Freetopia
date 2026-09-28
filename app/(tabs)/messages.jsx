@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
+import { LoadingState } from '../../components/FeedbackState';
 
 const C = { bg:'#060B12', panel:'#0A121C', panel2:'#0E1824', line:'#182533', text:'#E9EEF4', muted:'#7F8D9D', blue:'#4B78A8', violet:'#4A3F78', pink:'#7A496F', white:'#F4F6F8', danger:'#A95B69' };
 
@@ -228,7 +229,7 @@ function CommunityList({communities,router,query=''}) {
 }
 function Empty({tab}){return <View style={s.empty}><AppIcon name={tab==='Archived'?'archive':'message'} size={26} color={C.blue}/><Text style={s.emptyTitle}>{tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'}</Text><Text style={s.emptyBody}>{tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'}</Text></View>}
 function Error({text}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load messages</Text><Text style={s.errorText}>{text}</Text></View>}
-function Loading(){return <View style={s.loading}><Text style={s.muted}>Loading conversations…</Text></View>}
+function Loading(){return <LoadingState label="Loading conversations…" rows={4}/>}
 function Badge({n}){return <View style={s.badge}><Text style={s.badgeText}>{n>99?'99+':n}</Text></View>}
 function relative(v){const m=Math.max(0,Math.floor((Date.now()-new Date(v).getTime())/60000));if(m<1)return 'now';if(m<60)return m+'m';const h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d'}
 
