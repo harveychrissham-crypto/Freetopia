@@ -37,7 +37,7 @@
           "microphonePermission": "Freetopia needs microphone access to record voice messages.",
           "recordAudioAndroid": true,
           "enableBackgroundRecording": false,
-          "enableBackgroundPlayback": true
+          "enableBackgroundPlayback": false
         }
       ]
     ],
