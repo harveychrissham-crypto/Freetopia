@@ -66,6 +66,22 @@ export default function Conversation(){
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
    if(!message)return;
    setMessages(current=>current.map(x=>x.id===message.id?message:x));
+  }).on('postgres_changes',{event:'INSERT',schema:'public',table:'message_deliveries'},payload=>{
+   const row=payload.new;
+   if(!row?.message_id)return;
+   setMessages(current=>current.map(m=>m.id===row.message_id?{...m,deliveryCount:(m.deliveryCount||0)+1}:m));
+  }).on('postgres_changes',{event:'UPDATE',schema:'public',table:'message_deliveries'},payload=>{
+   const row=payload.new;
+   if(!row?.message_id)return;
+   setMessages(current=>current.map(m=>m.id===row.message_id?{...m,deliveryCount:Math.max(1,m.deliveryCount||0)}:m));
+  }).on('postgres_changes',{event:'INSERT',schema:'public',table:'message_reads'},payload=>{
+   const row=payload.new;
+   if(!row?.message_id)return;
+   setMessages(current=>current.map(m=>m.id===row.message_id?{...m,readCount:(m.readCount||0)+1}:m));
+  }).on('postgres_changes',{event:'UPDATE',schema:'public',table:'message_reads'},payload=>{
+   const row=payload.new;
+   if(!row?.message_id)return;
+   setMessages(current=>current.map(m=>m.id===row.message_id?{...m,readCount:Math.max(1,m.readCount||0)}:m));
   }).subscribe(async status=>{if(status==='SUBSCRIBED'){await ch.track({user_id:user.id});}});
   return()=>{channelRef.current=null;setOnlineUsers([]);supabase.removeChannel(ch)}
  },[id,load,user?.id]);
