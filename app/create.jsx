@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useAuth } from '../providers/AuthProvider';
+import AppIcon from '../components/AppIcon';
 import { getImageUrl } from '../lib/imageUrl';
 
 const C={bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',blue:'#4B78A8',violet:'#4A3F78'};
