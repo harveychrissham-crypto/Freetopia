@@ -2,6 +2,7 @@ import { Platform, useWindowDimensions } from 'react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../providers/AuthProvider';
+import AppIcon from '../../components/AppIcon';
 
 export default function TabLayout() {
   const { width } = useWindowDimensions();
@@ -33,12 +34,12 @@ export default function TabLayout() {
         tabBarHideOnKeyboard: true,
         sceneStyle: { backgroundColor: '#060B12' },
       }}>
-        <Tabs.Screen name="home" options={{ title: 'Home' }} />
-        <Tabs.Screen name="explore" options={{ title: 'Explore' }} />
-        <Tabs.Screen name="communities" options={{ title: 'Communities' }} />
+        <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <AppIcon name="home" size={size} color={color} /> }} />
+        <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: ({ color, size }) => <AppIcon name="compass" size={size} color={color} /> }} />
+        <Tabs.Screen name="communities" options={{ title: 'Communities', tabBarIcon: ({ color, size }) => <AppIcon name="users" size={size} color={color} /> }} />
         <Tabs.Screen name="messages" options={{ title: 'Messages', href: null }} />
         <Tabs.Screen name="notifications" options={{ title: 'Activity', href: null }} />
-        <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+        <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <AppIcon name="profile" size={size} color={color} /> }} />
       </Tabs>
     </>
   );
