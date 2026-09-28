@@ -133,7 +133,7 @@ export default function Settings() {
     <SafeAreaView style={s.safe}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.mobileContent}>
         <View style={s.mobileHeader}>
-          <Pressable onPress={() => router.back()} hitSlop={12}><Text style={s.back}>‹</Text></Pressable>
+          <Pressable onPress={() => router.back()} hitSlop={12}><AppIcon name="arrow-left" size={18}/></Pressable>
           <Text style={s.mobileTitle}>Settings</Text>
           <View style={{ width: 24 }} />
         </View>
@@ -141,11 +141,11 @@ export default function Settings() {
         <Pressable onPress={() => router.push('/edit-profile')} style={s.mobileProfileCard}>
           <Avatar initials={initials} avatar={profile?.avatar_url} size={62} />
           <View style={{ flex: 1 }}>
-            <Text style={s.mobileProfileName}>{name} <Text style={s.verified}>✓</Text></Text>
+            <Text style={s.mobileProfileName}>{name} <AppIcon name="check" size={12} color={C.blue}/></Text>
             <Text style={s.mobileProfileHandle}>{handle}</Text>
             <Text style={s.mobileProfileBio} numberOfLines={1}>{profile?.bio || 'Dream big. Build bigger.'}</Text>
           </View>
-          <Text style={s.chevron}>›</Text>
+          <AppIcon name="chevron-right" size={15} color={C.muted}/>
         </Pressable>
 
         <Text style={s.mobileSectionLabel}>ACCOUNT</Text>
@@ -157,7 +157,7 @@ export default function Settings() {
                 <Text style={s.mobileRowTitle}>{title}</Text>
                 <Text style={s.mobileRowSub}>{subtitle}</Text>
               </View>
-              <Text style={s.chevron}>›</Text>
+              <AppIcon name="chevron-right" size={15} color={C.muted}/>
             </Pressable>
           ))}
         </View>
@@ -171,7 +171,7 @@ export default function Settings() {
                 <Text style={s.mobileRowTitle}>{title}</Text>
                 <Text style={s.mobileRowSub}>{subtitle}</Text>
               </View>
-              <Text style={s.chevron}>›</Text>
+              <AppIcon name="chevron-right" size={15} color={C.muted}/>
             </Pressable>
           ))}
         </View>
@@ -187,7 +187,7 @@ export default function Settings() {
           </View>
         ) : null}
 
-        <Pressable onPress={signOut} style={s.mobileLogout}><Text style={s.logoutText}>Log Out</Text><Text style={s.chevron}>›</Text></Pressable>
+        <Pressable onPress={signOut} style={s.mobileLogout}><Text style={s.logoutText}>Log Out</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
         <Text style={s.version}>Freetopia · Account settings</Text>
       </ScrollView>
     </SafeAreaView>
@@ -201,7 +201,7 @@ function AccountPanel({ name, handle, initials, email, profile, onEdit }) {
         <View style={s.profileSummary}>
           <Avatar initials={initials} avatar={profile?.avatar_url} size={72} />
           <View style={{ flex: 1 }}>
-            <Text style={s.summaryName}>{name} <Text style={s.verified}>✓</Text></Text>
+            <Text style={s.summaryName}>{name} <AppIcon name="check" size={12} color={C.blue}/></Text>
             <Text style={s.summaryHandle}>{handle}</Text>
             <Text style={s.summaryBio}>{profile?.bio || 'Add a short bio from Edit Profile.'}</Text>
           </View>
@@ -223,7 +223,7 @@ function AccountPanel({ name, handle, initials, email, profile, onEdit }) {
 
       <View style={s.card}>
         <Text style={s.cardTitle}>Privacy & Security</Text>
-        <SettingLine icon="◉" title="Profile visibility" subtitle={profile?.is_private ? 'Private profile' : 'Public profile'} />
+        <SettingLine icon="globe" title="Profile visibility" subtitle={profile?.is_private ? 'Private profile' : 'Public profile'} />
         <SettingLine icon="▣" title="Password" subtitle="Manage your sign-in password" />
         <SettingLine icon="◌" title="Two-Factor Authentication" subtitle="Not connected yet" muted />
         <SettingLine icon="▤" title="Active Sessions" subtitle="Session management is not connected yet" muted last />
@@ -269,24 +269,24 @@ function RightRail({ profile, name, handle, onEdit, privateProfile }) {
     </View>
     <View style={s.railCard}>
       <Text style={s.railTitle}>Language</Text>
-      <SettingLine icon="◎" title="English" subtitle="Preferred language" last />
+      <SettingLine icon="globe" title="English" subtitle="Preferred language" last />
     </View>
     <View style={s.railCard}>
       <Text style={s.railTitle}>Privacy</Text>
-      <SettingLine icon="◉" title={privateProfile ? 'Private profile' : 'Public profile'} subtitle="Profile visibility" last />
+      <SettingLine icon="globe" title={privateProfile ? 'Private profile' : 'Public profile'} subtitle="Profile visibility" last />
     </View>
     <View style={s.railCard}>
       <Text style={s.railTitle}>Quick Actions</Text>
-      <Pressable onPress={onEdit} style={s.quickRow}><Text style={s.quickIcon}>◉</Text><Text style={s.quickText}>Edit Profile</Text><Text style={s.chevron}>›</Text></Pressable>
-      <Pressable style={s.quickRow}><Text style={s.quickIcon}>▤</Text><Text style={s.quickText}>Data & Storage</Text><Text style={s.chevron}>›</Text></Pressable>
-      <Pressable style={s.quickRow}><Text style={s.quickIcon}>?</Text><Text style={s.quickText}>Help & Support</Text><Text style={s.chevron}>›</Text></Pressable>
+      <Pressable onPress={onEdit} style={s.quickRow}><Text style={s.quickIcon}>◉</Text><Text style={s.quickText}>Edit Profile</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
+      <Pressable style={s.quickRow}><Text style={s.quickIcon}>▤</Text><Text style={s.quickText}>Data & Storage</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
+      <Pressable style={s.quickRow}><Text style={s.quickIcon}>?</Text><Text style={s.quickText}>Help & Support</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
     </View>
     <View style={s.promo}><Image source={require('../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Your journey matters.</Text><Text style={s.promoBody}>Keep building your world.</Text></View>
   </View>;
 }
 
 function Sidebar({ router }) {
-  const items = [['⌂','Home','/home'],['⌕','Explore','/explore'],['♧','Communities','/communities'],['▱','Messages','/messages'],['♧','Notifications','/notifications'],['＋','Create','/create'],['♙','Profile','/profile']];
+  const items = [['home','Home','/home'],['compass','Explore','/explore'],['users','Communities','/communities'],['message','Messages','/messages'],['bell','Notifications','/notifications'],['plus','Create','/create'],['profile','Profile','/profile']];
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
     <View style={s.sideNav}>{items.map(([icon,label,path]) => <Pressable key={label} onPress={() => router.push(path)} style={s.sideItem}><Text style={s.sideIcon}>{icon}</Text><Text style={s.sideLabel}>{label}</Text>{label === 'Messages' ? <Badge n="3"/> : null}{label === 'Notifications' ? <Badge n="5"/> : null}</Pressable>)}</View>
@@ -295,7 +295,7 @@ function Sidebar({ router }) {
 }
 
 function Topbar({ router }) {
-  return <View style={s.topbar}><TextInput placeholder="⌕  Search settings..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><AppIcon name="bell" size={19} color={C.text}/><AppIcon name="message" size={19} color={C.text}/><Pressable onPress={() => router.push('/profile')}><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></Pressable></View></View>;
+  return <View style={s.topbar}><TextInput placeholder="Search settings..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><AppIcon name="bell" size={19} color={C.text}/><AppIcon name="message" size={19} color={C.text}/><Pressable onPress={() => router.push('/profile')}><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></Pressable></View></View>;
 }
 
 function Badge({ n }) { return <View style={s.badge}><Text style={s.badgeText}>{n}</Text></View>; }
@@ -312,7 +312,7 @@ function InfoField({ label, value }) {
 function MiniStat({ label, value }) { return <View style={s.miniStat}><Text style={s.miniValue} numberOfLines={1}>{value}</Text><Text style={s.miniLabel}>{label}</Text></View>; }
 
 function SettingLine({ icon, title, subtitle, muted, last }) {
-  return <View style={[s.settingLine, last && s.settingLineLast, muted && s.mutedRow]}><View style={s.lineIcon}><Text style={s.lineIconText}>{icon}</Text></View><View style={{ flex:1 }}><Text style={s.lineTitle}>{title}</Text><Text style={s.lineSub}>{subtitle}</Text></View><Text style={s.chevron}>›</Text></View>;
+  return <View style={[s.settingLine, last && s.settingLineLast, muted && s.mutedRow]}><View style={s.lineIcon}><AppIcon name={icon} size={16} color="#9DB5D1"/></View><View style={{ flex:1 }}><Text style={s.lineTitle}>{title}</Text><Text style={s.lineSub}>{subtitle}</Text></View><AppIcon name="chevron-right" size={15} color={C.muted}/></View>;
 }
 
 function SettingToggle({ title, subtitle, value, onPress, disabled }) {
