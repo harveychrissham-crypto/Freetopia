@@ -1,10 +1,24 @@
 import { Redirect, useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../providers/AuthProvider';
 
 export default function Index() {
   const router = useRouter();
   const { session, loading, configError, startupError } = useAuth();
+  const startupRedirected = useRef(false);
+
+  useEffect(() => {
+    if (!loading || session || configError || startupError) return undefined;
+
+    const watchdog = setTimeout(() => {
+      if (startupRedirected.current) return;
+      startupRedirected.current = true;
+      router.replace('/auth');
+    }, 9000);
+
+    return () => clearTimeout(watchdog);
+  }, [loading, session, configError, startupError, router]);
 
   if (configError) {
     return (
