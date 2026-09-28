@@ -1,9 +1,7 @@
 name: Freetopia Android Build
 
 on:
-  push:
-    branches:
-      - main
+  # Android builds are intentionally manual so normal commits do not consume EAS build quota.
   workflow_dispatch:
     inputs:
       profile:
