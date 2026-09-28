@@ -36,12 +36,13 @@ export default function Conversation(){
     setMessages((m||[]).filter(x=>!hiddenIds.has(x.id)));
     const {data:pins}=await supabase.from('message_pins').select('message_id,pinned_by,pinned_at').eq('conversation_id',id).order('pinned_at',{ascending:false});
     setPinned(pins||[]);
-    const unread=(m||[]).filter(x=>x.sender_id!==user.id&&!x.deleted_at);
+    const own=(m||[]).filter(x=>x.sender_id===user.id&&!x.deleted_at); const recipients=(c.conversation_members||[]).filter(x=>x.user_id!==user.id&&x.request_status==='accepted').map(x=>x.user_id); const deliveryIds=own.map(x=>x.id); let deliveries=[]; if(deliveryIds.length){const{data:d}=await supabase.from('message_deliveries').select('message_id,user_id,delivered_at').in('message_id',deliveryIds);deliveries=d||[];} const readsOwn=deliveryIds.length?(await supabase.from('message_reads').select('message_id,user_id').in('message_id',deliveryIds)).data||[]:[]; const deliveryMap=new Map(deliveries.map(x=>[x.message_id,(deliveries.filter(d=>d.message_id===x.message_id).length)])); const readMap=new Map(readsOwn.map(x=>[x.message_id,(readsOwn.filter(d=>d.message_id===x.message_id).length)])); setMessages((m||[]).map(x=>x.sender_id===user.id?{...x,deliveryCount:deliveryMap.get(x.id)||0,readCount:readMap.get(x.id)||0,recipientCount:recipients.length}:x));
+   const unread=(m||[]).filter(x=>x.sender_id!==user.id&&!x.deleted_at);
     if(unread.length){
      const{data:reads}=await supabase.from('message_reads').select('message_id').eq('user_id',user.id).in('message_id',unread.map(x=>x.id));
      const seen=new Set((reads||[]).map(x=>x.message_id));
      const missing=unread.filter(x=>!seen.has(x.id)).map(x=>({message_id:x.id,user_id:user.id}));
-     if(missing.length)await supabase.from('message_reads').insert(missing);
+     if(missing.length)await supabase.from('message_reads').upsert(missing,{onConflict:'message_id,user_id'});
     }
    }
   }
@@ -57,7 +58,7 @@ export default function Conversation(){
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
    if(!message)return;
    setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
-   if(message.sender_id!==user?.id&&!message.deleted_at&&info?.me?.request_status==='accepted'){await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});}
+   if(message.sender_id!==user?.id&&!message.deleted_at&&info?.me?.request_status==='accepted'){await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});} 
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    const incoming=payload.new;
@@ -256,7 +257,7 @@ export default function Conversation(){
         {m.media_url&&m.media_type==='audio'?<ChatAudio uri={m.media_url}/>:null}
         {m.media_url&&m.media_type==='file'?<Pressable onPress={()=>openAttachment(m)} style={s.fileCard}><View style={s.fileIcon}><AppIcon name="archive" size={18} color="#AFC7E1"/></View><View style={s.fileCopy}><Text numberOfLines={2} style={s.fileName}>{m.content||'Document'}</Text><Text style={s.fileMeta}>Tap to open</Text></View><AppIcon name="chevron-right" size={14} color="#7F8D9D"/></Pressable>:null}
         {m.content&&m.media_type!=='file'?<Text style={[s.bt,m.sender_id===user.id&&s.mbt]}>{m.deleted_at?'Message deleted':m.content}</Text>:null}
-        <Text style={[s.time,m.sender_id===user.id&&s.mineTime]}>{new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}{m.edited_at&&!m.deleted_at?' · edited':''}{m.message_stars?.some(x=>x.user_id===user.id)?' · ★':''}{pinned.some(x=>x.message_id===m.id)?' · 📌':''}</Text>
+        <Text style={[s.time,m.sender_id===user.id&&s.mineTime]}>{new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}{m.edited_at&&!m.deleted_at?' · edited':''}{m.message_stars?.some(x=>x.user_id===user.id)?' · ★':''}{pinned.some(x=>x.message_id===m.id)?' · 📌':''}{m.sender_id===user.id?<Text style={s.delivery}>{m.recipientCount>0&&m.readCount>=m.recipientCount?'✓✓':m.recipientCount>0&&m.deliveryCount>=m.recipientCount?'✓✓':'✓'}</Text>:null}</Text>
         {(m.message_reactions||[]).length>0?<View style={s.reactions}>{Object.entries((m.message_reactions||[]).reduce((a,r)=>(a[r.emoji]=(a[r.emoji]||0)+1,a),{})).map(([emoji,n])=><Pressable key={emoji} onPress={()=>toggleReaction(m,emoji)} style={s.reaction}><Text style={s.reactionText}>{emoji} {n}</Text></Pressable>)}</View>:null}
        </Pressable>
       </View>)}
