@@ -7,7 +7,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [configError, setConfigError] = useState(supabaseConfigError);
+  const configError = supabaseConfigError;
 
   useEffect(() => {
     let mounted = true;
