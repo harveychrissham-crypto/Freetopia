@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
-import { LoadingState } from '../../components/FeedbackState';
+import { LoadingState, EmptyState } from '../../components/FeedbackState';
 
 const C = { bg:'#060B12', panel:'#0A121C', panel2:'#0E1824', line:'#182533', text:'#E9EEF4', muted:'#7F8D9D', blue:'#4B78A8', violet:'#4A3F78', pink:'#7A496F', white:'#F4F6F8', danger:'#A95B69' };
 
@@ -227,7 +227,7 @@ function CommunityList({communities,router,query=''}) {
     </Pressable>)}
   </ScrollView>;
 }
-function Empty({tab}){return <View style={s.empty}><AppIcon name={tab==='Archived'?'archive':'message'} size={26} color={C.blue}/><Text style={s.emptyTitle}>{tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'}</Text><Text style={s.emptyBody}>{tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'}</Text></View>}
+function Empty({tab}){return <EmptyState icon={tab==='Archived'?'archive':'message'} title={tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'} body={tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'} action={tab==='Requests'?'Explore people':'New message'} onPress={()=>{}}/>}
 function Error({text}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load messages</Text><Text style={s.errorText}>{text}</Text></View>}
 function Loading(){return <LoadingState label="Loading conversations…" rows={4}/>}
 function Badge({n}){return <View style={s.badge}><Text style={s.badgeText}>{n>99?'99+':n}</Text></View>}
