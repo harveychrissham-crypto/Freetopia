@@ -195,9 +195,9 @@ export default function Conversation(){
   }
  };
 
- const visibleMessages=search.trim()?messages.filter(m=>(m.content||'').toLowerCase().includes(search.trim().toLowerCase())):messages;
+ const visibleMessages=search.trim()?messages.filter(m=>{const q=search.trim().toLowerCase();return (m.content||'').toLowerCase().includes(q)||(m.media_type||'').toLowerCase().includes(q)||(m.media_url||'').toLowerCase().includes(q)||(m.profiles?.username||'').toLowerCase().includes(q)||(m.profiles?.display_name||'').toLowerCase().includes(q);}):messages;
  useEffect(()=>{if(!search.trim()){setSearchIndex(0);return;}setSearchIndex(i=>Math.min(i,Math.max(0,visibleMessages.length-1)));},[search,visibleMessages.length]);
- const jumpToSearch=(direction)=>{if(!visibleMessages.length)return;const next=(searchIndex+direction+visibleMessages.length)%visibleMessages.length;setSearchIndex(next);const target=visibleMessages[next];const originalIndex=messages.findIndex(m=>m.id===target.id);if(originalIndex>=0)scrollRef.current?.scrollTo({y:Math.max(0,originalIndex*78),animated:true});};
+ const jumpToSearch=(direction)=>{if(!visibleMessages.length)return;const next=(searchIndex+direction+visibleMessages.length)%visibleMessages.length;setSearchIndex(next);const target=visibleMessages[next];const originalIndex=messages.findIndex(m=>m.id===target.id);if(originalIndex>=0){setTimeout(()=>scrollRef.current?.scrollTo({y:Math.max(0,originalIndex*92),animated:true}),50);}};
  const name=info?.kind==='group'?(info?.title||'Group'):(info?.other?.profiles?.display_name||info?.other?.profiles?.username||'Conversation');
  const handle=info?.other?.profiles?.username;
  const avatar=info?.other?.profiles?.avatar_url;
