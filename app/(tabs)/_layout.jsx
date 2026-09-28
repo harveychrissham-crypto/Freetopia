@@ -10,6 +10,7 @@ export default function TabLayout() {
   const { session, loading } = useAuth();
   const desktopWeb = Platform.OS === 'web' && width >= 1000;
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const refreshUnread = useCallback(async () => {
     if (!session?.user?.id) {
@@ -27,8 +28,23 @@ export default function TabLayout() {
     setUnreadMessages(total);
   }, [session?.user?.id]);
 
+
+  const refreshNotifications = useCallback(async () => {
+    if (!session?.user?.id) {
+      setUnreadNotifications(0);
+      return;
+    }
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', session.user.id)
+      .eq('read', false);
+    setUnreadNotifications(error ? 0 : Number(count || 0));
+  }, [session?.user?.id]);
+
   useEffect(() => {
     refreshUnread();
+    refreshNotifications();
 
     if (!session?.user?.id) return;
 
@@ -37,17 +53,22 @@ export default function TabLayout() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, refreshUnread)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reads', filter: 'user_id=eq.' + session.user.id }, refreshUnread)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + session.user.id }, refreshUnread)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + session.user.id }, refreshNotifications)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + session.user.id }, refreshNotifications)
       .subscribe();
 
     const appStateSubscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') refreshUnread();
+      if (nextState === 'active') {
+        refreshUnread();
+        refreshNotifications();
+      }
     });
 
     return () => {
       appStateSubscription.remove();
       supabase.removeChannel(channel);
     };
-  }, [session?.user?.id, refreshUnread]);
+  }, [session?.user?.id, refreshUnread, refreshNotifications]);
 
   if (!loading && !session) return <Redirect href="/auth" />;
 
@@ -76,14 +97,18 @@ export default function TabLayout() {
       }}>
         <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <AppIcon name="home" size={size} color={color} /> }} />
         <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: ({ color, size }) => <AppIcon name="compass" size={size} color={color} /> }} />
-        <Tabs.Screen name="communities" options={{ title: 'Communities', tabBarIcon: ({ color, size }) => <AppIcon name="users" size={size} color={color} /> }} />
         <Tabs.Screen name="messages" options={{
           title: 'Messages',
           tabBarBadge: unreadMessages > 0 ? (unreadMessages > 99 ? '99+' : unreadMessages) : undefined,
           tabBarBadgeStyle: { backgroundColor: '#4B78A8', color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
           tabBarIcon: ({ color, size }) => <AppIcon name="message" size={size} color={color} />,
         }} />
-        <Tabs.Screen name="notifications" options={{ title: 'Activity', href: null }} />
+        <Tabs.Screen name="notifications" options={{
+          title: 'Notifications',
+          tabBarBadge: unreadNotifications > 0 ? (unreadNotifications > 99 ? '99+' : unreadNotifications) : undefined,
+          tabBarBadgeStyle: { backgroundColor: '#4B78A8', color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
+          tabBarIcon: ({ color, size }) => <AppIcon name="bell" size={size} color={color} />,
+        }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <AppIcon name="profile" size={size} color={color} /> }} />
       </Tabs>
     </>
