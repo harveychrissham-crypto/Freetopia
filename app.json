@@ -6,7 +6,7 @@
     "version": "0.2.0",
     "owner": "itsharveys-team",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "icon": "./public/brand/freetopia-mark.png",
     "splash": {
       "image": "./public/brand/freetopia-mark.png",
