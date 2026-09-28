@@ -97,9 +97,11 @@ export default function Messages() {
     const channel = supabase.channel('messages-inbox-' + user.id)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, scheduleReload)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, scheduleReload)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, scheduleReload)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reads', filter: 'user_id=eq.' + user.id }, scheduleReload)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
       .subscribe();
     return () => {
       if(reloadTimer.current){clearTimeout(reloadTimer.current);reloadTimer.current=null;}
