@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../providers/AuthProvider';
 
 export default function Index() {
@@ -8,9 +8,20 @@ export default function Index() {
   if (loading) {
     return (
       <View style={s.loading}>
-        <View style={s.mark}><Text style={s.markText}>F</Text></View>
+        <View style={s.brand}>
+          <Image
+            source={require('../public/brand/freetopia-mark.png')}
+            style={s.logo}
+            resizeMode="contain"
+          />
+        </View>
+
         <Text style={s.title}>Freetopia</Text>
-        <ActivityIndicator size="small" color="#7F8D9D" />
+        <Text style={s.subtitle}>Connect. Create. Belong.</Text>
+
+        <View style={s.loader}>
+          <ActivityIndicator size="small" color="#A9B7C8" />
+        </View>
       </View>
     );
   }
@@ -24,18 +35,38 @@ const s = StyleSheet.create({
     backgroundColor: '#060B12',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    paddingHorizontal: 24,
   },
-  mark: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#182536',
+  brand: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    backgroundColor: '#101A27',
+    borderWidth: 1,
+    borderColor: '#24364B',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#29415B',
+    marginBottom: 18,
   },
-  markText: { color: '#E9EEF4', fontSize: 20, fontWeight: '900' },
-  title: { color: '#C9D4E2', fontSize: 14, fontWeight: '800' },
+  logo: {
+    width: 48,
+    height: 48,
+  },
+  title: {
+    color: '#F1F5F9',
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.6,
+  },
+  subtitle: {
+    color: '#7F8D9D',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 6,
+  },
+  loader: {
+    height: 36,
+    justifyContent: 'center',
+    marginTop: 18,
+  },
 });
