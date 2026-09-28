@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseConfigError } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
 
 const c = {
@@ -65,6 +65,11 @@ export default function Auth() {
 
     if (mode === 'sign-up' && cleanName.length < 2) {
       setError('Enter your name to create your profile.');
+      return;
+    }
+
+    if (supabaseConfigError) {
+      setError('Freetopia is not configured with its Supabase connection. Please install the latest build from GitHub Releases.');
       return;
     }
 
