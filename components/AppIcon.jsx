@@ -1,0 +1,83 @@
+import { StyleSheet, View } from 'react-native';
+
+export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
+  const stroke = Math.max(1.6, size * 0.09);
+  const common = { position: 'absolute', backgroundColor: color };
+  const scale = size / 20;
+
+  if (name === 'search') return (
+    <View style={[s.box, { width: size, height: size }]}>
+      <View style={[s.searchCircle, { width: size * .55, height: size * .55, borderRadius: size, borderWidth: stroke, borderColor: color, left: size * .16, top: size * .12 }]} />
+      <View style={[common, { width: size * .34, height: stroke, borderRadius: stroke, left: size * .58, top: size * .68, transform: [{ rotate: '45deg' }] }]} />
+    </View>
+  );
+
+  if (name === 'bell') return (
+    <View style={[s.box, { width: size, height: size }]}>
+      <View style={{ position:'absolute', width:size*.56, height:size*.62, left:size*.22, top:size*.12, borderWidth:stroke, borderColor:color, borderRadius:size*.28 }} />
+      <View style={[common,{width:size*.72,height:stroke,borderRadius:stroke,left:size*.14,top:size*.72}]} />
+      <View style={[common,{width:size*.18,height:size*.09,borderRadius:size*.08,left:size*.41,top:size*.79}]} />
+    </View>
+  );
+
+  if (name === 'message') return (
+    <View style={[s.box, { width: size, height: size }]}>
+      <View style={{ position:'absolute', width:size*.72, height:size*.55, left:size*.1, top:size*.15, borderWidth:stroke, borderColor:color, borderRadius:size*.14 }} />
+      <View style={[common,{width:size*.22,height:stroke,left:size*.18,top:size*.68,transform:[{rotate:'-35deg'}]}]} />
+      <View style={[common,{width:size*.28,height:stroke,left:size*.25,top:size*.42,borderRadius:stroke}]} />
+      <View style={[common,{width:size*.18,height:stroke,left:size*.25,top:size*.54,borderRadius:stroke}]} />
+    </View>
+  );
+
+  if (name === 'home') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.54,height:size*.54,left:size*.23,top:size*.28,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.04}} />
+      <View style={{position:'absolute',width:size*.53,height:size*.53,left:size*.235,top:size*.02,borderLeftWidth:stroke,borderTopWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],borderRadius:size*.04}} />
+      <View style={[common,{width:size*.16,height:size*.29,left:size*.42,top:size*.51,borderRadius:size*.03}]} />
+    </View>
+  );
+
+  if (name === 'compass') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.76,height:size*.76,left:size*.12,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.18,height:size*.48,left:size*.41,top:size*.26,backgroundColor:color,transform:[{rotate:'42deg'}],borderRadius:size*.04}} />
+      <View style={{position:'absolute',width:size*.18,height:size*.18,left:size*.41,top:size*.41,borderRadius:size,backgroundColor:'#060B12'}} />
+    </View>
+  );
+
+  if (name === 'users') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.25,height:size*.25,left:size*.22,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.25,height:size*.25,left:size*.53,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.48,height:size*.27,left:size*.08,top:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.25}} />
+      <View style={{position:'absolute',width:size*.38,height:size*.23,left:size*.5,top:size*.58,borderWidth:stroke,borderColor:color,borderRadius:size*.25}} />
+    </View>
+  );
+
+  if (name === 'profile') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.31,height:size*.31,left:size*.345,top:size*.1,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.68,height:size*.35,left:size*.16,top:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.35}} />
+    </View>
+  );
+
+  if (name === 'plus') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={[common,{width:size*.72,height:stroke,left:size*.14,top:size*.46,borderRadius:stroke}]} />
+      <View style={[common,{width:stroke,height:size*.72,left:size*.46,top:size*.14,borderRadius:stroke}]} />
+    </View>
+  );
+
+  if (name === 'dots') return (
+    <View style={[s.box,{width:size,height:size,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:size*.1}]}>
+      {[0,1,2].map(i=><View key={i} style={{width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color}} />)}
+    </View>
+  );
+
+  return <View style={{ width:size, height:size }} />;
+}
+
+const s = StyleSheet.create({
+  box: { alignItems: 'center', justifyContent: 'center' },
+  searchCircle: { position:'absolute' },
+});
