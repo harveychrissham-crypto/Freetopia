@@ -59,5 +59,10 @@ jobs:
           npx expo config --type public
           npx expo prebuild --platform android --no-install --non-interactive
 
+      - name: Validate JavaScript bundle
+        env:
+          EXPO_DEBUG: "1"
+        run: npx expo export --platform android --clear
+
       - name: Build Android
         run: eas build --platform android --profile "${{ inputs.profile }}" --non-interactive
