@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { getImageUrl } from '../lib/imageUrl';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

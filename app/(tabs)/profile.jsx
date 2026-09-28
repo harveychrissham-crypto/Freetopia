@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { useLocalSearchParams,useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
