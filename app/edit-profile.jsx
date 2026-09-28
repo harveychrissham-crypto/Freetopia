@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -22,7 +22,8 @@ export default function EditProfile(){
   const [uploading,setUploading]=useState(false);
   const [uploadingCover,setUploadingCover]=useState(false);
 
-  useEffect(()=>{setUsername(profile?.username||'');setName(profile?.display_name||'');setBio(profile?.bio||'');},[profile]);
+  const [syncedProfile,setSyncedProfile]=useState(null);
+  if(profile!==syncedProfile){setSyncedProfile(profile);setUsername(profile?.username||'');setName(profile?.display_name||'');setBio(profile?.bio||'');}
 
   const uploadAvatar=async()=>{
     if(!user||uploading)return;
