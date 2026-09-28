@@ -17,7 +17,7 @@ function ChatVideo({uri}){ const player=useVideoPlayer(uri,p=>{p.loop=false}); r
 function ChatAudio({uri}){ const player=useAudioPlayer(uri,{updateInterval:250}); const status=useAudioPlayerStatus(player); const duration=status.duration||0; const current=status.currentTime||0; const fmt=(v)=>{const total=Math.max(0,Math.round(v));return Math.floor(total/60)+':'+String(total%60).padStart(2,'0')}; return <View style={s.audioBubble}><Pressable onPress={()=>status.playing?player.pause():player.play()} style={s.audioPlay}><Text style={s.audioPlayText}>{status.playing?'❚❚':'▶'}</Text></Pressable><View style={s.audioTrack}><View style={[s.audioProgress,{width:(duration?Math.min(100,(current/duration)*100):0)+'%'}]}/></View><Text style={s.audioDuration}>{fmt(current||duration)}</Text></View>; }
 
 export default function Conversation(){
- const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false);
+ const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false);
 
  const saveDraft=useCallback((value)=>{
   if(!id||!user?.id||applyingRemoteDraftRef.current)return;
@@ -64,6 +64,7 @@ export default function Conversation(){
   }else{
    draftLocalUpdatedAtRef.current=0;
    draftDirtyRef.current=false;
+   setText('');
    setDraftSaved(false);
   }
  },[id,user?.id]);
@@ -128,7 +129,7 @@ export default function Conversation(){
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    const incoming=payload.new;
    if(!incoming?.id)return;
-   const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
+   const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
    if(!message)return;
    setMessages(current=>current.map(x=>x.id===message.id?message:x));
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_deliveries'},async payload=>{
@@ -311,7 +312,8 @@ export default function Conversation(){
   }
  };
 
- const visibleMessages=search.trim()?messages.filter(m=>{const q=search.trim().toLowerCase();return (m.content||'').toLowerCase().includes(q)||(m.media_type||'').toLowerCase().includes(q)||(m.media_url||'').toLowerCase().includes(q)||(m.profiles?.username||'').toLowerCase().includes(q)||(m.profiles?.display_name||'').toLowerCase().includes(q);}):messages;
+ const activeMessages=messages.filter(m=>!m.expires_at||new Date(m.expires_at)>new Date());
+ const visibleMessages=search.trim()?activeMessages.filter(m=>{const q=search.trim().toLowerCase();return (m.content||'').toLowerCase().includes(q)||(m.media_type||'').toLowerCase().includes(q)||(m.media_url||'').toLowerCase().includes(q)||(m.profiles?.username||'').toLowerCase().includes(q)||(m.profiles?.display_name||'').toLowerCase().includes(q);}):activeMessages;
  useEffect(()=>{if(!search.trim()){setSearchIndex(0);return;}setSearchIndex(i=>Math.min(i,Math.max(0,visibleMessages.length-1)));},[search,visibleMessages.length]);
  const jumpToSearch=(direction)=>{if(!visibleMessages.length)return;const next=(searchIndex+direction+visibleMessages.length)%visibleMessages.length;setSearchIndex(next);const target=visibleMessages[next];const originalIndex=messages.findIndex(m=>m.id===target.id);if(originalIndex>=0){setTimeout(()=>scrollRef.current?.scrollTo({y:Math.max(0,originalIndex*92),animated:true}),50);}};
  const name=info?.kind==='group'?(info?.title||'Group'):(info?.other?.profiles?.display_name||info?.other?.profiles?.username||'Conversation');
@@ -372,7 +374,7 @@ export default function Conversation(){
     info?.me?.request_status==='pending'?
      <View style={s.request}><View style={s.requestIcon}><Text style={s.requestIconText}>✦</Text></View><Text style={s.h}>Message request</Text><Text style={s.p}>Accept this request to read and send messages.</Text><Pressable onPress={accept} style={s.accept}><Text style={s.wh}>Accept request</Text></Pressable></View>:
      <><ScrollView ref={scrollRef} style={s.scroll} contentContainerStyle={s.messages} keyboardShouldPersistTaps="handled">
-      {messages.length===0&&<View style={s.empty}><Text style={s.emptyTitle}>No messages yet</Text><Text style={s.emptyText}>Start the conversation.</Text></View>}
+      {visibleMessages.length===0&&<View style={s.empty}><Text style={s.emptyTitle}>No messages yet</Text><Text style={s.emptyText}>Start the conversation.</Text></View>}
       {visibleMessages.map(m=><View key={m.id} style={[s.row,m.sender_id===user.id?s.rowMine:s.rowTheirs]}>
        {m.sender_id!==user.id&&info?.kind==='group'?<Text style={s.senderName}>{m.profiles?.display_name||m.profiles?.username||'Member'}</Text>:null}{m.sender_id!==user.id&&<View style={s.smallAvatar}>{m.profiles?.avatar_url?<Image source={{uri:getImageUrl(m.profiles.avatar_url,{width:800,height:800,quality:100})}} style={s.smallAvatarImage}/>:<Text style={s.smallAvatarText}>{(m.profiles?.display_name||m.profiles?.username||'?')[0].toUpperCase()}</Text>}</View>}
        <Pressable onLongPress={()=>!m.deleted_at&&(selectedIds.length?toggleSelection(m):setSelectedMessage(m))} onPress={()=>selectedIds.length?toggleSelection(m):selectedMessage?.id===m.id&&setSelectedMessage(null)} style={[s.bubble,m.sender_id===user.id?s.mine:s.theirs]}>
