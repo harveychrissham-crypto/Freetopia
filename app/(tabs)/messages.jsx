@@ -29,8 +29,8 @@ export default function Messages() {
 
   const load = useCallback(async (pull=false) => {
     if (!user?.id) return;
-    const sequence=++loadSequence.current;
     if(loadInFlight.current&&!pull)return;
+    const sequence=++loadSequence.current;
     loadInFlight.current=true;
     pull ? setRefreshing(true) : setLoading(true);
     setError('');
