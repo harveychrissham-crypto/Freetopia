@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
+import AppIcon from '../components/AppIcon';
 
 const C = {
   bg: '#050A11',
@@ -294,7 +295,7 @@ function Sidebar({ router }) {
 }
 
 function Topbar({ router }) {
-  return <View style={s.topbar}><TextInput placeholder="⌕  Search settings..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Text style={s.topIcon}>♧</Text><Text style={s.topIcon}>▱</Text><Pressable onPress={() => router.push('/profile')}><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></Pressable></View></View>;
+  return <View style={s.topbar}><TextInput placeholder="⌕  Search settings..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><AppIcon name="bell" size={19} color={C.text}/><AppIcon name="message" size={19} color={C.text}/><Pressable onPress={() => router.push('/profile')}><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></Pressable></View></View>;
 }
 
 function Badge({ n }) { return <View style={s.badge}><Text style={s.badgeText}>{n}</Text></View>; }
