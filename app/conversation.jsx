@@ -12,7 +12,7 @@ import {useAuth} from '../providers/AuthProvider';
 function ChatVideo({uri}){ const player=useVideoPlayer(uri,p=>{p.loop=false}); return <View style={s.videoWrap}><VideoView player={player} style={s.videoPlayer} nativeControls contentFit="contain"/></View>; }
 
 export default function Conversation(){
- const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),channelRef=useRef(null),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null);
+ const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),channelRef=useRef(null),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null);
 
  const load=useCallback(async()=>{
   if(!id||!user?.id)return;
@@ -98,7 +98,14 @@ export default function Conversation(){
   const{data:members,error:e}=await supabase.from('conversation_members').select('conversation_id,conversations:conversation_id(id,kind,title),request_status').eq('user_id',user.id).eq('request_status','accepted');
   if(e){setError(e.message);setForwardMessage(null);setForwardLoading(false);return;}
   const rows=(members||[]).map(x=>x.conversations).filter(Boolean).filter(x=>x.id!==id);
-  setForwardTargets(rows);setForwardLoading(false);
+  const directIds=rows.filter(x=>x.kind!=='group').map(x=>x.id);
+  let directProfiles=[];
+  if(directIds.length){
+   const{data:dm}=await supabase.from('conversation_members').select('conversation_id,user_id,profiles:user_id(id,username,display_name,avatar_url)').in('conversation_id',directIds).neq('user_id',user.id).eq('request_status','accepted');
+   directProfiles=dm||[];
+  }
+  const decorated=rows.map(target=>{const member=directProfiles.find(x=>x.conversation_id===target.id);return member?{...target,other:member.profiles}:target;});
+  setForwardTargets(decorated);setForwardLoading(false);
  };
  const forwardTo=async(target)=>{
   if(!forwardMessage||forwardingId)return;
@@ -141,6 +148,8 @@ export default function Conversation(){
  };
 
  const visibleMessages=search.trim()?messages.filter(m=>(m.content||'').toLowerCase().includes(search.trim().toLowerCase())):messages;
+ useEffect(()=>{if(!search.trim()){setSearchIndex(0);return;}setSearchIndex(i=>Math.min(i,Math.max(0,visibleMessages.length-1)));},[search,visibleMessages.length]);
+ const jumpToSearch=(direction)=>{if(!visibleMessages.length)return;const next=(searchIndex+direction+visibleMessages.length)%visibleMessages.length;setSearchIndex(next);const target=visibleMessages[next];const originalIndex=messages.findIndex(m=>m.id===target.id);if(originalIndex>=0)scrollRef.current?.scrollTo({y:Math.max(0,originalIndex*78),animated:true});};
  const name=info?.kind==='group'?(info?.title||'Group'):(info?.other?.profiles?.display_name||info?.other?.profiles?.username||'Conversation');
  const handle=info?.other?.profiles?.username;
  const avatar=info?.other?.profiles?.avatar_url;
@@ -166,7 +175,7 @@ export default function Conversation(){
     <Pressable onPress={()=>setSearchOpen(v=>!v)} hitSlop={10} style={s.info}><AppIcon name="search" size={16}/></Pressable><Pressable onPress={()=>{if(info?.kind==='group')setGroupPanel(true);else if(info?.other?.user_id)router.push({pathname:'/profile',params:{id:info.other.user_id}})}} hitSlop={10} style={s.info}><Text style={s.infoText}>i</Text></Pressable>
    </View>
 
-   {searchOpen&&<View style={s.searchBar}><AppIcon name="search" size={15} color="#7F8D9D"/><TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Search messages" placeholderTextColor="#718092" style={s.searchInput}/><Text style={s.searchCount}>{search.trim()?visibleMessages.length+' match'+(visibleMessages.length===1?'':'es'):''}</Text><Pressable onPress={()=>{setSearch('');setSearchOpen(false)}}><Text style={s.actionMuted}>Close</Text></Pressable></View>}{error&&<Text style={s.err}>{error}</Text>}
+   {searchOpen&&<View style={s.searchBar}><AppIcon name="search" size={15} color="#7F8D9D"/><TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Search messages" placeholderTextColor="#718092" style={s.searchInput}/><Text style={s.searchCount}>{search.trim()?(visibleMessages.length?(searchIndex+1)+'/'+visibleMessages.length:'0 matches'):''}</Text>{search.trim()&&visibleMessages.length>0&&<><Pressable onPress={()=>jumpToSearch(-1)}><Text style={s.action}>↑</Text></Pressable><Pressable onPress={()=>jumpToSearch(1)}><Text style={s.action}>↓</Text></Pressable></>}<Pressable onPress={()=>{setSearch('');setSearchIndex(0);setSearchOpen(false)}}><Text style={s.actionMuted}>Close</Text></Pressable></View>}{error&&<Text style={s.err}>{error}</Text>}
    {pinned.length>0&&<View style={s.pinnedBar}><Text style={s.pinnedIcon}>📌</Text><View style={s.pinnedCopy}><Text style={s.pinnedTitle}>Pinned message</Text><Text numberOfLines={1} style={s.pinnedText}>{messages.find(x=>x.id===pinned[0].message_id)?.content||'Media message'}</Text></View><Pressable onPress={()=>{const idx=messages.findIndex(x=>x.id===pinned[0].message_id);if(idx>=0)scrollRef.current?.scrollTo({y:Math.max(0,idx*75),animated:true})}}><Text style={s.action}>View</Text></Pressable></View>}{forwardMessage&&<View style={s.forwardOverlay}>
     <Pressable style={s.forwardBackdrop} onPress={()=>!forwardingId&&setForwardMessage(null)}/>
     <View style={s.forwardSheet}>
@@ -174,7 +183,7 @@ export default function Conversation(){
      {forwardMessage.content?<View style={s.forwardPreview}><Text style={s.forwardPreviewLabel}>Message</Text><Text numberOfLines={3} style={s.forwardPreviewText}>{forwardMessage.content}</Text></View>:<View style={s.forwardPreview}><Text style={s.forwardPreviewLabel}>Attachment</Text><Text style={s.forwardPreviewText}>{forwardMessage.media_type==='video'?'Video':'Image'} message</Text></View>}
      {forwardLoading?<Text style={s.muted}>Loading conversations…</Text>:forwardTargets.length===0?<Text style={s.muted}>No other conversations available.</Text>:<ScrollView style={s.forwardList}>{forwardTargets.map(target=><Pressable key={target.id} disabled={!!forwardingId} onPress={()=>forwardTo(target)} style={s.forwardRow}>
        <View style={s.forwardAvatar}><Text style={s.avatarText}>{((target.kind==='group'?target.title:'Conversation')||'?')[0].toUpperCase()}</Text></View>
-       <View style={s.forwardCopy}><Text style={s.forwardName} numberOfLines={1}>{target.kind==='group'?(target.title||'Group'):'Conversation'}</Text><Text style={s.forwardMeta}>{target.kind==='group'?'Group chat':'Direct message'}</Text></View>
+       <View style={s.forwardCopy}><Text style={s.forwardName} numberOfLines={1}>{target.kind==='group'?(target.title||'Group'):(target.other?.display_name||target.other?.username||'Conversation')}</Text><Text style={s.forwardMeta}>{target.kind==='group'?'Group chat':target.other?.username?'@'+target.other.username:'Direct message'}</Text></View>
        <Text style={s.action}>{forwardingId===target.id?'Sending…':'Send'}</Text>
      </Pressable>)}</ScrollView>}
     </View>
