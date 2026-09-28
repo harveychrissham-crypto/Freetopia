@@ -93,7 +93,7 @@ export default function Conversation(){
   draftLocalUpdatedAtRef.current=remoteTime;
   setText(row.content||'');
   setDraftSaved(true);
-  requestAnimationFrame(()=>{applyingRemoteDraftRef.current=false;});
+  requestAnimationFrame(()=>{if(mountedRef.current&&conversationId===id)applyingRemoteDraftRef.current=false;});
  },[id,user?.id]);
 
  useEffect(()=>{
@@ -198,12 +198,12 @@ export default function Conversation(){
      draftLocalUpdatedAtRef.current=0;
      setText('');
      setDraftSaved(false);
-     requestAnimationFrame(()=>{applyingRemoteDraftRef.current=false;});
+     requestAnimationFrame(()=>{if(mountedRef.current&&id===row.conversation_id)applyingRemoteDraftRef.current=false;});
     }
     return;
    }
    applyRemoteDraft(row);
-  }).on('presence',{event:'sync'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(typingTimerRef.current)clearTimeout(typingTimerRef.current);if(payload.payload?.typing)typingTimerRef.current=setTimeout(()=>{if(mountedRef.current)setTyping(false)},1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
+  }).on('presence',{event:'sync'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(typingTimerRef.current)clearTimeout(typingTimerRef.current);if(payload.payload?.typing)typingTimerRef.current=setTimeout(()=>{if(mountedRef.current)setTyping(false)},1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    const incoming=payload.new;
    if(!incoming?.id)return;
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
