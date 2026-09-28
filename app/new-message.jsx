@@ -25,7 +25,7 @@ export default function NewMessage(){
  },[userId,user?.id]);
 
  const search=async()=>{
-  const v=q.trim();
+  const v=q.replace(/[,()%_*\\]/g,' ').trim();
   if(!v){setPeople([]);setSearched(false);return}
   setError('');setSearched(true);
   const{data,error:e}=await supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').or('username.ilike.%'+v+'%,display_name.ilike.%'+v+'%').limit(20);

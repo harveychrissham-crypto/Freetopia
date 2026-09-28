@@ -18,7 +18,7 @@ export default function Explore(){
   const [p,c,po]=await Promise.all([
    supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').order('created_at',{ascending:false}).limit(12),
    supabase.from('communities').select('id,name,slug,description,is_private,avatar_url,created_at').order('created_at',{ascending:false}).limit(12),
-   supabase.from('posts').select('id,author_id,content,created_at,undefined').order('created_at',{ascending:false}).limit(12)
+   supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').order('created_at',{ascending:false}).limit(12)
   ]);
   if(p.error||c.error||po.error){setError((p.error||c.error||po.error).message);}
   const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted').in('following_id',ids);followed=new Set((f.data||[]).map(x=>x.following_id));} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
@@ -27,12 +27,12 @@ export default function Explore(){
  useEffect(()=>{const incoming=Array.isArray(params.q)?params.q[0]:params.q;const incomingTab=Array.isArray(params.tab)?params.tab[0]:params.tab;const validTabs=['For You','Communities','Topics','Posts','People'];if(incomingTab&&validTabs.includes(incomingTab))setTab(incomingTab);if(incoming&&incoming!==q&&!initialSearchApplied){setQ(incoming);setTab('Posts');setInitialSearchApplied(true);search(incoming)}},[params.q,params.tab,q,initialSearchApplied]);
 
  const search=async(nextValue)=>{
-  const value=(nextValue??q).trim(); if(!value){load();return;} if(tab==='For You')setTab('Posts');
+  const value=(nextValue??q).replace(/[,()%_*\\]/g,' ').trim(); if(!value){load();return;} if(tab==='For You')setTab('Posts');
   setLoading(true);setError('');
   const [p,c,po]=await Promise.all([
    supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').or('username.ilike.%'+value+'%,display_name.ilike.%'+value+'%,bio.ilike.%'+value+'%').limit(20),
    supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').or('name.ilike.%'+value+'%,description.ilike.%'+value+'%,slug.ilike.%'+value+'%').limit(20),
-   supabase.from('posts').select('id,author_id,content,created_at,undefined').ilike('content','%'+value+'%').order('created_at',{ascending:false}).limit(20)
+   supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').ilike('content','%'+value+'%').order('created_at',{ascending:false}).limit(20)
   ]);
   if(p.error||c.error||po.error)setError((p.error||c.error||po.error).message);
   const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted').in('following_id',ids);followed=new Set((f.data||[]).map(x=>x.following_id));} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
