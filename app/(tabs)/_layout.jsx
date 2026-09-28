@@ -37,8 +37,8 @@ export default function TabLayout() {
     const { count, error } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', session.user.id)
-      .eq('read', false);
+      .eq('recipient_id', session.user.id)
+      .is('read_at', null);
     setUnreadNotifications(error ? 0 : Number(count || 0));
   }, [session?.user?.id]);
 
@@ -53,7 +53,7 @@ export default function TabLayout() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, refreshUnread)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reads', filter: 'user_id=eq.' + session.user.id }, refreshUnread)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + session.user.id }, refreshUnread)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + session.user.id }, refreshNotifications)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'recipient_id=eq.' + session.user.id }, refreshNotifications)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications', filter: 'user_id=eq.' + session.user.id }, refreshNotifications)
       .subscribe();
 
