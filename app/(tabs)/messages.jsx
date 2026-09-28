@@ -26,6 +26,7 @@ export default function Messages() {
   const loadSequence = useRef(0);
   const reloadTimer = useRef(null);
   const loadInFlight = useRef(false);
+  const reloadPending = useRef(false);
 
   const load = useCallback(async (pull=false) => {
     if (!user?.id) return;
@@ -72,6 +73,10 @@ export default function Messages() {
     }
     if(sequence===loadSequence.current){setLoading(false);setRefreshing(false);}
     loadInFlight.current=false;
+    if(reloadPending.current){
+      reloadPending.current=false;
+      setTimeout(()=>load(),0);
+    }
   },[user?.id]);
 
   useFocusEffect(useCallback(()=>{ load(); },[load]));
@@ -79,6 +84,10 @@ export default function Messages() {
   useEffect(() => {
     if (!user?.id) return;
     const scheduleReload=()=>{
+      if(loadInFlight.current){
+        reloadPending.current=true;
+        return;
+      }
       if(reloadTimer.current)return;
       reloadTimer.current=setTimeout(()=>{
         reloadTimer.current=null;
@@ -94,6 +103,7 @@ export default function Messages() {
       .subscribe();
     return () => {
       if(reloadTimer.current){clearTimeout(reloadTimer.current);reloadTimer.current=null;}
+      reloadPending.current=false;
       supabase.removeChannel(channel);
     };
   }, [user?.id, load]);
