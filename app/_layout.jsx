@@ -17,10 +17,6 @@ function NavigationGate() {
     if (session && inAuth) router.replace('/home');
   }, [loading, session, segments, router]);
 
-  if (loading) {
-    return <View style={styles.loading}><View style={styles.loadingMark}><Text style={styles.loadingMarkText}>F</Text></View><Text style={styles.loadingText}>Freetopia</Text><ActivityIndicator size="small" color="#7F8D9D" /></View>;
-  }
-
   return <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />;
 }
 
@@ -30,6 +26,18 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <NavigationGate />
     </AuthProvider>
+  );
+}
+
+export function BootScreen() {
+  return (
+    <View style={styles.loading}>
+      <View style={styles.loadingMark}>
+        <Text style={styles.loadingMarkText}>F</Text>
+      </View>
+      <Text style={styles.loadingText}>Freetopia</Text>
+      <ActivityIndicator size="small" color="#7F8D9D" />
+    </View>
   );
 }
 
