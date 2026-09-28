@@ -39,21 +39,24 @@ export default function Messages() {
         return { ...c, me:members.find(m=>m.user_id===user.id), other:members.find(m=>m.user_id!==user.id) };
       }).filter(c=>c.me);
       const ids = base.map(c=>c.id);
-      let latest = [];
-      let readIds = new Set();
+      let inboxRows = [];
       if (ids.length) {
-        const mr = await supabase.from('messages').select('id,conversation_id,sender_id,content,created_at').in('conversation_id',ids).order('created_at',{ascending:false}).limit(Math.min(ids.length*5,500));
-        if (!mr.error) {
-          latest = mr.data || [];
-          const receivedIds = latest.filter(m=>m.sender_id!==user.id).map(m=>m.id);
-          if(receivedIds.length){ const rr=await supabase.from('message_reads').select('message_id').eq('user_id',user.id).in('message_id',receivedIds); if(!rr.error) readIds=new Set((rr.data||[]).map(x=>x.message_id)); }
-        }
+        const ir = await supabase.rpc('get_message_inbox');
+        if (!ir.error) inboxRows = ir.data || [];
+        else setError(ir.error.message);
       }
       const latestBy = {};
       const unreadBy = {};
-      latest.forEach(m => {
-        if (!latestBy[m.conversation_id]) latestBy[m.conversation_id]=m;
-        if(m.sender_id!==user.id&&!readIds.has(m.id)) unreadBy[m.conversation_id]=(unreadBy[m.conversation_id]||0)+1;
+      (inboxRows||[]).forEach(m => {
+        latestBy[m.conversation_id] = {
+          id:m.last_message_id,
+          conversation_id:m.conversation_id,
+          sender_id:m.last_sender_id,
+          content:m.last_content,
+          media_type:m.last_media_type,
+          created_at:m.last_created_at
+        };
+        unreadBy[m.conversation_id] = Number(m.unread_count||0);
       });
       const nextItems=base.map(c=>({...c,lastMessage:latestBy[c.id]||null,unreadCount:unreadBy[c.id]||0}));
       setItems(nextItems);
