@@ -33,7 +33,9 @@ export default function NewMessage(){
   if(e)setError(e.message);else setPeople(data||[]);
  };
 
- const toggle= id=>setSelected(cur=>cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);\n const createGroup=async()=>{if(busy||!groupName.trim()||!selected.length)return;setBusy(true);setError('');const{data,error:e}=await supabase.rpc('create_group_conversation',{group_title:groupName.trim(),member_ids:selected});if(e)setError(e.message);else router.replace({pathname:'/conversation',params:{id:data}});setBusy(false);};\n const start=async id=>{
+ const toggle= id=>setSelected(cur=>cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);
+ const createGroup=async()=>{if(busy||!groupName.trim()||!selected.length)return;setBusy(true);setError('');const{data,error:e}=await supabase.rpc('create_group_conversation',{group_title:groupName.trim(),member_ids:selected});if(e)setError(e.message);else router.replace({pathname:'/conversation',params:{id:data}});setBusy(false);};
+ const start=async id=>{
   if(busy)return;
   setBusy(true);setError('');
   const{data,error:e}=await supabase.rpc('create_direct_conversation',{target_user_id:id});
