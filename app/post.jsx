@@ -11,7 +11,51 @@ import { useAuth } from '../providers/AuthProvider';
 const c={bg:'#060B12',ink:'#E9EEF4',muted:'#7F8D9D',line:'#182533',accent:'#4B78A8',danger:'#A95B69'};
 const reasons=['Spam or misleading','Harassment or bullying','Hate or abusive content','Violence or threats','Sexual content','Other'];
 
-function PostPhotoGallery({media}){return <View style={[s.photoGallery,media.length===1&&s.photoSingle]}>{media.map((item,index)=>{const uri=item.thumbnail_path||item.storage_path;return <View key={item.id||uri||index} style={[s.photoItem,media.length>1&&s.photoMulti]}><Image source={{uri:getImageUrl(uri,{width:1400,height:1400,quality:92,resize:'contain'})}} style={s.photoImage}/>{media.length>1?<View style={s.photoIndex}><Text style={s.photoIndexText}>{index+1}/{media.length}</Text></View>:null}</View>)}</View>}
+function PostPhotoGallery({ media }) {
+  return (
+    <View
+      style={[
+        s.photoGallery,
+        media.length === 1 && s.photoSingle,
+      ]}
+    >
+      {media.map((item, index) => {
+        const uri = item.thumbnail_path || item.storage_path;
+
+        return (
+          <View
+            key={item.id || item.storage_path || String(index)}
+            style={
+              media.length === 1
+                ? s.photoSingleItem
+                : s.photoMultiItem
+            }
+          >
+            <Image
+              source={{
+                uri: getImageUrl(uri, {
+                  width: 1400,
+                  height: 1400,
+                  quality: 92,
+                  resize: 'contain',
+                }),
+              }}
+              style={s.photoImage}
+            />
+            {media.length > 1 ? (
+              <View style={s.photoIndex}>
+                <Text style={s.photoIndexText}>
+                  {index + 1}/{media.length}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function PostVideo({media}){if(media.processing_status!=='ready'||!media.playback_url)return <View style={s.videoStatus}><Text style={s.videoStatusTitle}>{media.processing_status==='failed'?'Video processing failed':'Video processing…'}</Text><Text style={s.videoStatusText}>{media.processing_status==='failed'?'This video is unavailable right now.':'Freetopia is preparing this video for smooth playback.'}</Text></View>;const player=useVideoPlayer({uri:media.playback_url,contentType:'hls',useCaching:true},p=>{p.muted=false;});return <View style={s.videoWrap}>{media.thumbnail_path?<Image source={{uri:getImageUrl(media.thumbnail_path,{width:1200,height:675,quality:85})}} style={s.videoPoster}/>:null}<VideoView player={player} style={s.video} nativeControls fullscreenOptions={{enable:true}} contentFit="contain" surfaceType={Platform.OS==='android'?'textureView':undefined}/></View>}
 
 export default function PostScreen(){
@@ -95,7 +139,7 @@ export default function PostScreen(){
 const s=StyleSheet.create({
  safe:{flex:1,backgroundColor:c.bg},header:{height:58,paddingHorizontal:20,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:c.line},back:{fontSize:34,color:c.ink,lineHeight:34},headerTitle:{fontSize:15,fontWeight:'750',color:c.ink},
  content:{padding:20,paddingBottom:30},muted:{fontSize:12,color:c.muted},error:{padding:12,borderRadius:12,backgroundColor:'#180F15',marginBottom:12},errorText:{fontSize:12,color:c.danger},
- post:{paddingBottom:20,borderBottomWidth:1,borderBottomColor:c.line},photoGallery:{marginTop:12,flexDirection:'row',flexWrap:'wrap',gap:5,borderRadius:12,overflow:'hidden'},photoSingle:{aspectRatio:1},photoItem:{backgroundColor:'#02060B',position:'relative',overflow:'hidden'},photoMulti:{width:'49.2%',aspectRatio:1},photoImage:{width:'100%',height:'100%'},photoIndex:{position:'absolute',right:7,top:7,paddingHorizontal:7,paddingVertical:4,borderRadius:8,backgroundColor:'#08111B'},photoIndexText:{color:c.ink,fontSize:8,fontWeight:'800'},videoWrap:{marginTop:12,width:'100%',aspectRatio:16/9,borderRadius:12,overflow:'hidden',backgroundColor:'#02060B'},video:{width:'100%',height:'100%'},videoPoster:{position:'absolute',top:0,left:0,right:0,bottom:0,width:'100%',height:'100%'},videoStatus:{marginTop:12,width:'100%',aspectRatio:16/9,borderRadius:12,backgroundColor:'#08111B',borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center',padding:20},videoStatusTitle:{color:c.ink,fontSize:12,fontWeight:'750'},videoStatusText:{color:c.muted,fontSize:10,textAlign:'center',marginTop:5,lineHeight:15},postTop:{flexDirection:'row',alignItems:'flex-start'},authorWrap:{flex:1,flexDirection:'row',gap:10,alignItems:'center'},authorAvatar:{width:42,height:42,borderRadius:21},authorFallback:{width:42,height:42,borderRadius:21,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},author:{fontSize:14,fontWeight:'750',color:c.ink},handle:{marginTop:2,fontSize:10,color:c.muted},reportButton:{padding:5},reportLink:{fontSize:11,fontWeight:'750',color:c.danger},reported:{fontSize:11,fontWeight:'750',color:'#7F8D9D'},
+ post:{paddingBottom:20,borderBottomWidth:1,borderBottomColor:c.line},photoGallery:{marginTop:12,flexDirection:'row',flexWrap:'wrap',gap:5,borderRadius:12,overflow:'hidden'},photoSingle:{aspectRatio:1},photoSingleItem:{width:'100%',aspectRatio:1,backgroundColor:'#02060B',position:'relative',overflow:'hidden'},photoMultiItem:{width:'49.2%',aspectRatio:1,backgroundColor:'#02060B',position:'relative',overflow:'hidden'},photoImage:{width:'100%',height:'100%'},photoIndex:{position:'absolute',right:7,top:7,paddingHorizontal:7,paddingVertical:4,borderRadius:8,backgroundColor:'#08111B'},photoIndexText:{color:c.ink,fontSize:8,fontWeight:'800'},videoWrap:{marginTop:12,width:'100%',aspectRatio:16/9,borderRadius:12,overflow:'hidden',backgroundColor:'#02060B'},video:{width:'100%',height:'100%'},videoPoster:{position:'absolute',top:0,left:0,right:0,bottom:0,width:'100%',height:'100%'},videoStatus:{marginTop:12,width:'100%',aspectRatio:16/9,borderRadius:12,backgroundColor:'#08111B',borderWidth:1,borderColor:c.line,alignItems:'center',justifyContent:'center',padding:20},videoStatusTitle:{color:c.ink,fontSize:12,fontWeight:'750'},videoStatusText:{color:c.muted,fontSize:10,textAlign:'center',marginTop:5,lineHeight:15},postTop:{flexDirection:'row',alignItems:'flex-start'},authorWrap:{flex:1,flexDirection:'row',gap:10,alignItems:'center'},authorAvatar:{width:42,height:42,borderRadius:21},authorFallback:{width:42,height:42,borderRadius:21,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},author:{fontSize:14,fontWeight:'750',color:c.ink},handle:{marginTop:2,fontSize:10,color:c.muted},reportButton:{padding:5},reportLink:{fontSize:11,fontWeight:'750',color:c.danger},reported:{fontSize:11,fontWeight:'750',color:'#7F8D9D'},
  community:{marginTop:4,fontSize:10,fontWeight:'700',color:'#8D82B8'},contentText:{marginTop:10,fontSize:16,lineHeight:24,color:c.ink},time:{marginTop:7,fontSize:10,color:'#68798C'},postActions:{flexDirection:'row',gap:20,marginTop:14,paddingTop:11,borderTopWidth:1,borderTopColor:c.line},postAction:{flexDirection:'row',alignItems:'center',gap:6},postActionIcon:{fontSize:16,color:c.muted},liked:{color:'#8E5A6B'},postActionText:{fontSize:10,fontWeight:'700',color:c.muted},reportBox:{marginTop:14,padding:14,borderWidth:1,borderColor:c.line,borderRadius:15,backgroundColor:'#0A121C'},reportTitle:{fontSize:14,fontWeight:'750',color:c.ink},reportLead:{marginTop:4,fontSize:11,lineHeight:16,color:c.muted},reasonList:{marginTop:10},reason:{paddingVertical:9,paddingHorizontal:10,borderWidth:1,borderColor:c.line,borderRadius:9,marginBottom:6,backgroundColor:'#0E1824'},reasonSelected:{borderColor:c.accent,backgroundColor:'#182536'},reasonText:{fontSize:11,color:c.ink},reasonTextSelected:{fontWeight:'750',color:c.accent},details:{minHeight:70,maxHeight:100,borderWidth:1,borderColor:c.line,borderRadius:10,padding:10,fontSize:11,color:c.ink,backgroundColor:'#0A121C'},reportActions:{marginTop:10,flexDirection:'row',justifyContent:'flex-end',gap:8},cancel:{height:38,paddingHorizontal:13,justifyContent:'center'},cancelText:{fontSize:11,fontWeight:'700',color:c.muted},submit:{height:38,paddingHorizontal:14,borderRadius:10,backgroundColor:c.ink,justifyContent:'center'},submitDisabled:{opacity:.35},submitText:{fontSize:11,fontWeight:'750',color:'#F4F6F8'},
  section:{marginTop:22,fontSize:15,fontWeight:'750',color:c.ink},empty:{marginTop:12,padding:18,borderWidth:1,borderColor:c.line,borderRadius:14,alignItems:'center'},emptyTitle:{fontSize:14,fontWeight:'700',color:c.ink,marginBottom:5},
  comment:{flexDirection:'row',gap:10,paddingVertical:14,borderBottomWidth:1,borderBottomColor:c.line},commentTop:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},commentReport:{fontSize:10,fontWeight:'750',color:c.danger},commentReported:{fontSize:10,fontWeight:'750',color:c.muted,marginLeft:8},commentAvatar:{width:34,height:34,borderRadius:17,backgroundColor:c.ink,alignItems:'center',justifyContent:'center'},avatarText:{color:'#fff',fontWeight:'750'},commentAuthor:{fontSize:12,fontWeight:'750',color:c.ink},commentText:{marginTop:4,fontSize:13,lineHeight:20,color:c.ink},
