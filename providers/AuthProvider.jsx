@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseConfigError } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
@@ -7,11 +7,16 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [configError, setConfigError] = useState(supabaseConfigError);
 
   useEffect(() => {
     let mounted = true;
 
     const loadSession = async () => {
+      if (supabaseConfigError) {
+        if (mounted) setLoading(false);
+        return;
+      }
       try {
         const { data, error } = await supabase.auth.getSession();
         if (!mounted) return;
@@ -62,6 +67,7 @@ export function AuthProvider({ children }) {
       setProfile(data ?? null);
     };
 
+    if (supabaseConfigError) return;
     loadProfile();
     return () => { cancelled = true; };
   }, [session?.user?.id]);
@@ -71,7 +77,9 @@ export function AuthProvider({ children }) {
     user: session?.user ?? null,
     profile,
     loading,
+    configError,
     refreshProfile: async () => {
+      if (supabaseConfigError) return null;
       if (!session?.user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
