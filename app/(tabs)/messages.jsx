@@ -27,63 +27,68 @@ export default function Messages() {
   const reloadTimer = useRef(null);
   const loadInFlight = useRef(false);
   const reloadPending = useRef(false);
+  const mountedRef = useRef(true);
 
   const load = useCallback(async (pull=false) => {
-    if (!user?.id) return;
+    if (!user?.id || !mountedRef.current) return;
     if(loadInFlight.current&&!pull)return;
     const sequence=++loadSequence.current;
     loadInFlight.current=true;
     pull ? setRefreshing(true) : setLoading(true);
     setError('');
-    const [{ data, error:e }, { data:communityData, error:communityError }] = await Promise.all([supabase
-      .from('conversations')
-      .select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))')
-      .order('created_at',{ascending:false}), supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20)]);
-    if(sequence!==loadSequence.current){loadInFlight.current=false;return;}
-    setCommunities(communityData || []);
-    if (e || communityError) { setError((e || communityError).message); setItems([]); }
-    else {
-      const base = (data||[]).map(c => {
-        const members = c.conversation_members || [];
-        return { ...c, me:members.find(m=>m.user_id===user.id), other:members.find(m=>m.user_id!==user.id) };
-      }).filter(c=>c.me);
-      const ids = base.map(c=>c.id);
-      let inboxRows = [];
-      if (ids.length) {
-        const ir = await supabase.rpc('get_message_inbox');
-        if (sequence!==loadSequence.current)return;
-        if (!ir.error) inboxRows = ir.data || [];
-        else setError(ir.error.message);
+    try {
+      const [{ data, error:e }, { data:communityData, error:communityError }] = await Promise.all([supabase
+        .from('conversations')
+        .select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))')
+        .order('created_at',{ascending:false}), supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20)]);
+      if(sequence!==loadSequence.current||!mountedRef.current)return;
+      setCommunities(communityData || []);
+      if (e || communityError) { setError((e || communityError).message); setItems([]); }
+      else {
+        const base = (data||[]).map(c => {
+          const members = c.conversation_members || [];
+          return { ...c, me:members.find(m=>m.user_id===user.id), other:members.find(m=>m.user_id!==user.id) };
+        }).filter(c=>c.me);
+        const ids = base.map(c=>c.id);
+        let inboxRows = [];
+        if (ids.length) {
+          const ir = await supabase.rpc('get_message_inbox');
+          if (sequence!==loadSequence.current||!mountedRef.current)return;
+          if (!ir.error) inboxRows = ir.data || [];
+          else setError(ir.error.message);
+        }
+        if (sequence!==loadSequence.current||!mountedRef.current)return;
+        const latestBy = {};
+        const unreadBy = {};
+        (inboxRows||[]).forEach(m => {
+          latestBy[m.conversation_id] = {
+            id:m.last_message_id,
+            conversation_id:m.conversation_id,
+            sender_id:m.last_sender_id,
+            content:m.last_content,
+            media_type:m.last_media_type,
+            created_at:m.last_created_at
+          };
+          unreadBy[m.conversation_id] = Number(m.unread_count||0);
+        });
+        const nextItems=base.map(c=>({...c,lastMessage:latestBy[c.id]||null,unreadCount:unreadBy[c.id]||0}));
+        setItems(nextItems);
+        setUnreadTotal(nextItems.reduce((sum,c)=>sum+(c.unreadCount||0),0));
       }
-      if (sequence!==loadSequence.current)return;
-      const latestBy = {};
-      const unreadBy = {};
-      (inboxRows||[]).forEach(m => {
-        latestBy[m.conversation_id] = {
-          id:m.last_message_id,
-          conversation_id:m.conversation_id,
-          sender_id:m.last_sender_id,
-          content:m.last_content,
-          media_type:m.last_media_type,
-          created_at:m.last_created_at
-        };
-        unreadBy[m.conversation_id] = Number(m.unread_count||0);
-      });
-      const nextItems=base.map(c=>({...c,lastMessage:latestBy[c.id]||null,unreadCount:unreadBy[c.id]||0}));
-      setItems(nextItems);
-      setUnreadTotal(nextItems.reduce((sum,c)=>sum+(c.unreadCount||0),0));
-    }
-    if(sequence===loadSequence.current){setLoading(false);setRefreshing(false);}
-    loadInFlight.current=false;
-    if(reloadPending.current){
-      reloadPending.current=false;
-      setTimeout(()=>load(),0);
+      if(mountedRef.current&&sequence===loadSequence.current){setLoading(false);setRefreshing(false);}
+    } finally {
+      if(sequence===loadSequence.current)loadInFlight.current=false;
+      if(mountedRef.current&&sequence===loadSequence.current&&reloadPending.current){
+        reloadPending.current=false;
+        setTimeout(()=>{if(mountedRef.current)load();},0);
+      }
     }
   },[user?.id]);
 
   useFocusEffect(useCallback(()=>{ load(); },[load]));
 
   useEffect(() => {
+    mountedRef.current=true;
     if (!user?.id) return;
     const scheduleReload=()=>{
       if(loadInFlight.current){
@@ -106,6 +111,8 @@ export default function Messages() {
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
       .subscribe();
     return () => {
+      mountedRef.current=false;
+      loadSequence.current+=1;
       if(reloadTimer.current){clearTimeout(reloadTimer.current);reloadTimer.current=null;}
       reloadPending.current=false;
       supabase.removeChannel(channel);
