@@ -137,6 +137,21 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     </View>
   );
 
+  if (name === 'archive') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.72,height:size*.52,left:size*.14,top:size*.30,borderWidth:stroke,borderColor:color,borderRadius:size*.08}} />
+      <View style={{position:'absolute',width:size*.72,height:stroke,left:size*.14,top:size*.25,backgroundColor:color}} />
+      <View style={{position:'absolute',width:size*.24,height:stroke,left:size*.38,top:size*.50,backgroundColor:color,borderRadius:stroke}} />
+    </View>
+  );
+
+  if (name === 'bookmark') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.52,height:size*.72,left:size*.24,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.04}} />
+      <View style={{position:'absolute',width:size*.26,height:size*.18,left:size*.37,top:size*.56,backgroundColor:'#060B12',transform:[{rotate:'45deg'}]}} />
+    </View>
+  );
+
   if (name === 'dots') return (
     <View style={[s.box,{width:size,height:size,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:size*.1}]}>
       {[0,1,2].map(i=><View key={i} style={{width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color}} />)}
