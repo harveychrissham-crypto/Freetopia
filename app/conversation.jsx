@@ -1,4 +1,5 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppIcon from '../components/AppIcon';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -12,14 +13,49 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {supabase} from '../lib/supabase';
 import {useAuth} from '../providers/AuthProvider';
 
+function ChatWallpaper({type,compact=false}){
+ const symbols={city:['✦','•','◌'],mountains:['△','⌁','•'],ocean:['≈','◌','✦'],forest:['✣','❋','•'],sunset:['☼','•','✦'],bubbles:['○','◌','◦'],minimal:['·','•','·']}[type]||['•'];
+ return <View pointerEvents="none" style={s.wallpaperLayer}>
+  {Array.from({length:compact?8:28}).map((_,i)=><Text key={i} style={[s.wallGlyph,{left:(i*37)%97+'%',top:(i*53)%91+'%',fontSize:(compact?8:12)+(i%4)*4,opacity:compact?.18:.12}]}>{symbols[i%symbols.length]}</Text>)}
+  {type==='city'&&<View style={s.cityGlow}/>}
+  {type==='ocean'&&<><View style={s.oceanGlow}/><View style={s.oceanWave}/></>}
+  {type==='forest'&&<View style={s.forestGlow}/>}
+  {type==='sunset'&&<View style={s.sunsetGlow}/>}
+  {type==='bubbles'&&Array.from({length:compact?4:12}).map((_,i)=><View key={'b'+i} style={[s.bubbleDot,{left:(i*29)%90+'%',top:(i*41)%86+'%',width:8+(i%4)*5,height:8+(i%4)*5}]}/>)}
+ </View>;
+}
+
 function ChatVideo({uri}){ const player=useVideoPlayer(uri,p=>{p.loop=false}); return <View style={s.videoWrap}><VideoView player={player} style={s.videoPlayer} nativeControls contentFit="contain"/></View>; }
 
+const CHAT_THEMES={
+ dark:{label:'Dark',description:'Sleek & modern',bg:'#0E1824',panel:'#0A121C',mine:'#243447',theirs:'#182536',accent:'#4B78A8',text:'#E9EEF4'},
+ ocean:{label:'Ocean',description:'Calm & cool',bg:'#071A2A',panel:'#081522',mine:'#176B9A',theirs:'#12324A',accent:'#35A9E0',text:'#EDF9FF'},
+ forest:{label:'Forest',description:'Natural & relaxing',bg:'#0C1C18',panel:'#0A1512',mine:'#1D694D',theirs:'#18372D',accent:'#4CB78A',text:'#EEFFF8'},
+ sunset:{label:'Sunset',description:'Warm & vibrant',bg:'#20151B',panel:'#171016',mine:'#B14E65',theirs:'#3A2630',accent:'#FF8D68',text:'#FFF4F0'},
+ purple:{label:'Purple',description:'Bold & creative',bg:'#171225',panel:'#100D1A',mine:'#6D4AC0',theirs:'#30234A',accent:'#A97BFF',text:'#F7F2FF'},
+ light:{label:'Light',description:'Clean & fresh',bg:'#F3F6FA',panel:'#FFFFFF',mine:'#2E8AE6',theirs:'#E4EAF1',accent:'#287BD0',text:'#15202B'},
+};
+const CHAT_WALLPAPERS={
+ minimal:{label:'Minimal',kind:'minimal',base:'#0E1824'},
+ city:{label:'City Nights',kind:'city',base:'#071427'},
+ mountains:{label:'Mountains',kind:'mountains',base:'#132033'},
+ ocean:{label:'Ocean',kind:'ocean',base:'#06243A'},
+ forest:{label:'Forest',kind:'forest',base:'#0B241B'},
+ sunset:{label:'Sunset',kind:'sunset',base:'#2A1720'},
+ bubbles:{label:'Bubbles',kind:'bubbles',base:'#0A1B2B'},
+};
+const BUBBLE_STYLES={
+ classic:{label:'Classic',radius:17},
+ rounded:{label:'Rounded',radius:24},
+ soft:{label:'Soft',radius:13},
+ compact:{label:'Compact',radius:10},
+};
 function ChatAudio({uri}){ const player=useAudioPlayer(uri,{updateInterval:250}); const status=useAudioPlayerStatus(player); const duration=status.duration||0; const current=status.currentTime||0; const fmt=(v)=>{const total=Math.max(0,Math.round(v));return Math.floor(total/60)+':'+String(total%60).padStart(2,'0')}; return <View style={s.audioBubble}><Pressable onPress={()=>status.playing?player.pause():player.play()} style={s.audioPlay}><Text style={s.audioPlayText}>{status.playing?'❚❚':'▶'}</Text></Pressable><View style={s.audioTrack}><View style={[s.audioProgress,{width:(duration?Math.min(100,(current/duration)*100):0)+'%'}]}/></View><Text style={s.audioDuration}>{fmt(current||duration)}</Text></View>; }
 
 export default function Conversation(){
  const mountedRef=useRef(true);
  const typingTimerRef=useRef(null);
- const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false);
+ const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false),[chatTheme,setChatTheme]=useState('dark'),[chatWallpaper,setChatWallpaper]=useState('minimal'),[bubbleStyle,setBubbleStyle]=useState('classic');
 
  const saveDraft=useCallback((value)=>{
   if(!id||!user?.id||applyingRemoteDraftRef.current)return;
@@ -50,6 +86,26 @@ export default function Conversation(){
   setDraftSaved(true);
   requestAnimationFrame(()=>{applyingRemoteDraftRef.current=false;});
  },[id,user?.id]);
+
+ useEffect(()=>{
+  let active=true;
+  (async()=>{
+   if(!id)return;
+   try{
+    const raw=await AsyncStorage.getItem('freetopia-chat-style-'+id);
+    if(!active||!raw)return;
+    const saved=JSON.parse(raw);
+    if(saved.theme&&CHAT_THEMES[saved.theme])setChatTheme(saved.theme);
+    if(saved.wallpaper&&CHAT_WALLPAPERS[saved.wallpaper])setChatWallpaper(saved.wallpaper);
+    if(saved.bubble&&BUBBLE_STYLES[saved.bubble])setBubbleStyle(saved.bubble);
+   }catch{}
+  })();
+  return()=>{active=false};
+ },[id]);
+ useEffect(()=>{
+  if(!id)return;
+  AsyncStorage.setItem('freetopia-chat-style-'+id,JSON.stringify({theme:chatTheme,wallpaper:chatWallpaper,bubble:bubbleStyle})).catch(()=>{});
+ },[id,chatTheme,chatWallpaper,bubbleStyle]);
 
  useEffect(()=>{
   mountedRef.current=true;
@@ -331,9 +387,14 @@ export default function Conversation(){
   if(e)setError(e.message);else load()
  };
 
- return <SafeAreaView style={s.safe}>
+ const theme=CHAT_THEMES[chatTheme]||CHAT_THEMES.dark;
+ const wallpaper=CHAT_WALLPAPERS[chatWallpaper]||CHAT_WALLPAPERS.minimal;
+ const bubble=BUBBLE_STYLES[bubbleStyle]||BUBBLE_STYLES.classic;
+ const themeStyles={safe:{backgroundColor:theme.bg},head:{backgroundColor:theme.panel,borderBottomColor:theme.theirs},scroll:{backgroundColor:theme.bg},mine:{backgroundColor:theme.mine},theirs:{backgroundColor:theme.theirs},composer:{backgroundColor:theme.panel,borderTopColor:theme.theirs},input:{backgroundColor:theme.bg,borderColor:theme.theirs,color:theme.text},send:{backgroundColor:theme.accent},bt:{color:theme.text}};
+ const bubbleShape={borderRadius:bubble.radius,borderBottomRightRadius:bubbleStyle==='classic'?5:bubble.radius,borderBottomLeftRadius:bubbleStyle==='classic'?5:bubble.radius};
+ return <SafeAreaView style={[s.safe,themeStyles.safe]}>
   <KeyboardAvoidingView style={s.flex} behavior={Platform.OS==='ios'?'padding':undefined} keyboardVerticalOffset={8}>
-   <View style={s.head}>
+   <View style={[s.head,themeStyles.head]}>
     <Pressable onPress={()=>router.back()} hitSlop={10} style={s.backButton}><AppIcon name="arrow-left" size={18}/></Pressable>
     <View style={s.avatar}>
      {avatar?<Image source={{uri:getImageUrl(avatar,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text style={s.avatarText}>{initials}</Text>}
@@ -345,6 +406,28 @@ export default function Conversation(){
     <Pressable onPress={()=>setSearchOpen(v=>!v)} hitSlop={10} style={s.info}><AppIcon name="search" size={16}/></Pressable><Pressable onPress={()=>setChatInfoOpen(true)} hitSlop={10} style={s.info}><Text style={s.infoText}>i</Text></Pressable>
    </View>
 
+   {chatInfoOpen&&<View style={s.customOverlay}>
+    <Pressable style={s.customBackdrop} onPress={()=>setChatInfoOpen(false)}/>
+    <View style={s.customSheet}>
+     <View style={s.customHead}><View><Text style={s.customTitle}>Chat appearance</Text><Text style={s.customSubtitle}>Personalize this conversation</Text></View><Pressable onPress={()=>setChatInfoOpen(false)}><Text style={s.actionMuted}>Done</Text></Pressable></View>
+     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.customScroll}>
+      <Text style={s.customSection}>THEMES</Text>
+      <View style={s.themeGrid}>{Object.entries(CHAT_THEMES).map(([key,t])=><Pressable key={key} onPress={()=>setChatTheme(key)} style={[s.themeCard,chatTheme===key&&{borderColor:t.accent,backgroundColor:t.panel}]}>
+       <View style={[s.themeSwatch,{backgroundColor:t.bg}]}><View style={[s.swatchBubble,{backgroundColor:t.mine}]}/><View style={[s.swatchBubbleSmall,{backgroundColor:t.theirs}]}/></View>
+       <Text style={s.themeName}>{t.label}</Text><Text style={s.themeDesc}>{t.description}</Text>{chatTheme===key?<View style={[s.themeCheck,{backgroundColor:t.accent}]}><Text style={s.themeCheckText}>✓</Text></View>:null}
+      </Pressable>)}</View>
+      <Text style={s.customSection}>WALLPAPERS</Text>
+      <View style={s.wallGrid}>{Object.entries(CHAT_WALLPAPERS).map(([key,w])=><Pressable key={key} onPress={()=>setChatWallpaper(key)} style={[s.wallCard,chatWallpaper===key&&{borderColor:theme.accent}]}>
+       <View style={[s.wallPreview,{backgroundColor:w.base}]}><ChatWallpaper type={w.kind} compact/><View style={s.wallPreviewBubble}/></View>
+       <Text style={s.wallName}>{w.label}</Text>{chatWallpaper===key?<View style={[s.wallCheck,{backgroundColor:theme.accent}]}><Text style={s.themeCheckText}>✓</Text></View>:null}
+      </Pressable>)}</View>
+      <Text style={s.customSection}>MESSAGE BUBBLES</Text>
+      <View style={s.bubbleOptions}>{Object.entries(BUBBLE_STYLES).map(([key,b])=><Pressable key={key} onPress={()=>setBubbleStyle(key)} style={[s.bubbleOption,chatWallpaper&&chatTheme&&bubbleStyle===key&&{borderColor:theme.accent}]}>
+       <View style={[s.bubbleDemo,bubbleStyle===key&&{backgroundColor:theme.mine},{borderRadius:b.radius,borderBottomRightRadius:key==='classic'?5:b.radius}]}/><Text style={s.bubbleOptionText}>{b.label}</Text>
+      </Pressable>)}</View>
+     </ScrollView>
+    </View>
+   </View>}
    {searchOpen&&<View style={s.searchBar}><AppIcon name="search" size={15} color="#7F8D9D"/><TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Search messages" placeholderTextColor="#718092" style={s.searchInput}/><Text style={s.searchCount}>{search.trim()?(visibleMessages.length?(searchIndex+1)+'/'+visibleMessages.length:'0 matches'):''}</Text>{search.trim()&&visibleMessages.length>0&&<><Pressable onPress={()=>jumpToSearch(-1)}><Text style={s.action}>↑</Text></Pressable><Pressable onPress={()=>jumpToSearch(1)}><Text style={s.action}>↓</Text></Pressable></>}<Pressable onPress={()=>{setSearch('');setSearchIndex(0);setSearchOpen(false)}}><Text style={s.actionMuted}>Close</Text></Pressable></View>}{error&&<Text style={s.err}>{error}</Text>}
    {pinned.length>0&&<View style={s.pinnedBar}><Text style={s.pinnedIcon}>📌</Text><View style={s.pinnedCopy}><Text style={s.pinnedTitle}>Pinned message</Text><Text numberOfLines={1} style={s.pinnedText}>{messages.find(x=>x.id===pinned[0].message_id)?.content||'Media message'}</Text></View><Pressable onPress={()=>{const idx=messages.findIndex(x=>x.id===pinned[0].message_id);if(idx>=0)scrollRef.current?.scrollTo({y:Math.max(0,idx*75),animated:true})}}><Text style={s.action}>View</Text></Pressable></View>}{statusMessage&&<View style={s.statusOverlay}>
     <Pressable style={s.statusBackdrop} onPress={()=>setStatusMessage(null)}/>
@@ -377,11 +460,11 @@ export default function Conversation(){
    {loading?<View style={s.center}><Text style={s.muted}>Loading conversation…</Text></View>:
     info?.me?.request_status==='pending'?
      <View style={s.request}><View style={s.requestIcon}><Text style={s.requestIconText}>✦</Text></View><Text style={s.h}>Message request</Text><Text style={s.p}>Accept this request to read and send messages.</Text><Pressable onPress={accept} style={s.accept}><Text style={s.wh}>Accept request</Text></Pressable></View>:
-     <><ScrollView ref={scrollRef} style={s.scroll} contentContainerStyle={s.messages} keyboardShouldPersistTaps="handled">
+     <><View style={[s.chatCanvas,themeStyles.scroll]}><ChatWallpaper type={wallpaper.kind}/><ScrollView ref={scrollRef} style={s.scrollOverlay} contentContainerStyle={s.messages} keyboardShouldPersistTaps="handled">
       {visibleMessages.length===0&&<View style={s.empty}><Text style={s.emptyTitle}>No messages yet</Text><Text style={s.emptyText}>Start the conversation.</Text></View>}
       {visibleMessages.map(m=><View key={m.id} style={[s.row,m.sender_id===user.id?s.rowMine:s.rowTheirs]}>
        {m.sender_id!==user.id&&info?.kind==='group'?<Text style={s.senderName}>{m.profiles?.display_name||m.profiles?.username||'Member'}</Text>:null}{m.sender_id!==user.id&&<View style={s.smallAvatar}>{m.profiles?.avatar_url?<Image source={{uri:getImageUrl(m.profiles.avatar_url,{width:800,height:800,quality:100})}} style={s.smallAvatarImage}/>:<Text style={s.smallAvatarText}>{(m.profiles?.display_name||m.profiles?.username||'?')[0].toUpperCase()}</Text>}</View>}
-       <Pressable onLongPress={()=>!m.deleted_at&&(selectedIds.length?toggleSelection(m):setSelectedMessage(m))} onPress={()=>selectedIds.length?toggleSelection(m):selectedMessage?.id===m.id&&setSelectedMessage(null)} style={[s.bubble,m.sender_id===user.id?s.mine:s.theirs]}>
+       <Pressable onLongPress={()=>!m.deleted_at&&(selectedIds.length?toggleSelection(m):setSelectedMessage(m))} onPress={()=>selectedIds.length?toggleSelection(m):selectedMessage?.id===m.id&&setSelectedMessage(null)} style={[s.bubble,m.sender_id===user.id?themeStyles.mine:themeStyles.theirs,bubbleShape]}>
         {m.reply_to_id?<View style={s.replyQuote}><Text style={s.replyQuoteText}>{m.reply_to_id?(messages.find(x=>x.id===m.reply_to_id)?.profiles?.display_name||'Reply'):'Reply'}</Text><Text style={s.replyPreview}>{m.reply_to_id?(messages.find(x=>x.id===m.reply_to_id)?.content||'Media message'):''}</Text></View>:null}
         {m.media_url&&m.media_type==='image'?<Image source={{uri:m.media_url}} style={s.mediaImage}/>:null}
         {m.media_url&&m.media_type==='video'?<ChatVideo uri={m.media_url}/>:null}
@@ -392,20 +475,20 @@ export default function Conversation(){
         {(m.message_reactions||[]).length>0?<View style={s.reactions}>{Object.entries((m.message_reactions||[]).reduce((a,r)=>(a[r.emoji]=(a[r.emoji]||0)+1,a),{})).map(([emoji,n])=><Pressable key={emoji} onPress={()=>toggleReaction(m,emoji)} style={s.reaction}><Text style={s.reactionText}>{emoji} {n}</Text></Pressable>)}</View>:null}
        </Pressable>
       </View>)}
-     </ScrollView>
+     </ScrollView></View>
      {selectedIds.length>0&&<View style={s.selectionBar}><Text style={s.selectionCount}>{selectedIds.length} selected</Text><Pressable onPress={bulkStar}><Text style={s.action}>★ Star</Text></Pressable><Pressable onPress={openForwardMany}><Text style={s.action}>Forward</Text></Pressable><Pressable onPress={bulkDeleteForMe}><Text style={s.actionDanger}>Delete</Text></Pressable><Pressable onPress={clearSelection}><Text style={s.actionMuted}>Close</Text></Pressable></View>}
      {selectedMessage&&<View style={s.actionBar}><Text style={s.actionLabel}>Message</Text><Pressable onPress={()=>toggleSelection(selectedMessage)}><Text style={s.action}>Select</Text></Pressable><Pressable onPress={()=>toggleReaction(selectedMessage,'❤️')}><Text style={s.action}>❤️</Text></Pressable><Pressable onPress={()=>toggleReaction(selectedMessage,'😂')}><Text style={s.action}>😂</Text></Pressable><Pressable onPress={()=>startReply(selectedMessage)}><Text style={s.action}>Reply</Text></Pressable><Pressable onPress={()=>openForward(selectedMessage)}><Text style={s.action}>Forward</Text></Pressable><Pressable onPress={()=>toggleStar(selectedMessage)}><Text style={s.action}>★</Text></Pressable><Pressable onPress={()=>togglePin(selectedMessage)}><Text style={s.action}>{pinned.some(p=>p.message_id===selectedMessage.id)?'Unpin':'Pin'}</Text></Pressable><Pressable onPress={()=>deleteForMe(selectedMessage)}><Text style={s.actionDanger}>Delete for me</Text></Pressable>{selectedMessage.sender_id===user.id?<><Pressable onPress={()=>{editMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.action}>Edit</Text></Pressable><Pressable onPress={()=>{deleteMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.actionDanger}>Delete</Text></Pressable></>:null}<Pressable onPress={()=>setSelectedMessage(null)}><Text style={s.actionMuted}>Close</Text></Pressable></View>}
      {replyTo&&<View style={s.replying}><Text style={s.replyingLabel}>Replying to {replyTo.profiles?.display_name||replyTo.profiles?.username||'message'}{replyTo.content?' · '+replyTo.content.slice(0,70):' · media'}</Text><Pressable onPress={()=>setReplyTo(null)}><Text style={s.actionMuted}>Cancel</Text></Pressable></View>}
      {attachmentOpen&&<View style={s.attachTray}><Pressable onPress={()=>{setAttachmentOpen(false);pickMedia()}} style={s.attachOption}><View style={s.attachOptionIcon}><AppIcon name="photo" size={17} color="#AFC7E1"/></View><Text style={s.attachOptionText}>Photos & videos</Text></Pressable><Pressable onPress={pickDocument} style={s.attachOption}><View style={s.attachOptionIcon}><AppIcon name="archive" size={17} color="#AFC7E1"/></View><Text style={s.attachOptionText}>Document</Text></Pressable></View>}
-     <View style={s.composer}>{text.trim()&&<Text style={s.draftLabel}>{draftSaved?'Draft saved':'Saving draft…'}</Text>}
-      <Pressable onPress={()=>setAttachmentOpen(v=>!v)} disabled={uploading||recorderState.isRecording} style={s.attach}><AppIcon name="plus" size={18} color="#AFC7E1"/></Pressable>{recorderState.isRecording?<View style={s.recordingWrap}><Pressable onPress={cancelVoice} style={s.recordCancel}><Text style={s.recordCancelText}>×</Text></Pressable><Pressable onPress={sendVoice} style={s.recordingButton}><Text style={s.recordingText}>● {Math.max(1,Math.round((recorderState.durationMillis||0)/1000))}s</Text></Pressable></View>:<Pressable onPress={sendVoice} disabled={uploading||sending} style={s.voiceButton}><Text style={s.voiceIcon}>🎙</Text></Pressable>}<TextInput value={text} onChangeText={v=>{if(!applyingRemoteDraftRef.current){draftDirtyRef.current=true;setText(v);broadcastTyping(!!v.trim());saveDraft(v)}}} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={s.input} multiline maxLength={2000} returnKeyType="send" blurOnSubmit={false}/>
+     <View style={[s.composer,themeStyles.composer]}>{text.trim()&&<Text style={s.draftLabel}>{draftSaved?'Draft saved':'Saving draft…'}</Text>}
+      <Pressable onPress={()=>setAttachmentOpen(v=>!v)} disabled={uploading||recorderState.isRecording} style={s.attach}><AppIcon name="plus" size={18} color="#AFC7E1"/></Pressable>{recorderState.isRecording?<View style={s.recordingWrap}><Pressable onPress={cancelVoice} style={s.recordCancel}><Text style={s.recordCancelText}>×</Text></Pressable><Pressable onPress={sendVoice} style={s.recordingButton}><Text style={s.recordingText}>● {Math.max(1,Math.round((recorderState.durationMillis||0)/1000))}s</Text></Pressable></View>:<Pressable onPress={sendVoice} disabled={uploading||sending} style={s.voiceButton}><Text style={s.voiceIcon}>🎙</Text></Pressable>}<TextInput value={text} onChangeText={v=>{if(!applyingRemoteDraftRef.current){draftDirtyRef.current=true;setText(v);broadcastTyping(!!v.trim());saveDraft(v)}}} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={[s.input,themeStyles.input]} multiline maxLength={2000} returnKeyType="send" blurOnSubmit={false}/>
       <Pressable disabled={sending||uploading||!text.trim()||recorderState.isRecording} onPress={send} style={[s.send,(!text.trim()||sending||recorderState.isRecording)&&s.sendDisabled]}><Text style={s.sendText}>{sending?'…':editingId?'Save':'Send'}</Text></Pressable>
      </View></>}
   </KeyboardAvoidingView>
  </SafeAreaView>
 }
 
-const s=StyleSheet.create({delivery:{fontSize:10,fontWeight:'800',marginLeft:4,color:'#BFD6EE'},statusOverlay:{position:'absolute',left:0,right:0,top:0,bottom:0,zIndex:80,justifyContent:'flex-end'},statusBackdrop:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(0,0,0,0.58)'},statusSheet:{maxHeight:'68%',padding:16,borderTopLeftRadius:22,borderTopRightRadius:22,borderWidth:1,borderColor:'#243447',backgroundColor:'#0A121C'},statusHead:{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14},statusTitle:{color:'#E9EEF4',fontSize:17,fontWeight:'800'},statusSubtitle:{color:'#718092',fontSize:10,marginTop:4,maxWidth:260},statusList:{maxHeight:420},statusRow:{minHeight:64,borderBottomWidth:1,borderBottomColor:'#182533',flexDirection:'row',alignItems:'center',gap:10},statusAvatar:{width:40,height:40,borderRadius:20,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},statusAvatarImage:{width:40,height:40},statusCopy:{flex:1},statusName:{color:'#E9EEF4',fontSize:12,fontWeight:'800'},statusMeta:{color:'#718092',fontSize:9,marginTop:2},statusState:{alignItems:'flex-end'},statusStateText:{color:'#AFC7E1',fontSize:11,fontWeight:'800'},statusTime:{color:'#718092',fontSize:9,marginTop:2},
+const s=StyleSheet.create({customOverlay:{position:'absolute',left:0,right:0,top:0,bottom:0,zIndex:120,justifyContent:'flex-end'},customBackdrop:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(0,0,0,.62)'},customSheet:{maxHeight:'88%',padding:16,borderTopLeftRadius:24,borderTopRightRadius:24,borderWidth:1,borderColor:'#243447',backgroundColor:'#0A121C'},customHead:{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',marginBottom:10},customTitle:{color:'#E9EEF4',fontSize:18,fontWeight:'900'},customSubtitle:{color:'#718092',fontSize:10,marginTop:3},customScroll:{paddingBottom:24},customSection:{color:'#7894AE',fontSize:9,fontWeight:'900',letterSpacing:1.2,marginTop:16,marginBottom:8},themeGrid:{flexDirection:'row',flexWrap:'wrap',gap:9},themeCard:{width:'31.8%',minWidth:96,padding:7,borderRadius:14,borderWidth:1,borderColor:'#243447',backgroundColor:'#0E1824',position:'relative'},themeSwatch:{height:54,borderRadius:9,overflow:'hidden',padding:7,justifyContent:'flex-end'},swatchBubble:{width:'65%',height:11,borderRadius:8,marginBottom:5},swatchBubbleSmall:{width:'50%',height:10,borderRadius:8,alignSelf:'flex-end'},themeName:{color:'#E9EEF4',fontSize:10,fontWeight:'800',marginTop:7},themeDesc:{color:'#718092',fontSize:8,marginTop:2},themeCheck:{position:'absolute',right:6,top:6,width:18,height:18,borderRadius:9,alignItems:'center',justifyContent:'center'},themeCheckText:{color:'#fff',fontSize:10,fontWeight:'900'},wallGrid:{flexDirection:'row',flexWrap:'wrap',gap:9},wallCard:{width:'31.8%',minWidth:96,position:'relative'},wallPreview:{height:88,borderRadius:12,overflow:'hidden',borderWidth:1,borderColor:'#243447',justifyContent:'flex-end',padding:8},wallPreviewBubble:{width:'58%',height:12,borderRadius:8,backgroundColor:'rgba(75,120,168,.85)',alignSelf:'flex-end'},wallName:{color:'#DCE5ED',fontSize:9,fontWeight:'800',marginTop:5},wallCheck:{position:'absolute',right:6,top:6,width:18,height:18,borderRadius:9,alignItems:'center',justifyContent:'center'},bubbleOptions:{flexDirection:'row',flexWrap:'wrap',gap:8},bubbleOption:{flex:1,minWidth:70,padding:9,borderRadius:12,borderWidth:1,borderColor:'#243447',backgroundColor:'#0E1824',alignItems:'center'},bubbleDemo:{width:58,height:26,backgroundColor:'#243447',borderRadius:17,marginBottom:6},bubbleOptionText:{color:'#AFC7E1',fontSize:9,fontWeight:'800'},chatCanvas:{flex:1,position:'relative'},scrollOverlay:{flex:1,backgroundColor:'transparent'},wallpaperLayer:{...StyleSheet.absoluteFillObject,overflow:'hidden'},wallGlyph:{position:'absolute',color:'#AFC7E1',fontWeight:'800'},cityGlow:{position:'absolute',width:180,height:180,borderRadius:90,right:-70,top:40,backgroundColor:'rgba(41,105,175,.16)'},oceanGlow:{position:'absolute',width:260,height:150,borderRadius:130,left:-80,bottom:20,backgroundColor:'rgba(35,153,208,.12)'},oceanWave:{position:'absolute',width:'140%',height:80,borderRadius:100,borderTopWidth:2,borderColor:'rgba(90,190,230,.10)',left:'-20%',bottom:55},forestGlow:{position:'absolute',width:240,height:240,borderRadius:120,left:-100,bottom:-80,backgroundColor:'rgba(52,143,103,.12)'},sunsetGlow:{position:'absolute',width:300,height:220,borderRadius:150,right:-100,top:-60,backgroundColor:'rgba(255,112,94,.13)'},bubbleDot:{position:'absolute',borderRadius:100,borderWidth:1,borderColor:'rgba(150,205,255,.22)'},delivery:{fontSize:10,fontWeight:'800',marginLeft:4,color:'#BFD6EE'},statusOverlay:{position:'absolute',left:0,right:0,top:0,bottom:0,zIndex:80,justifyContent:'flex-end'},statusBackdrop:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(0,0,0,0.58)'},statusSheet:{maxHeight:'68%',padding:16,borderTopLeftRadius:22,borderTopRightRadius:22,borderWidth:1,borderColor:'#243447',backgroundColor:'#0A121C'},statusHead:{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14},statusTitle:{color:'#E9EEF4',fontSize:17,fontWeight:'800'},statusSubtitle:{color:'#718092',fontSize:10,marginTop:4,maxWidth:260},statusList:{maxHeight:420},statusRow:{minHeight:64,borderBottomWidth:1,borderBottomColor:'#182533',flexDirection:'row',alignItems:'center',gap:10},statusAvatar:{width:40,height:40,borderRadius:20,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},statusAvatarImage:{width:40,height:40},statusCopy:{flex:1},statusName:{color:'#E9EEF4',fontSize:12,fontWeight:'800'},statusMeta:{color:'#718092',fontSize:9,marginTop:2},statusState:{alignItems:'flex-end'},statusStateText:{color:'#AFC7E1',fontSize:11,fontWeight:'800'},statusTime:{color:'#718092',fontSize:9,marginTop:2},
  safe:{flex:1,backgroundColor:'#060B12'},flex:{flex:1},head:{height:68,paddingHorizontal:16,borderBottomWidth:1,borderBottomColor:'#182533',flexDirection:'row',alignItems:'center',gap:11,backgroundColor:'#0A121C'},
  backButton:{width:28,height:40,justifyContent:'center'},back:{fontSize:32,lineHeight:34,color:'#E9EEF4',fontWeight:'300'},avatar:{width:38,height:38,borderRadius:19,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},avatarImage:{width:'100%',height:'100%'},avatarText:{color:'#E9EEF4',fontSize:13,fontWeight:'800'},headCopy:{flex:1},name:{fontSize:14,fontWeight:'800',color:'#E9EEF4'},handle:{marginTop:2,fontSize:10,color:'#7F8D9D'},typing:{fontSize:9,color:'#4B78A8',marginTop:2},status:{fontSize:9,color:'#5E9B78',marginTop:2},chatInfoPanel:{margin:12,maxHeight:'82%',padding:14,borderWidth:1,borderColor:'#243447',borderRadius:16,backgroundColor:'#0A121C'},infoIdentity:{alignItems:'center',paddingVertical:10},infoBigAvatar:{width:68,height:68,borderRadius:34,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},infoBigAvatarImage:{width:'100%',height:'100%'},infoBigAvatarText:{color:'#E9EEF4',fontSize:22,fontWeight:'800'},infoBigName:{marginTop:8,color:'#E9EEF4',fontSize:16,fontWeight:'800'},infoBigHandle:{marginTop:2,color:'#718092',fontSize:10},profileLink:{marginTop:8},infoSetting:{marginTop:8,padding:11,borderRadius:12,backgroundColor:'#0E1824',borderWidth:1,borderColor:'#243447',flexDirection:'row',alignItems:'center',gap:10},infoSettingCopy:{flex:1},infoSettingTitle:{color:'#DCE5ED',fontSize:11,fontWeight:'800'},infoSettingMeta:{color:'#718092',fontSize:9,marginTop:3},infoSection:{marginTop:12},infoDescription:{color:'#718092',fontSize:9,lineHeight:14,marginBottom:7},durationRow:{flexDirection:'row',flexWrap:'wrap',gap:6},durationChip:{paddingHorizontal:9,paddingVertical:7,borderRadius:10,backgroundColor:'#0E1824',borderWidth:1,borderColor:'#243447'},durationChipActive:{borderColor:'#6F91B2',backgroundColor:'#14263A'},durationText:{color:'#BFD0E0',fontSize:9,fontWeight:'800'},infoSectionTitle:{color:'#7F9FBE',fontSize:9,fontWeight:'800',textTransform:'uppercase',marginBottom:6},sharedTabs:{marginTop:12,flexDirection:'row',borderBottomWidth:1,borderBottomColor:'#243447'},sharedTab:{flex:1,paddingVertical:9,alignItems:'center'},sharedTabActive:{borderBottomWidth:2,borderBottomColor:'#6F91B2'},sharedTabText:{color:'#AFC7E1',fontSize:10,fontWeight:'800'},sharedList:{maxHeight:220},sharedContent:{paddingVertical:5,gap:2},sharedRow:{minHeight:54,flexDirection:'row',alignItems:'center',gap:9,borderBottomWidth:1,borderBottomColor:'#182533'},sharedThumb:{width:44,height:44,borderRadius:8},sharedIcon:{width:44,height:44,borderRadius:8,backgroundColor:'#182536',alignItems:'center',justifyContent:'center'},sharedIconText:{color:'#AFC7E1',fontSize:16,fontWeight:'800'},sharedCopy:{flex:1},sharedName:{color:'#DCE5ED',fontSize:10,fontWeight:'700'},sharedMeta:{color:'#718092',fontSize:8,marginTop:2},pinnedRow:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8,borderBottomWidth:1,borderBottomColor:'#182533'},groupPanel:{margin:12,padding:14,borderWidth:1,borderColor:'#243447',borderRadius:16,backgroundColor:'#0A121C'},groupPanelHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},groupPanelTitle:{color:'#E9EEF4',fontSize:15,fontWeight:'800'},groupInput:{marginTop:12,height:42,borderWidth:1,borderColor:'#2A3A4B',borderRadius:11,paddingHorizontal:12,color:'#E9EEF4',backgroundColor:'#0E1824'},memberRow:{flexDirection:'row',alignItems:'center',paddingVertical:8,gap:10},memberAvatar:{width:34,height:34,borderRadius:17,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},memberAvatarImage:{width:'100%',height:'100%'},memberCopy:{flex:1},memberName:{color:'#DCE5ED',fontSize:12,fontWeight:'700'},memberHandle:{color:'#718092',fontSize:9,marginTop:2},groupActions:{flexDirection:'row',gap:8,marginTop:8},groupSave:{flex:1,height:40,borderRadius:11,backgroundColor:'#4B78A8',alignItems:'center',justifyContent:'center'},groupLeave:{height:40,paddingHorizontal:14,borderRadius:11,borderWidth:1,borderColor:'#422731',alignItems:'center',justifyContent:'center'},info:{width:25,height:25,borderWidth:1,borderColor:'#2A3A4B',borderRadius:13,alignItems:'center',justifyContent:'center'},searchBar:{margin:10,height:42,borderRadius:12,borderWidth:1,borderColor:'#2A3A4B',backgroundColor:'#0E1824',flexDirection:'row',alignItems:'center',paddingHorizontal:10,gap:8},searchInput:{flex:1,color:'#E9EEF4',fontSize:12},infoText:{color:'#AAB7C5',fontSize:13,fontWeight:'700'},
  err:{marginHorizontal:16,marginTop:10,padding:10,borderRadius:10,backgroundColor:'#21151B',color:'#D78A98',fontSize:12},center:{flex:1,justifyContent:'center',alignItems:'center'},muted:{color:'#7F8D9D',fontSize:13},
