@@ -40,7 +40,13 @@ export default function Home() {
   const request=liked?supabase.from('post_reactions').delete().eq('post_id',postId).eq('user_id',user.id).eq('reaction_type','like'):supabase.from('post_reactions').insert({post_id:postId,user_id:user.id,reaction_type:'like'});
   const{error:e}=await request;if(e)setPosts(cur=>cur.map(p=>p.id===postId?{...p,liked,reactionCount:Math.max(0,p.reactionCount+(liked?1:-1))}:p));
  };
- const votePoll=async(postId,optionId)=>{\n  if(!user?.id)return;\n  setPosts(cur=>cur.map(p=>{if(p.id!==postId)return p;const votes=(p.post_poll_votes||[]).filter(v=>v.user_id!==user.id);return {...p,post_poll_votes:[...votes,{user_id:user.id,option_id:optionId}]};}));\n  const{error:e}=await supabase.from('post_poll_votes').upsert({post_id:postId,option_id:optionId,user_id:user.id},{onConflict:'post_id,user_id'});\n  if(e){setError(e.message);load();}\n };\n const displayName=profile?.display_name||user?.email?.split('@')[0]||'Freetopia member',initials=displayName.charAt(0).toUpperCase();
+ const votePoll=async(postId,optionId)=>{
+  if(!user?.id)return;
+  setPosts(cur=>cur.map(p=>{if(p.id!==postId)return p;const votes=(p.post_poll_votes||[]).filter(v=>v.user_id!==user.id);return {...p,post_poll_votes:[...votes,{user_id:user.id,option_id:optionId}]};}));
+  const{error:e}=await supabase.from('post_poll_votes').upsert({post_id:postId,option_id:optionId,user_id:user.id},{onConflict:'post_id,user_id'});
+  if(e){setError(e.message);load();}
+ };
+ const displayName=profile?.display_name||user?.email?.split('@')[0]||'Freetopia member',initials=displayName.charAt(0).toUpperCase();
  const topics=useMemo(()=>{const counts={};posts.forEach(p=>(p.content||'').match(/#[A-Za-z0-9_]+/g)?.forEach(tag=>{const key=tag.toLowerCase();counts[key]=(counts[key]||0)+1}));return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5)},[posts]);
  const nav=path=>router.push(path);
  const sharePost=async(post)=>{
