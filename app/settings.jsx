@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -35,12 +35,12 @@ export default function Settings() {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const desktop = Platform.OS === 'web' && width >= 1000;
   const [active, setActive] = useState('Account');
-  const [privateProfile, setPrivateProfile] = useState(!!profile?.is_private);
+  const [privateOverride, setPrivateOverride] = useState(null);
   const [password, setPassword] = useState('');
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState('');
   const [privacyBusy, setPrivacyBusy] = useState(false);
-  useEffect(() => {\n    if (profile) setPrivateProfile(!!profile.is_private);\n  }, [profile?.id, profile?.is_private]);\n
+  const privateProfile = privateOverride ?? !!profile?.is_private;
   const name = profile?.display_name || user?.email?.split('@')[0] || 'Freetopia member';
   const handle = profile?.username ? '@' + profile.username : '@freetopia_member';
   const initials = useMemo(() => name.charAt(0).toUpperCase(), [name]);
@@ -48,15 +48,15 @@ export default function Settings() {
   const updatePrivacy = async () => {
     if (!user?.id || privacyBusy) return;
     const next = !privateProfile;
-    setPrivateProfile(next);
+    setPrivateOverride(next);
     setPrivacyBusy(true);
     const { error } = await supabase.from('profiles').update({ is_private: next }).eq('id', user.id);
     if (error) {
-      setPrivateProfile(!next);
       setPasswordMessage(error.message);
     } else {
       await refreshProfile();
     }
+    setPrivateOverride(null);
     setPrivacyBusy(false);
   };
 
