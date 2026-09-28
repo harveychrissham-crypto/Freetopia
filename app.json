@@ -7,6 +7,7 @@
     "owner": "itsharveys-team",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#060B12",
     "icon": "./public/brand/freetopia-mark.png",
     "splash": {
       "image": "./public/brand/freetopia-mark.png",
