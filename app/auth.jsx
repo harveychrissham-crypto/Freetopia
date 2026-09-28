@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -26,9 +26,13 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const navigationLock = useRef(false);
 
   useEffect(() => {
-    if (!authLoading && session) router.replace('/home');
+    if (!authLoading && session && !navigationLock.current) {
+      navigationLock.current = true;
+      router.replace('/home');
+    }
   }, [authLoading, session, router]);
 
   const switchMode = (nextMode) => {
@@ -91,9 +95,13 @@ export default function Auth() {
         return;
       }
 
-      // AuthProvider listens for the Supabase session event and owns navigation.
-      // Avoid navigating here as well; doing both can race the router during auth.
-      if (!result.data.session) {
+      if (result.data.session) {
+        // Navigate from the confirmed sign-in response as well as the auth listener.
+        // This prevents the app from remaining on the sign-in screen if the realtime
+        // auth event arrives late or is missed during startup.
+        navigationLock.current = true;
+        router.replace('/home');
+      } else {
         setError('Sign-in completed without a session. Please try again.');
       }
     } catch (submitError) {
