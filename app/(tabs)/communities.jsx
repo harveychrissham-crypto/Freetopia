@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
+import { LoadingState } from '../../components/FeedbackState';
 
 const C={bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',blue:'#4B78A8',violet:'#4A3F78',pink:'#7A496F',green:'#4D705D'};
 
@@ -56,7 +57,7 @@ function Desktop(p){
   <Section title="Featured Communities" action="See all" onPress={()=>p.setTab("All")}/><CommunityCards communities={p.featured} join={p.join} router={p.router}/>
   <Section title="Popular Communities" action="See all" onPress={()=>p.setTab("Popular")}/><CommunityCards communities={p.popular.slice(0,5)} join={p.join} router={p.router} compact/>
   <Section title="Recent Posts" action="Latest" onPress={()=>p.router.push({pathname:'/explore',params:{tab:'Posts'}})}/><RecentPosts posts={p.posts} router={p.router}/>
-  {p.error&&<Error text={p.error}/>} {p.loading&&<Text style={s.loading}>Loading communities…</Text>}
+  {p.error&&<Error text={p.error}/>} {p.loading&&<LoadingState label="Loading communities…" rows={4}/>}
  </View><View style={s.rail}><Rail title="Top Communities"><CommunityRank communities={p.popular.slice(0,5)} router={p.router}/></Rail><Rail title="Recently Active"><RecentActive communities={p.popular.slice(0,6)} router={p.router}/></Rail><View style={s.createCard}><Text style={s.createIcon}>♧</Text><Text style={s.createTitle}>Join a Community</Text><Text style={s.createBody}>Can't find what you're looking for? Create your own community.</Text><Pressable onPress={()=>p.router.push('/create-community')} style={s.cta}><Text style={s.ctaText}>Create Community  →</Text></Pressable></View></View></View></View></View>;
 }
 
