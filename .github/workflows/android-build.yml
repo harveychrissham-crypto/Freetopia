@@ -60,4 +60,4 @@ jobs:
           npx expo prebuild --platform android --no-install --non-interactive
 
       - name: Build Android
-        run: eas build --platform android --profile ${{ inputs.profile }} --non-interactive --verbose
+        run: eas build --platform android --profile "${{ inputs.profile }}" --non-interactive
