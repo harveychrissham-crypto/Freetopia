@@ -97,7 +97,7 @@ export default function PostScreen(){
    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'comments',filter:`post_id=eq.${id}`},payload=>{hydrateComment(payload.new);})
    .on('postgres_changes',{event:'DELETE',schema:'public',table:'comments'},payload=>{
     const old=payload.old;
-    if(old?.post_id!==id)return;
+    if(!old?.id)return;
     setComments(current=>current.filter(comment=>comment.id!==old.id));
     setReplyTo(current=>current?.id===old.id?null:current);
    })
