@@ -23,6 +23,7 @@
       "icon": "./public/brand/freetopia-mark.png"
     },
     "plugins": [
+      "./plugins/withFreetopiaPortrait",
       "expo-router",
       [
         "expo-image-picker",
