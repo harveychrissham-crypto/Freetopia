@@ -1,4 +1,4 @@
-import { Platform, useEffect, useState, useCallback, useWindowDimensions } from 'react-native';
+import { AppState, Platform, useEffect, useState, useCallback, useWindowDimensions } from 'react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../providers/AuthProvider';
@@ -12,22 +12,41 @@ export default function TabLayout() {
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   const refreshUnread = useCallback(async () => {
-    if (!session?.user?.id) { setUnreadMessages(0); return; }
+    if (!session?.user?.id) {
+      setUnreadMessages(0);
+      return;
+    }
+
     const { data, error } = await supabase.rpc('get_message_inbox');
-    if (error) { setUnreadMessages(0); return; }
+    if (error) {
+      setUnreadMessages(0);
+      return;
+    }
+
     const total = (data || []).reduce((sum, row) => sum + Number(row.unread_count || 0), 0);
     setUnreadMessages(total);
   }, [session?.user?.id]);
 
   useEffect(() => {
     refreshUnread();
+
     if (!session?.user?.id) return;
-    const channel = supabase.channel('global-message-badge-' + session.user.id)
+
+    const channel = supabase
+      .channel('global-message-badge-' + session.user.id)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, refreshUnread)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reads', filter: 'user_id=eq.' + session.user.id }, refreshUnread)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + session.user.id }, refreshUnread)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') refreshUnread();
+    });
+
+    return () => {
+      appStateSubscription.remove();
+      supabase.removeChannel(channel);
+    };
   }, [session?.user?.id, refreshUnread]);
 
   if (!loading && !session) return <Redirect href="/auth" />;
