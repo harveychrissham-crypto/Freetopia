@@ -184,7 +184,7 @@ function MiniStat({n,label}){return <View style={s.mini}><Text style={s.miniIcon
 function Empty({title,body}){return <View style={s.empty}><Text style={s.emptyTitle}>{title}</Text><Text style={s.emptyBody}>{body}</Text></View>}
 function ErrorBox({message}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load profile</Text><Text style={s.errorBody}>{message}</Text></View>}
 function Loading(){return <View style={s.loading}><Text style={s.loadingText}>Loading your profile…</Text></View>}
-function Avatar({initials,uri}){return uri?<Image source={{uri}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View>}
+function Avatar({initials,uri}){return uri?<Image source={{uri:getImageUrl(uri,{width:800,height:800,quality:100})}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View>}
 function relative(value){const m=Math.floor((Date.now()-new Date(value).getTime())/60000);if(m<1)return 'now';if(m<60)return m+'m';const h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d'}
 
 const s=StyleSheet.create({
