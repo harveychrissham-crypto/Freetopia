@@ -20,10 +20,7 @@
     },
     "android": {
       "package": "com.freetopia.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./public/brand/freetopia-mark.png",
-        "backgroundColor": "#060B12"
-      }
+      "icon": "./public/brand/freetopia-mark.png"
     },
     "plugins": [
       "expo-router",
