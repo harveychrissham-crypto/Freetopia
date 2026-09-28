@@ -44,7 +44,7 @@ export default function Conversation(){
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url)').eq('id',incoming.id).maybeSingle();
    if(!message)return;
    setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
-   if(message.sender_id!==user?.id&&!message.deleted_at){await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});}
+   if(message.sender_id!==user?.id&&!message.deleted_at&&info?.me?.request_status==='accepted'){await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});}
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    const incoming=payload.new;
