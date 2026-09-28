@@ -68,6 +68,55 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     </View>
   );
 
+  if (name === 'comment') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.72,height:size*.56,left:size*.12,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.14}} />
+      <View style={{position:'absolute',width:size*.22,height:stroke,left:size*.18,top:size*.67,backgroundColor:color,transform:[{rotate:'-35deg'}]}} />
+    </View>
+  );
+
+  if (name === 'share') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.68,height:size*.68,left:size*.12,top:size*.2,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,borderRadius:size*.06,transform:[{rotate:'-45deg'}]}} />
+      <View style={{position:'absolute',width:size*.62,height:stroke,left:size*.18,top:size*.47,backgroundColor:color}} />
+      <View style={{position:'absolute',width:size*.34,height:size*.34,left:size*.51,top:size*.14,borderTopWidth:stroke,borderRightWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}]}} />
+    </View>
+  );
+
+  if (name === 'more') return (
+    <View style={[s.box,{width:size,height:size,flexDirection:'row',gap:size*.12}]}>
+      {[0,1,2].map(i=><View key={i} style={{width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color}} />)}
+    </View>
+  );
+
+  if (name === 'spark') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.16,height:size*.8,left:size*.42,top:size*.1,backgroundColor:color,transform:[{rotate:'45deg'}],borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.8,height:size*.16,left:size*.1,top:size*.42,backgroundColor:color,transform:[{rotate:'45deg'}],borderRadius:size}} />
+    </View>
+  );
+
+  if (name === 'photo') return (
+    <View style={[s.box,{width:size,height:size,borderWidth:stroke,borderColor:color,borderRadius:size*.12}]}>
+      <View style={{position:'absolute',width:size*.18,height:size*.18,borderRadius:size,backgroundColor:color,left:size*.18,top:size*.18}} />
+      <View style={{position:'absolute',width:size*.5,height:size*.28,borderTopWidth:stroke,borderLeftWidth:stroke,borderColor:color,left:size*.25,top:size*.43,transform:[{rotate:'-25deg'}]}} />
+    </View>
+  );
+
+  if (name === 'video') return (
+    <View style={[s.box,{width:size,height:size,borderWidth:stroke,borderColor:color,borderRadius:size*.12}]}>
+      <View style={{position:'absolute',left:size*.38,top:size*.28,width:0,height:0,borderTopWidth:size*.2,borderBottomWidth:size*.2,borderLeftWidth:size*.28,borderTopColor:'transparent',borderBottomColor:'transparent',borderLeftColor:color}} />
+    </View>
+  );
+
+  if (name === 'poll') return (
+    <View style={[s.box,{width:size,height:size,flexDirection:'row',alignItems:'flex-end',justifyContent:'center',gap:size*.1}]}>
+      <View style={{width:size*.14,height:size*.35,backgroundColor:color,borderRadius:2}} />
+      <View style={{width:size*.14,height:size*.55,backgroundColor:color,borderRadius:2}} />
+      <View style={{width:size*.14,height:size*.75,backgroundColor:color,borderRadius:2}} />
+    </View>
+  );
+
   if (name === 'dots') return (
     <View style={[s.box,{width:size,height:size,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:size*.1}]}>
       {[0,1,2].map(i=><View key={i} style={{width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color}} />)}
