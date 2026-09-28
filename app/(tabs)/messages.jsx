@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
@@ -23,15 +23,22 @@ export default function Messages() {
   const [query,setQuery] = useState('');
   const [communities,setCommunities] = useState([]);
   const [unreadTotal,setUnreadTotal] = useState(0);
+  const loadSequence = useRef(0);
+  const reloadTimer = useRef(null);
+  const loadInFlight = useRef(false);
 
   const load = useCallback(async (pull=false) => {
     if (!user?.id) return;
+    const sequence=++loadSequence.current;
+    if(loadInFlight.current&&!pull)return;
+    loadInFlight.current=true;
     pull ? setRefreshing(true) : setLoading(true);
     setError('');
     const [{ data, error:e }, { data:communityData, error:communityError }] = await Promise.all([supabase
       .from('conversations')
       .select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))')
       .order('created_at',{ascending:false}), supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20)]);
+    if(sequence!==loadSequence.current){loadInFlight.current=false;return;}
     setCommunities(communityData || []);
     if (e || communityError) { setError((e || communityError).message); setItems([]); }
     else {
@@ -63,21 +70,32 @@ export default function Messages() {
       setItems(nextItems);
       setUnreadTotal(nextItems.reduce((sum,c)=>sum+(c.unreadCount||0),0));
     }
-    setLoading(false); setRefreshing(false);
+    if(sequence===loadSequence.current){setLoading(false);setRefreshing(false);}
+    loadInFlight.current=false;
   },[user?.id]);
 
   useFocusEffect(useCallback(()=>{ load(); },[load]));
 
   useEffect(() => {
     if (!user?.id) return;
+    const scheduleReload=()=>{
+      if(reloadTimer.current)return;
+      reloadTimer.current=setTimeout(()=>{
+        reloadTimer.current=null;
+        load();
+      },250);
+    };
     const channel = supabase.channel('messages-inbox-' + user.id)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => { load(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => { load(); })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reads', filter: 'user_id=eq.' + user.id }, () => { load(); })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, () => { load(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, () => { load(); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, scheduleReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, scheduleReload)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reads', filter: 'user_id=eq.' + user.id }, scheduleReload)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if(reloadTimer.current){clearTimeout(reloadTimer.current);reloadTimer.current=null;}
+      supabase.removeChannel(channel);
+    };
   }, [user?.id, load]);
 
   const change = async (c,patch) => {
