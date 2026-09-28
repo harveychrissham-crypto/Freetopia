@@ -51,9 +51,11 @@ export default function Messages() {
       let inboxRows = [];
       if (ids.length) {
         const ir = await supabase.rpc('get_message_inbox');
+        if (sequence!==loadSequence.current)return;
         if (!ir.error) inboxRows = ir.data || [];
         else setError(ir.error.message);
       }
+      if (sequence!==loadSequence.current)return;
       const latestBy = {};
       const unreadBy = {};
       (inboxRows||[]).forEach(m => {
