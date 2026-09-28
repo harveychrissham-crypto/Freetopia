@@ -75,7 +75,11 @@ export default function Auth() {
         return;
       }
 
-      router.replace('/home');
+      // AuthProvider listens for the Supabase session event and owns navigation.
+      // Avoid navigating here as well; doing both can race the router during auth.
+      if (!result.data.session) {
+        setError('Sign-in completed without a session. Please try again.');
+      }
     } catch (submitError) {
       setError(submitError?.message || 'Something went wrong. Please try again.');
     } finally {
