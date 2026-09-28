@@ -12,20 +12,25 @@ export function AuthProvider({ children }) {
     let mounted = true;
 
     const loadSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (!mounted) return;
-      if (error) console.warn('Unable to restore session:', error.message);
-      setSession(data.session ?? null);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (error) console.warn('Unable to restore session:', error.message);
+        setSession(data.session ?? null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     };
-
-    loadSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!mounted) return;
       setSession(nextSession ?? null);
-      if (!nextSession) setProfile(null);
+      if (!nextSession) {
+        setProfile(null);
+      }
     });
+
+    loadSession();
 
     return () => {
       mounted = false;
