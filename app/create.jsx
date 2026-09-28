@@ -39,7 +39,7 @@ export default function Create(){
     <OptionRow icon="⌖" title="Add location" subtitle="Optional"/><OptionRow icon="♙" title="Tag people" subtitle="Mention friends"/><OptionRow icon="♧" title="Add to community" subtitle="Share with a community"/><OptionRow icon="☺" title="Feeling / Activity" subtitle="How are you feeling?"/>
     <View style={s.optionBlock}><View style={s.optionIcon}><Text style={s.optionIconText}>▣</Text></View><View style={s.optionCopy}><Text style={s.optionTitle}>Privacy</Text><Text style={s.optionSub}>{visibility==='public'?'Public':'Followers'}</Text></View><Text style={s.rowChevron}>⌄</Text></View>
     {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
-    <Pressable disabled={(!text.trim()&&!video&&!photos.length)||saving||uploadingVideo} onPress={submit} style={[s.submit,((!text.trim()&&!video)||saving||uploadingVideo)&&s.submitDisabled]}><Text style={s.submitText}>{saving?'Posting…':'Post  →'}</Text></Pressable>
+    <Pressable disabled={(!text.trim()&&!video&&!photos.length)||saving||uploadingVideo} onPress={submit} style={[s.submit,((!text.trim()&&!video&&!photos.length)||saving||uploadingVideo)&&s.submitDisabled]}><Text style={s.submitText}>{saving?'Posting…':'Post  →'}</Text></Pressable>
    </ScrollView>
    {desktop&&<DesktopRail/>}
   </View>
