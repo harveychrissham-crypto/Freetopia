@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useRef,useState} from 'react';
+import React,{useCallback,useEffect,useRef,useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppIcon from '../components/AppIcon';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,7 +16,7 @@ import {useAuth} from '../providers/AuthProvider';
 function ChatWallpaper({type,compact=false}){
  const symbols={city:['✦','•','◌'],mountains:['△','⌁','•'],ocean:['≈','◌','✦'],forest:['✣','❋','•'],sunset:['☼','•','✦'],bubbles:['○','◌','◦'],minimal:['·','•','·']}[type]||['•'];
  return <View pointerEvents="none" style={s.wallpaperLayer}>
-  {Array.from({length:compact?8:28}).map((_,i)=><Text key={i} style={[s.wallGlyph,{left:(i*37)%97+'%',top:(i*53)%91+'%',fontSize:(compact?8:12)+(i%4)*4,opacity:compact?.18:.12}]}>{symbols[i%symbols.length]}</Text>)}
+  {Array.from({length:compact?8:28}).map((_,i)=><Text key={i} style={[s.wallGlyph,{left:(i*37)%97+'%',top:(i*53)%91+'%',fontSize:(compact?8:12)+(i%4)*4,opacity:compact ? 0.18 : 0.12}]}>{symbols[i%symbols.length]}</Text>)}
   {type==='city'&&<View style={s.cityGlow}/>}
   {type==='ocean'&&<><View style={s.oceanGlow}/><View style={s.oceanWave}/></>}
   {type==='forest'&&<View style={s.forestGlow}/>}
