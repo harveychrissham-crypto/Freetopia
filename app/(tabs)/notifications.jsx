@@ -113,7 +113,7 @@ export default function Notifications(){
   <Text style={s.lead}>Stay close to what’s happening around you.</Text>
   {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
   {loading&&<LoadingState label="Loading activity…" rows={4}/>}
-  {!loading&&!error&&items.length===0&&<EmptyState icon="bell" title="You’re all caught up" body="New reactions, replies, and follows will appear here."/>
+  {!loading&&!error&&items.length===0&&<EmptyState icon="bell" title="You’re all caught up" body="New reactions, replies, and follows will appear here."/>}
   {!loading&&items.map(item=><NotificationRow key={item.id} item={item} onRead={markRead} onOpen={r} onRespond={respond}/>)}
  </ScrollView></SafeAreaView>
 }
