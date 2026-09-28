@@ -3,7 +3,23 @@ import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../providers/AuthProvider';
 
 export default function Index() {
-  const { session, loading } = useAuth();
+  const { session, loading, configError } = useAuth();
+
+  if (configError) {
+    return (
+      <View style={s.loading}>
+        <View style={s.brand}>
+          <Image source={require('../public/brand/freetopia-mark.png')} style={s.logo} resizeMode="contain" />
+        </View>
+        <Text style={s.title}>Freetopia</Text>
+        <Text style={s.subtitle}>Configuration needs attention.</Text>
+        <View style={s.configCard}>
+          <Text style={s.configTitle}>Freetopia cannot connect yet</Text>
+          <Text style={s.configText}>{configError}</Text>
+        </View>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -63,6 +79,28 @@ const s = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginTop: 6,
+  },
+  configCard: {
+    width: '100%',
+    maxWidth: 420,
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#5A3940',
+    backgroundColor: '#160E13',
+  },
+  configTitle: {
+    color: '#F4D7DC',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  configText: {
+    color: '#C7AAB0',
+    fontSize: 11,
+    lineHeight: 17,
+    marginTop: 6,
+    textAlign: 'center',
   },
   loader: {
     height: 36,
