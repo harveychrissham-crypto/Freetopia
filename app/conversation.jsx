@@ -132,11 +132,6 @@ export default function Conversation(){
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
    if(!message)return;
    setMessages(current=>current.map(x=>x.id===message.id?message:x));
-  }).on('postgres_changes',{event:'*',schema:'public',table:'message_deliveries'},async payload=>{
-   const messageId=payload.new?.message_id||payload.old?.message_id;
-   if(!messageId)return;
-   const{count}=await supabase.from('message_deliveries').select('message_id',{count:'exact',head:true}).eq('message_id',messageId).not('delivered_at','is',null);
-   setMessages(current=>current.map(m=>m.id===messageId?{...m,deliveryCount:count||0}:m));
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_reads'},async payload=>{
    const messageId=payload.new?.message_id||payload.old?.message_id;
    if(!messageId)return;
