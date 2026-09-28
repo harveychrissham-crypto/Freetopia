@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { useFocusEffect } from 'expo-router';
 import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -14,11 +14,23 @@ export default function Notifications(){
  const load=useCallback(async(pull=false)=>{
   if(pull)setRefreshing(true);else setLoading(true);
   setError('');
-  const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url)').order('created_at',{ascending:false}).limit(50);
+  const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url)').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(50);
   if(queryError){setError(queryError.message);setItems([]);}else setItems(data||[]);
   setLoading(false);setRefreshing(false);
  },[]);
  useFocusEffect(useCallback(()=>{load();},[load]));
+ useEffect(()=>{
+  if(!user?.id)return;
+  const channel=supabase.channel('notifications-'+user.id)
+   .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},payload=>{
+    setItems(current=>current.some(x=>x.id===payload.new?.id)?current:[payload.new,...current].slice(0,50));
+   })
+   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},payload=>{
+    setItems(current=>current.map(x=>x.id===payload.new?.id?{...x,...payload.new}:x));
+   })
+   .subscribe();
+  return()=>{supabase.removeChannel(channel);};
+ },[user?.id]);
  const markRead=async id=>{
   const previous=items;
   const now=new Date().toISOString();
@@ -30,7 +42,7 @@ export default function Notifications(){
   const previous=items;
   const now=new Date().toISOString();
   setItems(current=>current.map(item=>({...item,read_at:item.read_at||now})));
-  const {error:e}=await supabase.from('notifications').update({read_at:now}).is('read_at',null);
+  const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('recipient_id',user.id).is('read_at',null);
   if(e){setItems(previous);setError(e.message);}
  };
  const respond=async(item,accept)=>{
