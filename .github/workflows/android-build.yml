@@ -86,6 +86,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v${{ github.run_number }}-${{ inputs.build_type }}"
-          TITLE="Freetopia Android ${{ inputs.build_type }} #${{ github.run_number }}"
-          gh release create "$TAG" "${{ steps.apk.outputs.path }}"             --repo "${{ github.repository }}"             --title "$TITLE"             --notes "Freetopia Android ${{ inputs.build_type }} build from commit ${{ github.sha }}."             --target "${{ github.sha }}"
+          BUILD_TYPE="${{ inputs.build_type }}"
+          if [ -z "$BUILD_TYPE" ]; then
+            BUILD_TYPE="debug"
+          fi
+
+          TAG="freetopia-v${{ github.run_number }}-${BUILD_TYPE}"
+          TITLE="Freetopia Android ${BUILD_TYPE} #${{ github.run_number }}"
+
+          gh release create "$TAG" "${{ steps.apk.outputs.path }}" \
+            --repo "${{ github.repository }}" \
+            --title "$TITLE" \
+            --notes "Freetopia Android ${BUILD_TYPE} build from commit ${{ github.sha }}." \
+            --target "${{ github.sha }}"
