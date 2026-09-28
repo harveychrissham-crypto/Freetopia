@@ -1,4 +1,4 @@
-import { AppState, Platform, useEffect, useState, useCallback, useWindowDimensions } from 'react-native';
+import { AppState, Platform, useEffect, useState, useCallback, useWindowDimensions, useRef } from 'react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../providers/AuthProvider';
@@ -11,14 +11,19 @@ export default function TabLayout() {
   const desktopWeb = Platform.OS === 'web' && width >= 1000;
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const mountedRef = useRef(true);
+  const refreshSequence = useRef(0);
 
   const refreshUnread = useCallback(async () => {
-    if (!session?.user?.id) {
-      setUnreadMessages(0);
+    const userId = session?.user?.id;
+    if (!userId || !mountedRef.current) {
+      if (mountedRef.current) setUnreadMessages(0);
       return;
     }
 
+    const sequence = ++refreshSequence.current;
     const { data, error } = await supabase.rpc('get_message_inbox');
+    if (!mountedRef.current || sequence !== refreshSequence.current) return;
     if (error) {
       setUnreadMessages(0);
       return;
@@ -28,21 +33,26 @@ export default function TabLayout() {
     setUnreadMessages(total);
   }, [session?.user?.id]);
 
-
   const refreshNotifications = useCallback(async () => {
-    if (!session?.user?.id) {
-      setUnreadNotifications(0);
+    const userId = session?.user?.id;
+    if (!userId || !mountedRef.current) {
+      if (mountedRef.current) setUnreadNotifications(0);
       return;
     }
+
+    const sequence = ++refreshSequence.current;
     const { count, error } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
-      .eq('recipient_id', session.user.id)
+      .eq('recipient_id', userId)
       .is('read_at', null);
+    if (!mountedRef.current || sequence !== refreshSequence.current) return;
     setUnreadNotifications(error ? 0 : Number(count || 0));
   }, [session?.user?.id]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    refreshSequence.current += 1;
     refreshUnread();
     refreshNotifications();
 
@@ -65,6 +75,8 @@ export default function TabLayout() {
     });
 
     return () => {
+      mountedRef.current = false;
+      refreshSequence.current += 1;
       appStateSubscription.remove();
       supabase.removeChannel(channel);
     };
