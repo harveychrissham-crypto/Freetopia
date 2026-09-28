@@ -254,7 +254,7 @@ export default function Conversation(){
    const recipientCount=nextMembers.filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
    setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
   }).subscribe(async status=>{if(status==='SUBSCRIBED'){await ch.track({user_id:user.id});}});
-  return()=>{mountedRef.current=false;statusLoadSequenceRef.current+=1;channelRef.current=null;if(typingTimerRef.current)clearTimeout(typingTimerRef.current);setOnlineUsers([]);supabase.removeChannel(ch)}
+  return()=>{mountedRef.current=false;statusLoadSequenceRef.current+=1;channelRef.current=null;if(typingTimerRef.current){clearTimeout(typingTimerRef.current);typingTimerRef.current=null;}broadcastTyping(false);setTyping(false);setOnlineUsers([]);supabase.removeChannel(ch)}
  },[id,load,user?.id]);
 
  const previousMessageCountRef=useRef(0);
@@ -309,7 +309,7 @@ export default function Conversation(){
    if(e)setError(e.message);else{setText('');setEditingId(null);}
   }else{
    const{error:e}=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:v,reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()});
-   if(e)setError(e.message);else {setText('');setReplyTo(null);draftDirtyRef.current=false;draftLocalUpdatedAtRef.current=0;await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);setDraftSaved(false);} 
+   if(e)setError(e.message);else {setText('');setReplyTo(null);draftDirtyRef.current=false;if(typingTimerRef.current)clearTimeout(typingTimerRef.current);broadcastTyping(false);draftLocalUpdatedAtRef.current=0;await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);setDraftSaved(false);} 
   }
   setSending(false);
  };
@@ -320,7 +320,16 @@ export default function Conversation(){
   setError('');
  };
 
- const broadcastTyping=async(value)=>{try{if(channelRef.current)await channelRef.current.send({type:'broadcast',event:'typing',payload:{user_id:user.id,typing:value}});}catch{}};
+ const broadcastTyping=async(value)=>{
+  try{
+   if(channelRef.current)await channelRef.current.send({type:'broadcast',event:'typing',payload:{user_id:user.id,typing:value}});
+  }catch{}
+ };
+ const handleTypingInput=value=>{
+  if(typingTimerRef.current)clearTimeout(typingTimerRef.current);
+  broadcastTyping(true);
+  typingTimerRef.current=setTimeout(()=>broadcastTyping(false),2200);
+ };
  const toggleReaction=async(m,emoji)=>{if(!user?.id)return;const mine=(m.message_reactions||[]).some(r=>r.user_id===user.id&&r.emoji===emoji);if(mine){await supabase.from('message_reactions').delete().eq('message_id',m.id).eq('user_id',user.id).eq('emoji',emoji);}else{await supabase.from('message_reactions').insert({message_id:m.id,user_id:user.id,emoji});}load();};
  const toggleStar=async(m)=>{if(!user?.id)return;const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);if(starred){await supabase.from('message_stars').delete().eq('message_id',m.id).eq('user_id',user.id);}else{await supabase.from('message_stars').insert({message_id:m.id,user_id:user.id});}load();};
  const pickMedia=async()=>{if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();if(!perm.granted){Alert.alert('Permission needed','Allow photo and video access to attach media.');return;}const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],quality:0.85});if(result.canceled||!result.assets?.[0])return;const asset=result.assets[0];setUploading(true);setError('');try{const ext=(asset.fileName||asset.uri.split('/').pop()||'media').split('.').pop().toLowerCase();const path=user.id+'/'+Date.now()+'.'+ext;const res=await fetch(asset.uri);const blob=await res.blob();const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});if(up.error)throw up.error;const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:asset.type==='video'?'video':'image',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()});if(ins.error)throw ins.error;setReplyTo(null);load();}catch(e){setError(e.message||'Media upload failed');}finally{setUploading(false)}};
@@ -559,7 +568,7 @@ export default function Conversation(){
      {replyTo&&<View style={s.replying}><Text style={s.replyingLabel}>Replying to {replyTo.profiles?.display_name||replyTo.profiles?.username||'message'}{replyTo.content?' · '+replyTo.content.slice(0,70):' · media'}</Text><Pressable onPress={()=>setReplyTo(null)}><Text style={s.actionMuted}>Cancel</Text></Pressable></View>}
      {attachmentOpen&&<View style={s.attachTray}><Pressable onPress={()=>{setAttachmentOpen(false);pickMedia()}} style={s.attachOption}><View style={s.attachOptionIcon}><AppIcon name="photo" size={17} color="#AFC7E1"/></View><Text style={s.attachOptionText}>Photos & videos</Text></Pressable><Pressable onPress={pickDocument} style={s.attachOption}><View style={s.attachOptionIcon}><AppIcon name="archive" size={17} color="#AFC7E1"/></View><Text style={s.attachOptionText}>Document</Text></Pressable></View>}
      <View style={[s.composer,themeStyles.composer]}>{editingId&&<View style={s.composerMode}><Text style={s.composerModeLabel}>EDITING MESSAGE</Text><Pressable onPress={()=>{setEditingId(null);setText('')}}><Text style={s.actionMuted}>Cancel</Text></Pressable></View>}{text.trim()&&<Text style={s.draftLabel}>{draftSaved?'Draft saved':'Saving draft…'}</Text>}
-      <Pressable onPress={()=>setAttachmentOpen(v=>!v)} disabled={uploading||recorderState.isRecording} style={s.attach}><AppIcon name="plus" size={18} color="#AFC7E1"/></Pressable>{recorderState.isRecording?<View style={s.recordingWrap}><Pressable onPress={cancelVoice} style={s.recordCancel}><Text style={s.recordCancelText}>×</Text></Pressable><Pressable onPress={sendVoice} style={s.recordingButton}><Text style={s.recordingText}>● {Math.max(1,Math.round((recorderState.durationMillis||0)/1000))}s</Text></Pressable></View>:<Pressable onPress={sendVoice} disabled={uploading||sending} style={s.voiceButton}><Text style={s.voiceIcon}>🎙</Text></Pressable>}<TextInput value={text} onChangeText={v=>{if(!applyingRemoteDraftRef.current){draftDirtyRef.current=true;setText(v);broadcastTyping(!!v.trim());saveDraft(v)}}} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={[s.input,themeStyles.input]} multiline maxLength={2000} returnKeyType="send" blurOnSubmit={false}/>
+      <Pressable onPress={()=>setAttachmentOpen(v=>!v)} disabled={uploading||recorderState.isRecording} style={s.attach}><AppIcon name="plus" size={18} color="#AFC7E1"/></Pressable>{recorderState.isRecording?<View style={s.recordingWrap}><Pressable onPress={cancelVoice} style={s.recordCancel}><Text style={s.recordCancelText}>×</Text></Pressable><Pressable onPress={sendVoice} style={s.recordingButton}><Text style={s.recordingText}>● {Math.max(1,Math.round((recorderState.durationMillis||0)/1000))}s</Text></Pressable></View>:<Pressable onPress={sendVoice} disabled={uploading||sending} style={s.voiceButton}><Text style={s.voiceIcon}>🎙</Text></Pressable>}<TextInput value={text} onChangeText={v=>{if(!applyingRemoteDraftRef.current){draftDirtyRef.current=true;setText(v);if(v.trim())handleTypingInput(v);else{if(typingTimerRef.current)clearTimeout(typingTimerRef.current);broadcastTyping(false)}saveDraft(v)}}} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={[s.input,themeStyles.input]} multiline maxLength={2000} returnKeyType="send" blurOnSubmit={false}/>
       <Pressable disabled={sending||uploading||!text.trim()||recorderState.isRecording} onPress={send} style={[s.send,(!text.trim()||sending||recorderState.isRecording)&&s.sendDisabled]}><Text style={s.sendText}>{sending?'…':editingId?'Save':'Send'}</Text></Pressable>
      </View></>}
   </KeyboardAvoidingView>
