@@ -45,6 +45,12 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Validate Supabase build configuration
+        run: |
+          test -n "$EXPO_PUBLIC_SUPABASE_URL" || (echo "Missing EXPO_PUBLIC_SUPABASE_URL GitHub Actions secret" && exit 1)
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" || (echo "Missing EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY GitHub Actions secret" && exit 1)
+          echo "Supabase URL configured for build"
+
       - name: Validate Expo configuration
         run: npx expo config --type public
 
