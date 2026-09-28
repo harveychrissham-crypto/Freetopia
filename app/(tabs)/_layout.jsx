@@ -12,7 +12,8 @@ export default function TabLayout() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const mountedRef = useRef(true);
-  const messageRefreshSequence = useRef(0);\n  const notificationRefreshSequence = useRef(0);
+  const messageRefreshSequence = useRef(0);
+  const notificationRefreshSequence = useRef(0);
 
   const refreshUnread = useCallback(async () => {
     const userId = session?.user?.id;
@@ -52,7 +53,8 @@ export default function TabLayout() {
 
   useEffect(() => {
     mountedRef.current = true;
-    messageRefreshSequence.current += 1;\n    notificationRefreshSequence.current += 1;
+    messageRefreshSequence.current += 1;
+    notificationRefreshSequence.current += 1;
     refreshUnread();
     refreshNotifications();
 
@@ -76,7 +78,8 @@ export default function TabLayout() {
 
     return () => {
       mountedRef.current = false;
-      messageRefreshSequence.current += 1;\n      notificationRefreshSequence.current += 1;
+      messageRefreshSequence.current += 1;
+      notificationRefreshSequence.current += 1;
       appStateSubscription.remove();
       supabase.removeChannel(channel);
     };
