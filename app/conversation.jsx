@@ -93,7 +93,7 @@ export default function Conversation(){
   draftLocalUpdatedAtRef.current=remoteTime;
   setText(row.content||'');
   setDraftSaved(true);
-  requestAnimationFrame(()=>{if(mountedRef.current&&conversationId===id)applyingRemoteDraftRef.current=false;});
+  requestAnimationFrame(()=>{if(mountedRef.current&&id)applyingRemoteDraftRef.current=false;});
  },[id,user?.id]);
 
  useEffect(()=>{
@@ -378,7 +378,6 @@ export default function Conversation(){
  const sharedFiles=sharedItems.filter(m=>m.media_type==='file');
  const sharedLinks=sharedItems.filter(m=>/(https?:\/\/|www\.)\S+/i.test(m.content||''));
  const sharedList=sharedTab==='media'?sharedMedia:sharedTab==='files'?sharedFiles:sharedLinks;
- const jumpToMessage=(messageId)=>{const idx=messages.findIndex(m=>m.id===messageId);if(idx>=0){setChatInfoOpen(false);requestAnimationFrame(()=>scrollRef.current?.scrollTo({y:Math.max(0,idx*82),animated:true}));}};
  const startReply=(m)=>{setReplyTo(m);setSelectedMessage(null);};
  const toggleSelection=(m)=>{if(!m?.id||m.deleted_at)return;setSelectedMessage(null);setSelectedIds(current=>current.includes(m.id)?current.filter(x=>x!==m.id):[...current,m.id]);};
  const clearSelection=()=>setSelectedIds([]);
