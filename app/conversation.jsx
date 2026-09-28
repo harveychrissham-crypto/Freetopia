@@ -17,19 +17,23 @@ function ChatVideo({uri}){ const player=useVideoPlayer(uri,p=>{p.loop=false}); r
 function ChatAudio({uri}){ const player=useAudioPlayer(uri,{updateInterval:250}); const status=useAudioPlayerStatus(player); const duration=status.duration||0; const current=status.currentTime||0; const fmt=(v)=>{const total=Math.max(0,Math.round(v));return Math.floor(total/60)+':'+String(total%60).padStart(2,'0')}; return <View style={s.audioBubble}><Pressable onPress={()=>status.playing?player.pause():player.play()} style={s.audioPlay}><Text style={s.audioPlayText}>{status.playing?'❚❚':'▶'}</Text></Pressable><View style={s.audioTrack}><View style={[s.audioProgress,{width:(duration?Math.min(100,(current/duration)*100):0)+'%'}]}/></View><Text style={s.audioDuration}>{fmt(current||duration)}</Text></View>; }
 
 export default function Conversation(){
- const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false);
+ const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false);
 
- const saveDraft=useCallback(async(value)=>{
+ const saveDraft=useCallback((value)=>{
   if(!id||!user?.id)return;
   const content=value||'';
   setDraftSaved(false);
-  if(!content.trim()){
-   await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);
-   setDraftSaved(true);return;
-  }
-  const{error:e}=await supabase.from('message_drafts').upsert({user_id:user.id,conversation_id:id,content,updated_at:new Date().toISOString()},{onConflict:'user_id,conversation_id'});
-  if(!e)setDraftSaved(true);
+  if(draftTimerRef.current)clearTimeout(draftTimerRef.current);
+  draftTimerRef.current=setTimeout(async()=>{
+   if(!content.trim()){
+    await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);
+    setDraftSaved(true);return;
+   }
+   const{error:e}=await supabase.from('message_drafts').upsert({user_id:user.id,conversation_id:id,content,updated_at:new Date().toISOString()},{onConflict:'user_id,conversation_id'});
+   if(!e)setDraftSaved(true);
+  },450);
  },[id,user?.id]);
+ useEffect(()=>()=>{if(draftTimerRef.current)clearTimeout(draftTimerRef.current)},[]);
  const loadDraft=useCallback(async()=>{
   if(!id||!user?.id)return;
   const{data}=await supabase.from('message_drafts').select('content').eq('user_id',user.id).eq('conversation_id',id).maybeSingle();
