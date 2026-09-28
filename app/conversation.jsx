@@ -362,6 +362,13 @@ export default function Conversation(){
    if(sequence===statusLoadSequenceRef.current&&mountedRef.current)setStatusLoading(false);
   }
  };
+ const jumpToMessage=messageId=>{
+  if(!messageId)return;
+  const index=messages.findIndex(m=>m.id===messageId);
+  if(index<0)return;
+  scrollRef.current?.scrollTo({y:Math.max(0,index*78-120),animated:true});
+  setSelectedMessage(null);
+ };
  const selectedMessages=messages.filter(m=>selectedIds.includes(m.id));
  const bulkStar=async()=>{if(!user?.id||!selectedMessages.length)return;for(const m of selectedMessages){const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);if(!starred)await supabase.from('message_stars').insert({message_id:m.id,user_id:user.id});}clearSelection();load();};
  const bulkDeleteForMe=async()=>{if(!user?.id||!selectedMessages.length)return;const rows=selectedMessages.map(m=>({message_id:m.id,user_id:user.id}));const{error:e}=await supabase.from('message_hidden_for_users').upsert(rows,{onConflict:'message_id,user_id'});if(e)setError(e.message);else{const ids=new Set(selectedIds);setMessages(current=>current.filter(m=>!ids.has(m.id)));clearSelection();}};
@@ -507,7 +514,7 @@ export default function Conversation(){
       {visibleMessages.map((m,index)=>{const previous=visibleMessages[index-1];const sameSender=previous?.sender_id===m.sender_id;const closeTime=previous&&new Date(m.created_at)-new Date(previous.created_at)<300000;const showUnread=unreadBoundaryId===m.id;const day=new Date(m.created_at).toDateString();const previousDay=previous?new Date(previous.created_at).toDateString():null;const showDate=day!==previousDay;const dateLabel=new Date(m.created_at).toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});return <React.Fragment key={m.id}>{showDate?<View style={s.dateDivider}><Text style={s.dateDividerText}>{dateLabel}</Text></View>:null}{showUnread?<View style={s.unreadDivider}><View style={s.unreadLine}/><Text style={s.unreadText}>NEW MESSAGES</Text><View style={s.unreadLine}/></View>:null}<View style={[s.row,m.sender_id===user.id?s.rowMine:s.rowTheirs,!sameSender||!closeTime?s.messageGroupStart:null]}>
        {m.sender_id!==user.id&&info?.kind==='group'?<Text style={s.senderName}>{m.profiles?.display_name||m.profiles?.username||'Member'}</Text>:null}{m.sender_id!==user.id&&<View style={s.smallAvatar}>{m.profiles?.avatar_url?<Image source={{uri:getImageUrl(m.profiles.avatar_url,{width:800,height:800,quality:100})}} style={s.smallAvatarImage}/>:<Text style={s.smallAvatarText}>{(m.profiles?.display_name||m.profiles?.username||'?')[0].toUpperCase()}</Text>}</View>}
        <Pressable onLongPress={()=>!m.deleted_at&&(selectedIds.length?toggleSelection(m):setSelectedMessage(m))} onPress={()=>selectedIds.length?toggleSelection(m):selectedMessage?.id===m.id&&setSelectedMessage(null)} style={[s.bubble,m.sender_id===user.id?themeStyles.mine:themeStyles.theirs,bubbleShape]}>
-        {m.reply_to_id?<View style={s.replyQuote}><Text style={s.replyQuoteText}>{m.reply_to_id?(messages.find(x=>x.id===m.reply_to_id)?.profiles?.display_name||'Reply'):'Reply'}</Text><Text style={s.replyPreview}>{m.reply_to_id?(messages.find(x=>x.id===m.reply_to_id)?.content||'Media message'):''}</Text></View>:null}
+        {m.reply_to_id?<Pressable onPress={()=>jumpToMessage(m.reply_to_id)} style={s.replyQuote}><Text style={s.replyQuoteText}>{m.reply_to_id?(messages.find(x=>x.id===m.reply_to_id)?.profiles?.display_name||'Reply'):'Reply'}</Text><Text numberOfLines={1} style={s.replyPreview}>{m.reply_to_id?(messages.find(x=>x.id===m.reply_to_id)?.content||'Media message'):''}</Text></Pressable>:null}
         {m.media_url&&m.media_type==='image'?<Image source={{uri:m.media_url}} style={s.mediaImage}/>:null}
         {m.media_url&&m.media_type==='video'?<ChatVideo uri={m.media_url}/>:null}
         {m.media_url&&m.media_type==='audio'?<ChatAudio uri={m.media_url}/>:null}
