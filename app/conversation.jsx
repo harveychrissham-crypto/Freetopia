@@ -558,7 +558,22 @@ export default function Conversation(){
      </ScrollView>
     </View>
    </View>}
-   {searchOpen&&<View style={s.searchBar}><AppIcon name="search" size={15} color="#7F8D9D"/><TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Search messages" placeholderTextColor="#718092" style={s.searchInput}/><Text style={s.searchCount}>{search.trim()?(visibleMessages.length?(searchIndex+1)+'/'+visibleMessages.length:'0 matches'):''}</Text>{search.trim()&&visibleMessages.length>0&&<><Pressable onPress={()=>jumpToSearch(-1)}><Text style={s.action}>↑</Text></Pressable><Pressable onPress={()=>jumpToSearch(1)}><Text style={s.action}>↓</Text></Pressable></>}<Pressable onPress={()=>{setSearch('');setSearchIndex(0);setSearchOpen(false)}}><Text style={s.actionMuted}>Close</Text></Pressable></View>{search.trim()&&visibleMessages.length>0?<View style={s.searchResults}>{visibleMessages.slice(0,6).map((m,idx)=><Pressable key={m.id} onPress={()=>{setSearchIndex(idx);jumpToMessage(m.id)}} style={[s.searchResult,idx===searchIndex&&s.searchResultActive]}><View style={s.searchResultMain}><Text numberOfLines={1} style={s.searchResultSender}>{m.profiles?.display_name||m.profiles?.username||'Message'}</Text><Text numberOfLines={1} style={s.searchResultText}>{m.content||({image:'Photo',video:'Video',audio:'Voice message',file:'File'}[m.media_type]||'Media message')}</Text></View><Text style={s.searchResultHint}>View</Text></Pressable>)}</View>:null}}{error&&<Text style={s.err}>{error}</Text>}
+   {searchOpen&&<View style={s.searchBar}>
+    <AppIcon name="search" size={15} color="#7F8D9D"/>
+    <TextInput value={search} onChangeText={setSearch} autoFocus placeholder="Search messages" placeholderTextColor="#718092" style={s.searchInput}/>
+    <Text style={s.searchCount}>{search.trim()?(visibleMessages.length?(searchIndex+1)+'/'+visibleMessages.length:'0 matches'):''}</Text>
+    {search.trim()&&visibleMessages.length>0&&<>
+     <Pressable onPress={()=>jumpToSearch(-1)}><Text style={s.action}>↑</Text></Pressable>
+     <Pressable onPress={()=>jumpToSearch(1)}><Text style={s.action}>↓</Text></Pressable>
+    </>}
+    <Pressable onPress={()=>{setSearch('');setSearchIndex(0);setSearchOpen(false)}}><Text style={s.actionMuted}>Close</Text></Pressable>
+   </View>}
+   {searchOpen&&search.trim()&&visibleMessages.length>0&&<View style={s.searchResults}>
+    {visibleMessages.slice(0,6).map((m,idx)=><Pressable key={m.id} onPress={()=>{setSearchIndex(idx);jumpToMessage(m.id)}} style={[s.searchResult,idx===searchIndex&&s.searchResultActive]}>
+     <View style={s.searchResultMain}><Text numberOfLines={1} style={s.searchResultSender}>{m.profiles?.display_name||m.profiles?.username||'Message'}</Text><Text numberOfLines={1} style={s.searchResultText}>{m.content||({image:'Photo',video:'Video',audio:'Voice message',file:'File'}[m.media_type]||'Media message')}</Text></View><Text style={s.searchResultHint}>View</Text>
+    </Pressable>)}
+   </View>}
+   {error&&<Text style={s.err}>{error}</Text>}
    {pinned.length>0&&<View style={s.pinnedBar}><Text style={s.pinnedIcon}>📌</Text><View style={s.pinnedCopy}><Text style={s.pinnedTitle}>Pinned message</Text><Text numberOfLines={1} style={s.pinnedText}>{messages.find(x=>x.id===pinned[0].message_id)?.content||'Media message'}</Text></View><Pressable onPress={()=>{const idx=messages.findIndex(x=>x.id===pinned[0].message_id);if(idx>=0)scrollRef.current?.scrollTo({y:Math.max(0,idx*75),animated:true})}}><Text style={s.action}>View</Text></Pressable></View>}{statusMessage&&<View style={s.statusOverlay}>
     <Pressable style={s.statusBackdrop} onPress={()=>setStatusMessage(null)}/>
     <View style={s.statusSheet}>
