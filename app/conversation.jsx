@@ -22,13 +22,13 @@ export default function Conversation(){
  const load=useCallback(async()=>{
   if(!id||!user?.id)return;
   setLoading(true);
-  const{data:c,error:ce}=await supabase.from('conversations').select('id,kind,title,conversation_members(user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url))').eq('id',id).maybeSingle();
+  const{data:c,error:ce}=await supabase.from('conversations').select('id,kind,title,disappearing_seconds,conversation_members(user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url))').eq('id',id).maybeSingle();
   if(ce||!c){setError(ce?.message||'Conversation not found');setLoading(false);return}
   const me=(c.conversation_members||[]).find(x=>x.user_id===user.id);
   const other=(c.conversation_members||[]).find(x=>x.user_id!==user.id);
   setInfo({...c,me,other}); setGroupTitle(c.title||'');
   if(me?.request_status==='accepted'){
-   const{data:m,error:e}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);
+   const{data:m,error:e}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);
    if(e)setError(e.message);
    else{
     const {data:hidden}=await supabase.from('message_hidden_for_users').select('message_id').eq('user_id',user.id).in('message_id',(m||[]).map(x=>x.id));
@@ -165,7 +165,7 @@ export default function Conversation(){
   if(!forwardMessage||forwardingId)return;
   setForwardingId(target.id);setError('');
   const batch=Array.isArray(forwardMessage)?forwardMessage:[forwardMessage];
-  const{error:e}=await supabase.from('messages').insert(batch.map(item=>({conversation_id:target.id,sender_id:user.id,content:item.content||null,media_url:item.media_url||null,media_type:item.media_type||null,reply_to_id:null})));
+  const{error:e}=await supabase.from('messages').insert(batch.map(item=>({conversation_id:target.id,sender_id:user.id,content:item.content||null,media_url:item.media_url||null,media_type:item.media_type||null,reply_to_id:null,expires_at:target.disappearing_seconds?new Date(Date.now()+target.disappearing_seconds*1000).toISOString():null})));
   if(e)setError(e.message);else setForwardMessage(null);
   setForwardingId(null);
  };
