@@ -5,6 +5,9 @@ import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
 import { supabase } from '../../lib/supabase';
 
+const navIcon = { width: 42, height: 30, borderRadius: 12, alignItems: 'center', justifyContent: 'center' };
+const navIconActive = { backgroundColor: '#14263A', borderWidth: 1, borderColor: '#243B57' };
+
 export default function TabLayout() {
   const { width } = useWindowDimensions();
   const { session, loading } = useAuth();
@@ -92,39 +95,39 @@ export default function TabLayout() {
       <StatusBar style="light" />
       <Tabs screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#F5F7FA',
+        tabBarActiveTintColor: '#BFD6EE',
         tabBarInactiveTintColor: '#8795A8',
         tabBarStyle: desktopWeb
           ? { display: 'none' }
           : {
-              height: 72,
-              paddingTop: 9,
-              paddingBottom: 10,
-              borderTopColor: '#172538',
+              height: 76,
+              paddingTop: 8,
+              paddingBottom: 9,
+              borderTopColor: '#182533',
               borderTopWidth: 1,
               backgroundColor: '#050A11',
               elevation: 0,
             },
-        tabBarLabelStyle: { fontSize: 9, fontWeight: '700', marginTop: 1 },
-        tabBarItemStyle: { paddingTop: 1 },
+        tabBarLabelStyle: { fontSize: 9, fontWeight: '750', marginTop: 2 },
+        tabBarItemStyle: { paddingTop: 0 },
         tabBarHideOnKeyboard: true,
         sceneStyle: { backgroundColor: '#060B12' },
       }}>
-        <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <AppIcon name="home" size={size} color={color} /> }} />
-        <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: ({ color, size }) => <AppIcon name="compass" size={size} color={color} /> }} />
+        <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, size, focused }) => <View style={[navIcon, focused && navIconActive]}><AppIcon name="home" size={size} color={color} /></View> }} />
+        <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: ({ color, size, focused }) => <View style={[navIcon, focused && navIconActive]}><AppIcon name="compass" size={size} color={color} /></View> }} />
         <Tabs.Screen name="messages" options={{
           title: 'Messages',
           tabBarBadge: unreadMessages > 0 ? (unreadMessages > 99 ? '99+' : unreadMessages) : undefined,
           tabBarBadgeStyle: { backgroundColor: '#4B78A8', color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
-          tabBarIcon: ({ color, size }) => <AppIcon name="message" size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <View style={[navIcon, focused && navIconActive]}><AppIcon name="message" size={size} color={color} /></View>,
         }} />
         <Tabs.Screen name="notifications" options={{
           title: 'Notifications',
           tabBarBadge: unreadNotifications > 0 ? (unreadNotifications > 99 ? '99+' : unreadNotifications) : undefined,
           tabBarBadgeStyle: { backgroundColor: '#4B78A8', color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
-          tabBarIcon: ({ color, size }) => <AppIcon name="bell" size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => <View style={[navIcon, focused && navIconActive]}><AppIcon name="bell" size={size} color={color} /></View>,
         }} />
-        <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <AppIcon name="profile" size={size} color={color} /> }} />
+        <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size, focused }) => <View style={[navIcon, focused && navIconActive]}><AppIcon name="profile" size={size} color={color} /></View> }} />
       </Tabs>
     </>
   );
