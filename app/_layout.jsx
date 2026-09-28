@@ -34,5 +34,8 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, backgroundColor: '#060B12', alignItems: 'center', justifyContent: 'center', gap: 12 },\n  loadingMark: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#182536', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#29415B' },\n  loadingMarkText: { color: '#E9EEF4', fontSize: 20, fontWeight: '900' },\n  loadingText: { color: '#C9D4E2', fontSize: 14, fontWeight: '800', marginBottom: 2 },
+  loading: { flex: 1, backgroundColor: '#060B12', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingMark: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#182536', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#29415B' },
+  loadingMarkText: { color: '#E9EEF4', fontSize: 20, fontWeight: '900' },
+  loadingText: { color: '#C9D4E2', fontSize: 14, fontWeight: '800', marginBottom: 2 },
 });
