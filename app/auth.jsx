@@ -49,6 +49,16 @@ export default function Auth() {
       return;
     }
 
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(cleanEmail)) {
+      setError('Enter a valid email address.');
+      return;
+    }
+
+    if (mode === 'sign-up' && password.length < 6) {
+      setError('Your password must be at least 6 characters.');
+      return;
+    }
+
     if (mode === 'sign-up' && cleanName.length < 2) {
       setError('Enter your name to create your profile.');
       return;
@@ -57,13 +67,19 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const result = mode === 'sign-in'
-        ? await supabase.auth.signInWithPassword({ email: cleanEmail, password })
-        : await supabase.auth.signUp({
+      const authRequest = mode === 'sign-in'
+        ? supabase.auth.signInWithPassword({ email: cleanEmail, password })
+        : supabase.auth.signUp({
             email: cleanEmail,
             password,
             options: { data: { display_name: cleanName } },
           });
+
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Freetopia could not reach the authentication service. Check your internet connection and try again.')), 15000)
+      );
+
+      const result = await Promise.race([authRequest, timeout]);
 
       if (result.error) {
         setError(result.error.message);
