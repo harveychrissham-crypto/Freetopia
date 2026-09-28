@@ -76,6 +76,16 @@ export default function Conversation(){
    if(!messageId)return;
    const{count}=await supabase.from('message_reads').select('message_id',{count:'exact',head:true}).eq('message_id',messageId);
    setMessages(current=>current.map(m=>m.id===messageId?{...m,readCount:count||0}:m));
+   if(statusMessage?.id===messageId){
+    setStatusRows(rows=>rows.map(row=>row.user_id===(payload.new?.user_id||payload.old?.user_id)?{...row,read_at:payload.new?.read_at||new Date().toISOString()}:row));
+   }
+  }).on('postgres_changes',{event:'*',schema:'public',table:'message_deliveries'},async payload=>{
+   const messageId=payload.new?.message_id||payload.old?.message_id;
+   if(!messageId)return;
+   if(statusMessage?.id===messageId){
+    const uid=payload.new?.user_id||payload.old?.user_id;
+    setStatusRows(rows=>rows.map(row=>row.user_id===uid?{...row,delivered_at:payload.new?.delivered_at||row.delivered_at}:row));
+   }
   }).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:'conversation_id=eq.'+id},async payload=>{
    const member=payload.new||payload.old;
    if(!member?.conversation_id)return;
