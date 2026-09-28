@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
@@ -61,6 +61,17 @@ export default function Messages() {
   },[user?.id]);
 
   useFocusEffect(useCallback(()=>{ load(); },[load]));
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase.channel('messages-inbox-' + user.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => { load(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => { load(); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, () => { load(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, load]);
 
   const change = async (c,patch) => {
     const { error:e } = await supabase.from('conversation_members').update(patch).eq('conversation_id',c.id).eq('user_id',user.id);
