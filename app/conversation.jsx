@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import AppIcon from '../components/AppIcon';
+import * as ImagePicker from 'expo-image-picker';
 import { getImageUrl } from '../lib/imageUrl';
 import {Alert,Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useLocalSearchParams,useRouter} from 'expo-router';
@@ -8,7 +9,7 @@ import {supabase} from '../lib/supabase';
 import {useAuth} from '../providers/AuthProvider';
 
 export default function Conversation(){
- const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[error,setError]=useState('');
+ const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[error,setError]=useState('');
 
  const load=useCallback(async()=>{
   if(!id||!user?.id)return;
@@ -19,7 +20,7 @@ export default function Conversation(){
   const other=(c.conversation_members||[]).find(x=>x.user_id!==user.id);
   setInfo({...c,me,other});
   if(me?.request_status==='accepted'){
-   const{data:m,error:e}=await supabase.from('messages').select('id,conversation_id,sender_id,content,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url)').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);
+   const{data:m,error:e}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);
    if(e)setError(e.message);
    else{
     setMessages(m||[]);
@@ -38,7 +39,7 @@ export default function Conversation(){
  useEffect(()=>{
   load();
   if(!id)return;
-  const ch=supabase.channel('conversation-'+id).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
+  const ch=supabase.channel('conversation-'+id,{config:{broadcast:{self:false}}}).on('broadcast',{event:'typing'},payload=>{if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(payload.payload?.typing)setTimeout(()=>setTyping(false),1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    const incoming=payload.new;
    if(!incoming?.id)return;
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,created_at,edited_at,deleted_at,profiles:sender_id(id,username,display_name,avatar_url)').eq('id',incoming.id).maybeSingle();
@@ -68,8 +69,8 @@ export default function Conversation(){
    const{error:e}=await supabase.from('messages').update({content:v,edited_at:new Date().toISOString()}).eq('id',editingId).eq('sender_id',user.id);
    if(e)setError(e.message);else{setText('');setEditingId(null);}
   }else{
-   const{error:e}=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:v});
-   if(e)setError(e.message);else setText('');
+   const{error:e}=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:v,reply_to_id:replyTo?.id||null});
+   if(e)setError(e.message);else {setText('');setReplyTo(null);} 
   }
   setSending(false);
  };
@@ -123,7 +124,7 @@ export default function Conversation(){
     </View>
     <View style={s.headCopy}>
      <Text style={s.name} numberOfLines={1}>{name}</Text>
-     {handle&&<Text style={s.handle} numberOfLines={1}>@{handle}</Text>}
+     {handle&&<Text style={s.handle} numberOfLines={1}>@{handle}</Text>}{typing&&<Text style={s.typing}>typing…</Text>}
     </View>
     <Pressable onPress={()=>info?.other?.user_id&&router.push({pathname:'/profile',params:{id:info.other.user_id}})} hitSlop={10} style={s.info}><Text style={s.infoText}>i</Text></Pressable>
    </View>
@@ -137,16 +138,20 @@ export default function Conversation(){
       {messages.length===0&&<View style={s.empty}><Text style={s.emptyTitle}>No messages yet</Text><Text style={s.emptyText}>Start the conversation.</Text></View>}
       {messages.map(m=><View key={m.id} style={[s.row,m.sender_id===user.id?s.rowMine:s.rowTheirs]}>
        {m.sender_id!==user.id&&<View style={s.smallAvatar}>{m.profiles?.avatar_url?<Image source={{uri:getImageUrl(m.profiles.avatar_url,{width:800,height:800,quality:100})}} style={s.smallAvatarImage}/>:<Text style={s.smallAvatarText}>{(m.profiles?.display_name||m.profiles?.username||'?')[0].toUpperCase()}</Text>}</View>}
-       <Pressable onLongPress={()=>m.sender_id===user.id&&!m.deleted_at&&setSelectedMessage(m)} style={[s.bubble,m.sender_id===user.id?s.mine:s.theirs]}>
-        <Text style={[s.bt,m.sender_id===user.id&&s.mbt]}>{m.deleted_at?'Message deleted':m.content}</Text>
-        <Text style={[s.time,m.sender_id===user.id&&s.mineTime]}>{new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}{m.edited_at&&!m.deleted_at?' · edited':''}</Text>
+       <Pressable onLongPress={()=>!m.deleted_at&&setSelectedMessage(m)} onPress={()=>selectedMessage?.id===m.id&&setSelectedMessage(null)} style={[s.bubble,m.sender_id===user.id?s.mine:s.theirs]}>
+        {m.reply_to_id?<View style={s.replyQuote}><Text style={s.replyQuoteText}>Reply</Text></View>:null}
+        {m.media_url&&m.media_type==='image'?<Image source={{uri:m.media_url}} style={s.mediaImage}/>:null}
+        {m.media_url&&m.media_type==='video'?<View style={s.videoCard}><AppIcon name="video" size={18} color="#E9EEF4"/><Text style={s.videoText}>Video</Text></View>:null}
+        {m.content?<Text style={[s.bt,m.sender_id===user.id&&s.mbt]}>{m.deleted_at?'Message deleted':m.content}</Text>:null}
+        <Text style={[s.time,m.sender_id===user.id&&s.mineTime]}>{new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}{m.edited_at&&!m.deleted_at?' · edited':''}{m.message_stars?.some(x=>x.user_id===user.id)?' · ★':''}</Text>
+        {(m.message_reactions||[]).length>0?<View style={s.reactions}>{Object.entries((m.message_reactions||[]).reduce((a,r)=>(a[r.emoji]=(a[r.emoji]||0)+1,a),{})).map(([emoji,n])=><Pressable key={emoji} onPress={()=>toggleReaction(m,emoji)} style={s.reaction}><Text style={s.reactionText}>{emoji} {n}</Text></Pressable>)}</View>:null}
        </Pressable>
       </View>)}
      </ScrollView>
-     {selectedMessage&&<View style={s.actionBar}><Text style={s.actionLabel}>Message options</Text><Pressable onPress={()=>{editMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.action}>Edit</Text></Pressable><Pressable onPress={()=>{deleteMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.actionDanger}>Delete</Text></Pressable><Pressable onPress={cancelEdit}><Text style={s.actionMuted}>Cancel</Text></Pressable></View>}
+     {selectedMessage&&<View style={s.actionBar}><Text style={s.actionLabel}>Message</Text><Pressable onPress={()=>toggleReaction(selectedMessage,'❤️')}><Text style={s.action}>❤️</Text></Pressable><Pressable onPress={()=>toggleReaction(selectedMessage,'😂')}><Text style={s.action}>😂</Text></Pressable><Pressable onPress={()=>{setReplyTo(selectedMessage);setSelectedMessage(null)}}><Text style={s.action}>Reply</Text></Pressable><Pressable onPress={()=>toggleStar(selectedMessage)}><Text style={s.action}>★</Text></Pressable>{selectedMessage.sender_id===user.id?<><Pressable onPress={()=>{editMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.action}>Edit</Text></Pressable><Pressable onPress={()=>{deleteMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.actionDanger}>Delete</Text></Pressable></>:null}<Pressable onPress={()=>setSelectedMessage(null)}><Text style={s.actionMuted}>Close</Text></Pressable></View>}
      <View style={s.composer}>
-      <TextInput value={text} onChangeText={setText} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={s.input} multiline maxLength={2000}/>
-      <Pressable disabled={sending||!text.trim()} onPress={send} style={[s.send,(!text.trim()||sending)&&s.sendDisabled]}><Text style={s.sendText}>{sending?'…':editingId?'Save':'Send'}</Text></Pressable>
+      <TextInput value={text} onChangeText={v=>{setText(v);broadcastTyping(true)}} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={s.input} multiline maxLength={2000}/>
+      <Pressable disabled={sending||uploading||!text.trim()} onPress={send} style={[s.send,(!text.trim()||sending)&&s.sendDisabled]}><Text style={s.sendText}>{sending?'…':editingId?'Save':'Send'}</Text></Pressable>
      </View></>}
   </KeyboardAvoidingView>
  </SafeAreaView>
@@ -154,9 +159,9 @@ export default function Conversation(){
 
 const s=StyleSheet.create({
  safe:{flex:1,backgroundColor:'#060B12'},flex:{flex:1},head:{height:68,paddingHorizontal:16,borderBottomWidth:1,borderBottomColor:'#182533',flexDirection:'row',alignItems:'center',gap:11,backgroundColor:'#0A121C'},
- backButton:{width:28,height:40,justifyContent:'center'},back:{fontSize:32,lineHeight:34,color:'#E9EEF4',fontWeight:'300'},avatar:{width:38,height:38,borderRadius:19,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},avatarImage:{width:'100%',height:'100%'},avatarText:{color:'#E9EEF4',fontSize:13,fontWeight:'800'},headCopy:{flex:1},name:{fontSize:14,fontWeight:'800',color:'#E9EEF4'},handle:{marginTop:2,fontSize:10,color:'#7F8D9D'},info:{width:25,height:25,borderWidth:1,borderColor:'#2A3A4B',borderRadius:13,alignItems:'center',justifyContent:'center'},infoText:{color:'#AAB7C5',fontSize:13,fontWeight:'700'},
+ backButton:{width:28,height:40,justifyContent:'center'},back:{fontSize:32,lineHeight:34,color:'#E9EEF4',fontWeight:'300'},avatar:{width:38,height:38,borderRadius:19,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',overflow:'hidden'},avatarImage:{width:'100%',height:'100%'},avatarText:{color:'#E9EEF4',fontSize:13,fontWeight:'800'},headCopy:{flex:1},name:{fontSize:14,fontWeight:'800',color:'#E9EEF4'},handle:{marginTop:2,fontSize:10,color:'#7F8D9D'},typing:{fontSize:9,color:'#4B78A8',marginTop:2},,info:{width:25,height:25,borderWidth:1,borderColor:'#2A3A4B',borderRadius:13,alignItems:'center',justifyContent:'center'},infoText:{color:'#AAB7C5',fontSize:13,fontWeight:'700'},
  err:{marginHorizontal:16,marginTop:10,padding:10,borderRadius:10,backgroundColor:'#21151B',color:'#D78A98',fontSize:12},center:{flex:1,justifyContent:'center',alignItems:'center'},muted:{color:'#7F8D9D',fontSize:13},
- scroll:{flex:1,backgroundColor:'#0E1824'},messages:{paddingHorizontal:14,paddingVertical:18,gap:9,flexGrow:1,justifyContent:'flex-end'},row:{flexDirection:'row',alignItems:'flex-end',gap:7},rowMine:{justifyContent:'flex-end'},rowTheirs:{justifyContent:'flex-start'},bubble:{maxWidth:'78%',paddingHorizontal:12,paddingVertical:9,borderRadius:17},mine:{backgroundColor:'#243447',borderBottomRightRadius:5},theirs:{backgroundColor:'#182536',borderBottomLeftRadius:5},bt:{fontSize:13,lineHeight:19,color:'#DCE5ED'},mbt:{color:'#F4F6F8'},time:{marginTop:4,fontSize:9,color:'#68798C'},mineTime:{color:'#AAB7C5'},smallAvatar:{width:24,height:24,borderRadius:12,backgroundColor:'#253447',overflow:'hidden',alignItems:'center',justifyContent:'center'},smallAvatarImage:{width:'100%',height:'100%'},smallAvatarText:{color:'#E9EEF4',fontSize:9,fontWeight:'800'},
+ scroll:{flex:1,backgroundColor:'#0E1824'},messages:{paddingHorizontal:14,paddingVertical:18,gap:9,flexGrow:1,justifyContent:'flex-end'},row:{flexDirection:'row',alignItems:'flex-end',gap:7},rowMine:{justifyContent:'flex-end'},rowTheirs:{justifyContent:'flex-start'},bubble:{maxWidth:'78%',paddingHorizontal:12,paddingVertical:9,borderRadius:17},mine:{backgroundColor:'#243447',borderBottomRightRadius:5},theirs:{backgroundColor:'#182536',borderBottomLeftRadius:5},bt:{fontSize:13,lineHeight:19,color:'#DCE5ED'},mediaImage:{width:210,height:170,borderRadius:12,marginBottom:5},videoCard:{height:54,width:180,borderRadius:10,backgroundColor:'#101B28',flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:12},videoText:{color:'#E9EEF4',fontSize:11,fontWeight:'700'},replyQuote:{borderLeftWidth:3,borderLeftColor:'#4B78A8',paddingLeft:8,marginBottom:5},replyQuoteText:{color:'#7F9FBE',fontSize:9,fontWeight:'700'},reactions:{flexDirection:'row',flexWrap:'wrap',gap:4,marginTop:5},reaction:{borderWidth:1,borderColor:'#33475C',borderRadius:12,paddingHorizontal:6,paddingVertical:2,backgroundColor:'#111D2B'},reactionText:{fontSize:9,color:'#DCE5ED'},mbt:{color:'#F4F6F8'},time:{marginTop:4,fontSize:9,color:'#68798C'},mineTime:{color:'#AAB7C5'},smallAvatar:{width:24,height:24,borderRadius:12,backgroundColor:'#253447',overflow:'hidden',alignItems:'center',justifyContent:'center'},smallAvatarImage:{width:'100%',height:'100%'},smallAvatarText:{color:'#E9EEF4',fontSize:9,fontWeight:'800'},
  actionBar:{paddingHorizontal:12,paddingVertical:8,borderTopWidth:1,borderTopColor:'#182533',backgroundColor:'#0A121C',flexDirection:'row',alignItems:'center',gap:16},actionLabel:{flex:1,color:'#7F8D9D',fontSize:10,fontWeight:'700'},action:{color:'#AFC7E1',fontSize:11,fontWeight:'800'},actionDanger:{color:'#D78A98',fontSize:11,fontWeight:'800'},actionMuted:{color:'#7F8D9D',fontSize:11,fontWeight:'700'},empty:{alignItems:'center',paddingBottom:20},emptyTitle:{fontSize:14,fontWeight:'800',color:'#DCE5ED'},emptyText:{marginTop:4,fontSize:12,color:'#7F8D9D'},request:{margin:20,padding:22,borderWidth:1,borderColor:'#182533',borderRadius:20,backgroundColor:'#0A121C',alignItems:'center'},requestIcon:{width:46,height:46,borderRadius:23,backgroundColor:'#243447',alignItems:'center',justifyContent:'center'},requestIconText:{color:'#E9EEF4',fontSize:18},h:{marginTop:15,fontSize:18,fontWeight:'800',color:'#E9EEF4'},p:{marginTop:7,fontSize:13,lineHeight:19,color:'#7F8D9D',textAlign:'center'},accept:{marginTop:17,height:40,paddingHorizontal:18,borderRadius:11,backgroundColor:'#344A62',justifyContent:'center'},wh:{color:'#F4F6F8',fontSize:11,fontWeight:'800'},
- composer:{paddingHorizontal:12,paddingVertical:9,borderTopWidth:1,borderTopColor:'#182533',backgroundColor:'#0A121C',flexDirection:'row',alignItems:'flex-end',gap:8},input:{flex:1,minHeight:42,maxHeight:96,paddingHorizontal:13,paddingVertical:10,borderWidth:1,borderColor:'#2A3A4B',borderRadius:16,color:'#E9EEF4',fontSize:13,backgroundColor:'#0E1824'},send:{minWidth:55,height:42,paddingHorizontal:13,borderRadius:13,backgroundColor:'#4B78A8',alignItems:'center',justifyContent:'center'},sendDisabled:{backgroundColor:'#202B3A'},sendText:{color:'#F4F6F8',fontSize:11,fontWeight:'800'}
+ replying:{paddingHorizontal:12,paddingVertical:7,borderTopWidth:1,borderTopColor:'#182533',backgroundColor:'#0A121C',flexDirection:'row',justifyContent:'space-between'},replyingLabel:{color:'#8FA7BF',fontSize:10,fontWeight:'700'},attach:{width:42,height:42,borderRadius:13,backgroundColor:'#0E1824',alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#2A3A4B'},composer:{paddingHorizontal:12,paddingVertical:9,borderTopWidth:1,borderTopColor:'#182533',backgroundColor:'#0A121C',flexDirection:'row',alignItems:'flex-end',gap:8},input:{flex:1,minHeight:42,maxHeight:96,paddingHorizontal:13,paddingVertical:10,borderWidth:1,borderColor:'#2A3A4B',borderRadius:16,color:'#E9EEF4',fontSize:13,backgroundColor:'#0E1824'},send:{minWidth:55,height:42,paddingHorizontal:13,borderRadius:13,backgroundColor:'#4B78A8',alignItems:'center',justifyContent:'center'},sendDisabled:{backgroundColor:'#202B3A'},sendText:{color:'#F4F6F8',fontSize:11,fontWeight:'800'}
 });
