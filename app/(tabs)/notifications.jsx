@@ -72,10 +72,15 @@ export default function Notifications(){
  },[user?.id]);
  const markRead=async id=>{
   const now=new Date().toISOString();
-  setItems(current=>current.map(item=>item.id===id?{...item,read_at:item.read_at||now}:item));
+  let previousReadAt=null;
+  setItems(current=>current.map(item=>{
+   if(item.id!==id)return item;
+   previousReadAt=item.read_at;
+   return item.read_at?item:{...item,read_at:now};
+  }));
   const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('id',id).eq('recipient_id',user.id);
   if(e){
-   setItems(current=>current.map(item=>item.id===id?{...item,read_at:null}:item));
+   setItems(current=>current.map(item=>item.id===id?{...item,read_at:previousReadAt}:item));
    setError(e.message);
   }
  };
