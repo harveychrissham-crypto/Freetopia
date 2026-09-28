@@ -55,6 +55,8 @@ function ChatAudio({uri}){ const player=useAudioPlayer(uri,{updateInterval:250})
 export default function Conversation(){
  const mountedRef=useRef(true);
  const typingTimerRef=useRef(null);
+ const infoRef=useRef(null);
+ const statusMessageRef=useRef(null);
  const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false),[chatTheme,setChatTheme]=useState('dark'),[chatWallpaper,setChatWallpaper]=useState('minimal'),[bubbleStyle,setBubbleStyle]=useState('classic');
 
  const saveDraft=useCallback((value)=>{
@@ -107,6 +109,8 @@ export default function Conversation(){
   AsyncStorage.setItem('freetopia-chat-style-'+id,JSON.stringify({theme:chatTheme,wallpaper:chatWallpaper,bubble:bubbleStyle})).catch(()=>{});
  },[id,chatTheme,chatWallpaper,bubbleStyle]);
 
+ useEffect(()=>{infoRef.current=info;},[info]);
+ useEffect(()=>{statusMessageRef.current=statusMessage;},[statusMessage]);
  useEffect(()=>{
   mountedRef.current=true;
   return()=>{
@@ -189,7 +193,7 @@ export default function Conversation(){
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
    if(!message)return;
    setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
-   if(message.sender_id!==user?.id&&!message.deleted_at&&info?.me?.request_status==='accepted'){await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});} 
+   if(message.sender_id!==user?.id&&!message.deleted_at&&infoRef.current?.me?.request_status==='accepted'){await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});} 
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    const incoming=payload.new;
@@ -202,15 +206,18 @@ export default function Conversation(){
    if(!messageId)return;
    const{count}=await supabase.from('message_reads').select('message_id',{count:'exact',head:true}).eq('message_id',messageId);
    setMessages(current=>current.map(m=>m.id===messageId?{...m,readCount:count||0}:m));
-   if(statusMessage?.id===messageId){
+   if(statusMessageRef.current?.id===messageId){
     setStatusRows(rows=>rows.map(row=>row.user_id===(payload.new?.user_id||payload.old?.user_id)?{...row,read_at:payload.new?.read_at||new Date().toISOString()}:row));
    }
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_deliveries'},async payload=>{
    const messageId=payload.new?.message_id||payload.old?.message_id;
    if(!messageId)return;
-   if(statusMessage?.id===messageId){
+   const delivered=payload.new?.delivered_at||payload.old?.delivered_at;
+   const {count}=await supabase.from('message_deliveries').select('message_id',{count:'exact',head:true}).eq('message_id',messageId).not('delivered_at','is',null);
+   setMessages(current=>current.map(m=>m.id===messageId?{...m,deliveryCount:count||0}:m));
+   if(statusMessageRef.current?.id===messageId){
     const uid=payload.new?.user_id||payload.old?.user_id;
-    setStatusRows(rows=>rows.map(row=>row.user_id===uid?{...row,delivered_at:payload.new?.delivered_at||row.delivered_at}:row));
+    setStatusRows(rows=>rows.map(row=>row.user_id===uid?{...row,delivered_at:delivered||row.delivered_at}:row));
    }
   }).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:'conversation_id=eq.'+id},async payload=>{
    const member=payload.new||payload.old;
