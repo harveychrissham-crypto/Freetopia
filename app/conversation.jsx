@@ -1,4 +1,5 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
+import AppIcon from '../components/AppIcon';
 import { getImageUrl } from '../lib/imageUrl';
 import {Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useLocalSearchParams,useRouter} from 'expo-router';
@@ -79,7 +80,7 @@ export default function Conversation(){
  return <SafeAreaView style={s.safe}>
   <KeyboardAvoidingView style={s.flex} behavior={Platform.OS==='ios'?'padding':undefined} keyboardVerticalOffset={8}>
    <View style={s.head}>
-    <Pressable onPress={()=>router.back()} hitSlop={10} style={s.backButton}><Text style={s.back}>‹</Text></Pressable>
+    <Pressable onPress={()=>router.back()} hitSlop={10} style={s.backButton}><AppIcon name="arrow-left" size={18}/></Pressable>
     <View style={s.avatar}>
      {avatar?<Image source={{uri:getImageUrl(avatar,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text style={s.avatarText}>{initials}</Text>}
     </View>
