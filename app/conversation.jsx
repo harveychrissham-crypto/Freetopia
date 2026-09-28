@@ -217,7 +217,23 @@ export default function Conversation(){
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
    if(!message||!mountedRef.current)return;
    setMessages(current=>current.map(x=>x.id===message.id?message:x));
-  }).on('postgres_changes',{event:'*',schema:'public',table:'message_reads'},async payload=>{
+  }).on('postgres_changes',{event:'*',schema:'public',table:'message_reactions'},payload=>{
+   const row=payload.new?.message_id?payload.new:payload.old;
+   if(!row?.message_id)return;
+   const messageId=row.message_id;
+   setMessages(items=>items.map(m=>{
+     if(m.id!==messageId)return m;
+     const reactions=m.message_reactions||[];
+     if(payload.eventType==='INSERT'){
+       if(reactions.some(r=>r.user_id===row.user_id&&r.emoji===row.emoji))return m;
+       return {...m,message_reactions:[...reactions,{user_id:row.user_id,emoji:row.emoji}]};
+     }
+     if(payload.eventType==='DELETE'){
+       return {...m,message_reactions:reactions.filter(r=>!(r.user_id===row.user_id&&r.emoji===row.emoji))};
+     }
+     return m;
+   }));
+ });  }).on('postgres_changes',{event:'*',schema:'public',table:'message_reads'},async payload=>{
    const messageId=payload.new?.message_id||payload.old?.message_id;
    if(!messageId)return;
    const isRelevant=messagesRef.current.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
@@ -330,7 +346,22 @@ export default function Conversation(){
   broadcastTyping(true);
   typingTimerRef.current=setTimeout(()=>broadcastTyping(false),2200);
  };
- const toggleReaction=async(m,emoji)=>{if(!user?.id)return;const mine=(m.message_reactions||[]).some(r=>r.user_id===user.id&&r.emoji===emoji);if(mine){await supabase.from('message_reactions').delete().eq('message_id',m.id).eq('user_id',user.id).eq('emoji',emoji);}else{await supabase.from('message_reactions').insert({message_id:m.id,user_id:user.id,emoji});}load();};
+ const toggleReaction=async(m,emoji)=>{
+  if(!user?.id)return;
+  const current=m.message_reactions||[];
+  const mine=current.some(r=>r.user_id===user.id&&r.emoji===emoji);
+  const next=mine?current.filter(r=>!(r.user_id===user.id&&r.emoji===emoji)):[...current,{user_id:user.id,emoji}];
+  setMessages(items=>items.map(x=>x.id===m.id?{...x,message_reactions:next}:x));
+  setSelectedMessage(x=>x?.id===m.id?{...x,message_reactions:next}:x);
+  const result=mine
+    ?await supabase.from('message_reactions').delete().eq('message_id',m.id).eq('user_id',user.id).eq('emoji',emoji)
+    :await supabase.from('message_reactions').insert({message_id:m.id,user_id:user.id,emoji});
+  if(result.error){
+    setMessages(items=>items.map(x=>x.id===m.id?{...x,message_reactions:current}:x));
+    setSelectedMessage(x=>x?.id===m.id?{...x,message_reactions:current}:x);
+    return;
+  }
+};
  const toggleStar=async(m)=>{if(!user?.id)return;const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);if(starred){await supabase.from('message_stars').delete().eq('message_id',m.id).eq('user_id',user.id);}else{await supabase.from('message_stars').insert({message_id:m.id,user_id:user.id});}load();};
  const pickMedia=async()=>{if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();if(!perm.granted){Alert.alert('Permission needed','Allow photo and video access to attach media.');return;}const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],quality:0.85});if(result.canceled||!result.assets?.[0])return;const asset=result.assets[0];setUploading(true);setError('');try{const ext=(asset.fileName||asset.uri.split('/').pop()||'media').split('.').pop().toLowerCase();const path=user.id+'/'+Date.now()+'.'+ext;const res=await fetch(asset.uri);const blob=await res.blob();const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});if(up.error)throw up.error;const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:asset.type==='video'?'video':'image',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()});if(ins.error)throw ins.error;setReplyTo(null);load();}catch(e){setError(e.message||'Media upload failed');}finally{setUploading(false)}};
  const pickDocument=async()=>{if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;setAttachmentOpen(false);setUploading(true);setError('');try{const result=await DocumentPicker.getDocumentAsync({copyToCacheDirectory:true,multiple:false});if(result.canceled||!result.assets?.[0])return;const asset=result.assets[0];const name=asset.name||'Document';const ext=(name.includes('.')?name.split('.').pop():'bin').toLowerCase();const path=user.id+'/file-'+Date.now()+'.'+ext;const res=await fetch(asset.uri);const blob=await res.blob();const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});if(up.error)throw up.error;const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:name,media_url:pub,media_type:'file',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()});if(ins.error)throw ins.error;setReplyTo(null);load();}catch(e){setError(e.message||'File upload failed');}finally{setUploading(false)}};
