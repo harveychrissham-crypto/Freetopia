@@ -424,7 +424,13 @@ export default function Conversation(){
  const activeMessages=messages.filter(m=>!m.expires_at||new Date(m.expires_at)>new Date());
  const visibleMessages=search.trim()?activeMessages.filter(m=>{const q=search.trim().toLowerCase();return (m.content||'').toLowerCase().includes(q)||(m.media_type||'').toLowerCase().includes(q)||(m.media_url||'').toLowerCase().includes(q)||(m.profiles?.username||'').toLowerCase().includes(q)||(m.profiles?.display_name||'').toLowerCase().includes(q);}):activeMessages;
  useEffect(()=>{if(!search.trim()){setSearchIndex(0);return;}setSearchIndex(i=>Math.min(i,Math.max(0,visibleMessages.length-1)));},[search,visibleMessages.length]);
- const jumpToSearch=(direction)=>{if(!visibleMessages.length)return;const next=(searchIndex+direction+visibleMessages.length)%visibleMessages.length;setSearchIndex(next);const target=visibleMessages[next];const originalIndex=messages.findIndex(m=>m.id===target.id);if(originalIndex>=0){setTimeout(()=>scrollRef.current?.scrollTo({y:Math.max(0,originalIndex*92),animated:true}),50);}};
+ const jumpToSearch=(direction)=>{
+  if(!visibleMessages.length)return;
+  const next=(searchIndex+direction+visibleMessages.length)%visibleMessages.length;
+  setSearchIndex(next);
+  const target=visibleMessages[next];
+  if(target?.id)jumpToMessage(target.id);
+};
  const name=info?.kind==='group'?(info?.title||'Group'):(info?.other?.profiles?.display_name||info?.other?.profiles?.username||'Conversation');
  const handle=info?.other?.profiles?.username;
  const avatar=info?.other?.profiles?.avatar_url;
