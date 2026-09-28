@@ -627,19 +627,19 @@ export default function Conversation(){
         {(m.message_reactions||[]).length>0?<View style={s.reactions}>{Object.entries((m.message_reactions||[]).reduce((a,r)=>(a[r.emoji]=(a[r.emoji]||[]).concat(r),a),{})).map(([emoji,rows])=>{const mine=rows.some(r=>r.user_id===user.id);return <Pressable key={emoji} onPress={()=>toggleReaction(m,emoji)} style={[s.reaction,mine&&s.reactionMine]}><Text style={s.reactionText}>{emoji} {rows.length}</Text></Pressable>})}</View>:null}
        </Pressable>
       </View>
-     </React.Fragment>)})}
+      </React.Fragment>)})}
+      {newMessagesCount>0&&!isNearBottom?(
+       <Pressable onPress={()=>{scrollRef.current?.scrollToEnd({animated:true});setIsNearBottom(true);setNewMessagesCount(0)}} style={s.newMessagesPill}>
+        <Text style={s.newMessagesText}>{newMessagesCount} new message{newMessagesCount===1?'':'s'}</Text>
+       </Pressable>
+      ):null}
+      {showJumpToLatest?(
+       <Pressable onPress={()=>{scrollRef.current?.scrollToEnd({animated:true});setShowJumpToLatest(false)}} style={s.jumpLatest}>
+        <Text style={s.jumpLatestText}>↓</Text>
+       </Pressable>
+      ):null}
      </ScrollView>
-     {newMessagesCount>0&&!isNearBottom?(
-      <Pressable onPress={()=>{scrollRef.current?.scrollToEnd({animated:true});setIsNearBottom(true);setNewMessagesCount(0)}} style={s.newMessagesPill}>
-       <Text style={s.newMessagesText}>{newMessagesCount} new message{newMessagesCount===1?'':'s'}</Text>
-      </Pressable>
-     ):null}
-     {showJumpToLatest?(
-      <Pressable onPress={()=>{scrollRef.current?.scrollToEnd({animated:true});setShowJumpToLatest(false)}} style={s.jumpLatest}>
-       <Text style={s.jumpLatestText}>↓</Text>
-      </Pressable>
-     ):null}
-    </View>
+     </View>
      {selectedIds.length>0&&<View style={s.selectionBar}><Text style={s.selectionCount}>{selectedIds.length} selected</Text><Pressable onPress={bulkStar}><Text style={s.action}>★ Star</Text></Pressable><Pressable onPress={openForwardMany}><Text style={s.action}>Forward</Text></Pressable><Pressable onPress={bulkDeleteForMe}><Text style={s.actionDanger}>Delete</Text></Pressable><Pressable onPress={clearSelection}><Text style={s.actionMuted}>Close</Text></Pressable></View>}
      {selectedMessage&&<View style={s.actionBar}><Text style={s.actionLabel}>Message</Text><Pressable onPress={()=>toggleSelection(selectedMessage)}><Text style={s.action}>Select</Text></Pressable><View style={s.reactionPicker}><Pressable onPress={()=>toggleReaction(selectedMessage,'❤️')} style={s.reactionChoice}><Text style={s.reactionEmoji}>❤️</Text></Pressable><Pressable onPress={()=>toggleReaction(selectedMessage,'😂')} style={s.reactionChoice}><Text style={s.reactionEmoji}>😂</Text></Pressable><Pressable onPress={()=>toggleReaction(selectedMessage,'👍')} style={s.reactionChoice}><Text style={s.reactionEmoji}>👍</Text></Pressable><Pressable onPress={()=>toggleReaction(selectedMessage,'🔥')} style={s.reactionChoice}><Text style={s.reactionEmoji}>🔥</Text></Pressable><Pressable onPress={()=>toggleReaction(selectedMessage,'👏')} style={s.reactionChoice}><Text style={s.reactionEmoji}>👏</Text></Pressable></View><Pressable onPress={()=>startReply(selectedMessage)}><Text style={s.action}>Reply</Text></Pressable><Pressable onPress={()=>openForward(selectedMessage)}><Text style={s.action}>Forward</Text></Pressable><Pressable onPress={()=>toggleStar(selectedMessage)}><Text style={s.action}>★</Text></Pressable><Pressable onPress={()=>togglePin(selectedMessage)}><Text style={s.action}>{pinned.some(p=>p.message_id===selectedMessage.id)?'Unpin':'Pin'}</Text></Pressable><Pressable onPress={()=>deleteForMe(selectedMessage)}><Text style={s.actionDanger}>Delete for me</Text></Pressable>{selectedMessage.sender_id===user.id?<><Pressable onPress={()=>{editMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.action}>Edit</Text></Pressable><Pressable onPress={()=>{deleteMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.actionDanger}>Delete</Text></Pressable></>:null}<Pressable onPress={()=>setSelectedMessage(null)}><Text style={s.actionMuted}>Close</Text></Pressable></View>}
      {replyTo&&<View style={s.replying}><Text style={s.replyingLabel}>Replying to {replyTo.profiles?.display_name||replyTo.profiles?.username||'message'}{replyTo.content?' · '+replyTo.content.slice(0,70):' · media'}</Text><Pressable onPress={()=>setReplyTo(null)}><Text style={s.actionMuted}>Cancel</Text></Pressable></View>}
