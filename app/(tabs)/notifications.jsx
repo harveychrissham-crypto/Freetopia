@@ -22,8 +22,17 @@ export default function Notifications(){
  useEffect(()=>{
   if(!user?.id)return;
   const channel=supabase.channel('notifications-'+user.id)
-   .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},payload=>{
-    setItems(current=>current.some(x=>x.id===payload.new?.id)?current:[payload.new,...current].slice(0,50));
+   .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},async payload=>{
+    const id=payload.new?.id;
+    if(!id)return;
+    const {data:item}=await supabase
+     .from('notifications')
+     .select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url)')
+     .eq('id',id)
+     .eq('recipient_id',user.id)
+     .maybeSingle();
+    if(!item)return;
+    setItems(current=>current.some(x=>x.id===item.id)?current:[item,...current].slice(0,50));
    })
    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},payload=>{
     setItems(current=>current.map(x=>x.id===payload.new?.id?{...x,...payload.new}:x));
