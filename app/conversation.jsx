@@ -71,8 +71,6 @@ export default function Conversation(){
   if(messages.length)requestAnimationFrame(()=>scrollRef.current?.scrollToEnd({animated:true}));
  },[messages.length]);
 
- useEffect(()=>{(async()=>{try{await AudioModule.requestRecordingPermissionsAsync();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:true});}catch(e){setError(e.message||'Microphone setup failed');}})();},[]);
-
  const sendVoice=async()=>{
   if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading||sending)return;
   setError('');
