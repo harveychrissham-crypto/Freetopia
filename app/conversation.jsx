@@ -90,6 +90,19 @@ export default function Conversation(){
   ]);
  };
 
+ const cancelEdit=()=>{
+  setEditingId(null);
+  setText('');
+  setSelectedMessage(null);
+ };
+
+ const onInputKeyPress=(e)=>{
+  if(Platform.OS==='web' && e?.nativeEvent?.key==='Enter' && !e.nativeEvent.shiftKey){
+   e.preventDefault?.();
+   if(text.trim())send();
+  }
+ };
+
  const name=info?.other?.profiles?.display_name||info?.other?.profiles?.username||'Conversation';
  const handle=info?.other?.profiles?.username;
  const avatar=info?.other?.profiles?.avatar_url;
@@ -130,9 +143,9 @@ export default function Conversation(){
        </Pressable>
       </View>)}
      </ScrollView>
-     {selectedMessage&&<View style={s.actionBar}><Text style={s.actionLabel}>Message options</Text><Pressable onPress={()=>{editMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.action}>Edit</Text></Pressable><Pressable onPress={()=>{deleteMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.actionDanger}>Delete</Text></Pressable><Pressable onPress={()=>setSelectedMessage(null)}><Text style={s.actionMuted}>Cancel</Text></Pressable></View>}
+     {selectedMessage&&<View style={s.actionBar}><Text style={s.actionLabel}>Message options</Text><Pressable onPress={()=>{editMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.action}>Edit</Text></Pressable><Pressable onPress={()=>{deleteMessage(selectedMessage);setSelectedMessage(null)}}><Text style={s.actionDanger}>Delete</Text></Pressable><Pressable onPress={cancelEdit}><Text style={s.actionMuted}>Cancel</Text></Pressable></View>}
      <View style={s.composer}>
-      <TextInput value={text} onChangeText={setText} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={s.input} multiline maxLength={2000}/>
+      <TextInput value={text} onChangeText={setText} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={s.input} multiline maxLength={2000}/>
       <Pressable disabled={sending||!text.trim()} onPress={send} style={[s.send,(!text.trim()||sending)&&s.sendDisabled]}><Text style={s.sendText}>{sending?'…':editingId?'Save':'Send'}</Text></Pressable>
      </View></>}
   </KeyboardAvoidingView>
