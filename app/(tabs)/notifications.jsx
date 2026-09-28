@@ -17,7 +17,7 @@ export default function Notifications(){
   const sequence=++loadSequenceRef.current;
   if(pull)setRefreshing(true);else setLoading(true);
   setError('');
-  const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,undefined').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(50);
+  const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url),comment:comment_id(id,parent_id)').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(50);
   if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
   if(queryError){setError(queryError.message);setItems([]);}else{
    let rows=data||[];
