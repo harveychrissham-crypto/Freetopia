@@ -111,8 +111,8 @@ export default function Notifications(){
   <View style={s.top}><View><Text style={s.eyebrow}>ACTIVITY</Text><View style={s.titleRow}><Text style={s.title}>Notifications</Text>{unread>0&&<View style={s.count}><Text style={s.countText}>{unread>99?'99+':unread}</Text></View>}</View></View>{unread>0&&<Pressable onPress={markAll} style={s.mark}><Text style={s.markText}>Mark all read</Text></Pressable>}</View>
   <Text style={s.lead}>Stay close to what’s happening around you.</Text>
   {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
-  {loading&&<View style={s.empty}><Text style={s.h}>Loading activity…</Text></View>}
-  {!loading&&!error&&items.length===0&&<View style={s.empty}><Text style={s.icon}>♡</Text><Text style={s.h}>You’re all caught up</Text><Text style={s.p}>New reactions, replies, and follows will appear here.</Text></View>}
+  {loading&&<LoadingState label="Loading activity…" rows={4}/>}
+  {!loading&&!error&&items.length===0&&<EmptyState icon="bell" title="You’re all caught up" body="New reactions, replies, and follows will appear here."/>
   {!loading&&items.map(item=><NotificationRow key={item.id} item={item} onRead={markRead} onOpen={r} onRespond={respond}/>)}
  </ScrollView></SafeAreaView>
 }
