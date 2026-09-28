@@ -3,6 +3,7 @@ import { getImageUrl } from '../../lib/imageUrl';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useLocalSearchParams,useRouter } from 'expo-router';
+import { LoadingState } from '../../components/FeedbackState';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
@@ -191,7 +192,7 @@ function ProfileRail({profile,completion,percent,counts,communities,router,isOwn
 function MiniStat({n,label}){return <View style={s.mini}><Text style={s.miniIcon}>◌</Text><Text style={s.miniN}>{n>=1000?(n/1000).toFixed(1).replace('.0','')+'K':n}</Text><Text style={s.miniLabel}>{label}</Text></View>}
 function Empty({title,body}){return <View style={s.empty}><Text style={s.emptyTitle}>{title}</Text><Text style={s.emptyBody}>{body}</Text></View>}
 function ErrorBox({message}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load profile</Text><Text style={s.errorBody}>{message}</Text></View>}
-function Loading(){return <View style={s.loading}><Text style={s.loadingText}>Loading your profile…</Text></View>}
+function Loading(){return <LoadingState label="Loading your profile…" rows={3}/>}
 function Avatar({initials,uri}){return uri?<Image source={{uri:getImageUrl(uri,{width:800,height:800,quality:100})}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View>}
 function relative(value){const m=Math.floor((Date.now()-new Date(value).getTime())/60000);if(m<1)return 'now';if(m<60)return m+'m';const h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d'}
 
