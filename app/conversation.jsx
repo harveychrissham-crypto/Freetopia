@@ -173,6 +173,7 @@ export default function Conversation(){
  },[id,user?.id]);
 
  useEffect(()=>{
+  mountedRef.current=true;
   load();
   loadDraft();
 
@@ -196,15 +197,15 @@ export default function Conversation(){
    const incoming=payload.new;
    if(!incoming?.id)return;
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
-   if(!message)return;
+   if(!message||!mountedRef.current)return;
    setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
-   if(message.sender_id!==user?.id&&!message.deleted_at&&infoRef.current?.me?.request_status==='accepted'){await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});} 
+   if(message.sender_id!==user?.id&&!message.deleted_at&&infoRef.current?.me?.request_status==='accepted'){await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});if(mountedRef.current)await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});} 
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    const incoming=payload.new;
    if(!incoming?.id)return;
    const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
-   if(!message)return;
+   if(!message||!mountedRef.current)return;
    setMessages(current=>current.map(x=>x.id===message.id?message:x));
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_reads'},async payload=>{
    const messageId=payload.new?.message_id||payload.old?.message_id;
@@ -243,7 +244,7 @@ export default function Conversation(){
    const recipientCount=nextMembers.filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
    setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
   }).subscribe(async status=>{if(status==='SUBSCRIBED'){await ch.track({user_id:user.id});}});
-  return()=>{channelRef.current=null;if(typingTimerRef.current)clearTimeout(typingTimerRef.current);setOnlineUsers([]);supabase.removeChannel(ch)}
+  return()=>{mountedRef.current=false;channelRef.current=null;if(typingTimerRef.current)clearTimeout(typingTimerRef.current);setOnlineUsers([]);supabase.removeChannel(ch)}
  },[id,load,user?.id]);
 
  useEffect(()=>{
