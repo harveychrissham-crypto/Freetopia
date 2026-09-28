@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react';
+import AppIcon from '../components/AppIcon';
 import { getImageUrl } from '../lib/imageUrl';
 import {Image,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
 import {useLocalSearchParams,useRouter} from 'expo-router';
@@ -42,7 +43,7 @@ export default function NewMessage(){
  };
 
  return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-  <View style={s.top}><Pressable onPress={()=>router.back()} hitSlop={8} style={s.backButton}><Text style={s.back}>‹</Text></Pressable><Text style={s.topTitle}>New message</Text><View style={s.topSpacer}/></View>
+  <View style={s.top}><Pressable onPress={()=>router.back()} hitSlop={8} style={s.backButton}><AppIcon name="arrow-left" size={18}/></Pressable><Text style={s.topTitle}>New message</Text><View style={s.topSpacer}/></View>
   <View style={s.hero}><View style={s.icon}><Text style={s.iconText}>✦</Text></View><Text style={s.title}>Start a conversation</Text><Text style={s.lead}>{userId?'Message this Freetopia member directly.':'Find someone on Freetopia and start a conversation.'}</Text></View>
   <View style={s.search}><TextInput value={q} onChangeText={setQ} onSubmitEditing={search} returnKeyType="search" placeholder="Search by name or username" placeholderTextColor="#718092" style={s.input}/><Pressable onPress={search} disabled={!q.trim()||busy} style={[s.go,(!q.trim()||busy)&&s.goDisabled]}><Text style={s.wh}>Search</Text></Pressable></View>
   {error&&<Text style={s.err}>{error}</Text>}
@@ -51,7 +52,7 @@ export default function NewMessage(){
   {people.map(p=><Pressable key={p.id} disabled={busy} onPress={()=>start(p.id)} style={({pressed})=>[s.person,pressed&&s.pressed]}>
    <View style={s.avatar}>{p.avatar_url?<Image source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text style={s.avt}>{(p.display_name||p.username||'?')[0].toUpperCase()}</Text>}</View>
    <View style={{flex:1}}><Text style={s.name}>{p.display_name||p.username}</Text>{p.username&&<Text style={s.handle}>@{p.username}</Text>}{p.bio&&<Text style={s.bio} numberOfLines={1}>{p.bio}</Text>}</View>
-   <Text style={s.next}>›</Text>
+   <AppIcon name="chevron-right" size={18} color="#9DB5D1"/>
   </Pressable>)}
  </ScrollView></SafeAreaView>
 }
