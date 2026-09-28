@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, supabaseConfigError } from '../lib/supabase';
 
 const AuthContext = createContext(null);
-const AUTH_STARTUP_TIMEOUT = 8000;
+const AUTH_STARTUP_TIMEOUT = 15000;
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -14,9 +14,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
     let timeoutId;
+    let startupFinished = false;
 
     const finishStartup = () => {
-      if (!mounted) return;
+      if (!mounted || startupFinished) return;
+      startupFinished = true;
       clearTimeout(timeoutId);
       setLoading(false);
     };
@@ -42,6 +44,7 @@ export function AuthProvider({ children }) {
         if (error) {
           console.warn('Unable to restore session:', error.message);
           setStartupError(null);
+          setSession(null);
         } else {
           setStartupError(null);
           setSession(data?.session ?? null);
@@ -62,6 +65,7 @@ export function AuthProvider({ children }) {
         if (!mounted) return;
         setStartupError(null);
         setSession(nextSession ?? null);
+        if (nextSession) finishStartup();
         if (!nextSession) setProfile(null);
       });
       subscription = data?.subscription;
