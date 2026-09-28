@@ -227,7 +227,7 @@ function CommunityList({communities,router,query=''}) {
     </Pressable>)}
   </ScrollView>;
 }
-function Empty({tab}){return <EmptyState icon={tab==='Archived'?'archive':'message'} title={tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'} body={tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'} action={tab==='Requests'?'Explore people':'New message'} onPress={()=>{}}/>}
+function Empty({tab}){return <EmptyState icon={tab==='Archived'?'archive':'message'} title={tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'} body={tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'}/>}
 function Error({text}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load messages</Text><Text style={s.errorText}>{text}</Text></View>}
 function Loading(){return <LoadingState label="Loading conversations…" rows={4}/>}
 function Badge({n}){return <View style={s.badge}><Text style={s.badgeText}>{n>99?'99+':n}</Text></View>}
