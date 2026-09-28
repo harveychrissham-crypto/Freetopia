@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../providers/AuthProvider';
 
 export default function Index() {
-  const { session, loading, configError } = useAuth();
+  const { session, loading, configError, startupError } = useAuth();
 
   if (configError) {
     return (
@@ -17,6 +17,23 @@ export default function Index() {
           <Text style={s.configTitle}>Freetopia cannot connect yet</Text>
           <Text style={s.configText}>{configError}</Text>
         </View>
+      </View>
+    );
+  }
+
+  if (startupError) {
+    return (
+      <View style={s.loading}>
+        <View style={s.brand}>
+          <Image source={require('../public/brand/freetopia-mark.png')} style={s.logo} resizeMode="contain" />
+        </View>
+        <Text style={s.title}>Freetopia</Text>
+        <Text style={s.subtitle}>Your session could not be restored.</Text>
+        <View style={s.configCard}>
+          <Text style={s.configTitle}>Startup took too long</Text>
+          <Text style={s.configText}>{startupError}</Text>
+        </View>
+        <Text style={s.retryHint}>You can continue to sign in below.</Text>
       </View>
     );
   }
@@ -95,6 +112,7 @@ const s = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+  retryHint: { color: '#7F8D9D', fontSize: 11, marginTop: 14, textAlign: 'center' },
   configText: {
     color: '#C7AAB0',
     fontSize: 11,
