@@ -168,7 +168,10 @@ export default function Auth() {
               <Field
                 label="Name"
                 value={displayName}
-                onChangeText={setDisplayName}
+                onChangeText={(value) => {
+                  setDisplayName(value);
+                  setError('');
+                }}
                 placeholder="Your name"
                 autoCapitalize="words"
                 returnKeyType="next"
@@ -178,7 +181,10 @@ export default function Auth() {
             <Field
               label="Email"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(value) => {
+                setEmail(value);
+                setError('');
+              }}
               placeholder="you@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -197,7 +203,10 @@ export default function Auth() {
               <View style={s.passwordWrap}>
                 <TextInput
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(value) => {
+                    setPassword(value);
+                    setError('');
+                  }}
                   placeholder="Your password"
                   placeholderTextColor="#9a9aa4"
                   secureTextEntry={!showPassword}
