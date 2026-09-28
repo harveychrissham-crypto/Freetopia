@@ -74,7 +74,7 @@ export default function PostScreen(){
   if(postResult.error)setError(postResult.error.message);else { setPost(postResult.data); const reactions=postResult.data?.post_reactions||[]; setReactionCount(reactions.filter(x=>x.reaction_type==='like').length); setLiked(reactions.some(x=>x.user_id===user?.id&&x.reaction_type==='like')); }
   if(commentsResult.error)setError(commentsResult.error.message);else setComments(commentsResult.data||[]);
   setLoading(false);
- },[id]);
+ },[id,user?.id]);
 
  useFocusEffect(useCallback(()=>{load();},[load]));
 
@@ -114,6 +114,7 @@ export default function PostScreen(){
   <View style={s.header}><Pressable onPress={()=>r.back()}><Text style={s.back}>‹</Text></Pressable><Text style={s.headerTitle}>Post</Text><View style={{width:30}}/></View>
   <ScrollView contentContainerStyle={s.content}>
    {loading&&<Text style={s.muted}>Loading post…</Text>}
+   {!loading&&!post&&!error&&<Text style={s.muted}>This post is unavailable or has been removed.</Text>}
    {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
    {!!post&&<View style={s.post}>
     <View style={s.postTop}><Pressable onPress={openAuthor} style={s.authorWrap}>{author?.avatar_url?<Image source={{uri:getImageUrl(author.avatar_url,{width:800,height:800,quality:100})}} style={s.authorAvatar}/>:<View style={s.authorFallback}><Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text></View>}<View style={{flex:1}}><Text style={s.author}>{name}</Text>{author?.username&&<Text style={s.handle}>@{author.username}</Text>}{community?.name&&<Pressable onPress={()=>r.push({pathname:'/community',params:{id:community.id}})}><Text style={s.community}>in {community.name}</Text></Pressable>}</View>

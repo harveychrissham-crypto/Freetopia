@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -14,16 +14,19 @@ const tabs = ['For You','Following','Communities'];
 export default function Home() {
  const router=useRouter(),{width}=useWindowDimensions(),{user,profile}=useAuth(),desktop=Platform.OS==='web'&&width>=1000;
  const[activeTab,setActiveTab]=useState('For You'),[posts,setPosts]=useState([]),[communities,setCommunities]=useState([]),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[unreadNotifications,setUnreadNotifications]=useState(0);
+ const loadSeq=useRef(0);
  const load=useCallback(async(pull=false)=>{
+  const seq=++loadSeq.current;
   pull?setRefreshing(true):setLoading(true);setError('');
   const unreadPromise=user?.id?supabase.from('notifications').select('id',{count:'exact',head:true}).eq('user_id',user.id).is('read_at',null):Promise.resolve({count:0,error:null});
   const communitiesPromise=supabase.from('communities').select('id,name,slug,description,is_private').order('created_at',{ascending:false}).limit(5);
   let authorIds=null;
-  if(activeTab==='Following'&&user?.id){const{data,error:e}=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted');if(e)setError(e.message);else authorIds=[user.id,...(data||[]).map(r=>r.following_id)]}
+  if(activeTab==='Following'&&user?.id){const{data,error:e}=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted');if(e){setError(e.message);authorIds=[user.id]}else authorIds=[user.id,...(data||[]).map(r=>r.following_id)]}
   let query=supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name),post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,duration_seconds,sort_order,processing_status,playback_url,thumbnail_path)').order('created_at',{ascending:false}).limit(30);
   if(activeTab==='Following'&&authorIds)query=query.in('author_id',authorIds);
   if(activeTab==='Communities')query=query.not('community_id','is',null);
   const[{data,error:postError},{data:communityData,error:communityError},unreadResult]=await Promise.all([query,communitiesPromise,unreadPromise]);
+  if(seq!==loadSeq.current)return;
   if(postError)setError(postError.message);if(communityError)setError(communityError.message);if(unreadResult?.error)setError(unreadResult.error.message);
   setUnreadNotifications(unreadResult?.count||0);
   setPosts((data||[]).map(post=>({...post,reactionCount:post.post_reactions?.filter(r=>r.reaction_type==='like').length||0,liked:post.post_reactions?.some(r=>r.user_id===user?.id&&r.reaction_type==='like')||false})));

@@ -1,10 +1,14 @@
 import { Platform, useWindowDimensions } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useAuth } from '../../providers/AuthProvider';
 
 export default function TabLayout() {
   const { width } = useWindowDimensions();
+  const { session, loading } = useAuth();
   const desktopWeb = Platform.OS === 'web' && width >= 1000;
+
+  if (!loading && !session) return <Redirect href="/auth" />;
 
   return (
     <>
