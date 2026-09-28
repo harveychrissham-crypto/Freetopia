@@ -84,7 +84,7 @@ export default function Messages() {
   const rows = useMemo(() => {
     const filtered = items.filter(c => {
       const p=c.other?.profiles;
-      const n=p?.display_name||p?.username||c.title||'Conversation';
+      const n=c.kind==='group'?(c.title||'Group'):p?.display_name||p?.username||c.title||'Conversation';
       const term=query.trim().toLowerCase(); return !term || String(n).toLowerCase().includes(term);
     });
     return filtered.filter(c =>
