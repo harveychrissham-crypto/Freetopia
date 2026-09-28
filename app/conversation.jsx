@@ -160,7 +160,7 @@ export default function Conversation(){
   const me=(c.conversation_members||[]).find(x=>x.user_id===user.id);
   const other=(c.conversation_members||[]).find(x=>x.user_id!==user.id);
   setInfo({...c,me,other}); setGroupTitle(c.title||'');
-  if(me?.request_status==='accepted'){
+  if(me?.request_status==='accepted'){\n   await supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('conversation_id',id).is('read_at',null);
    const{data:m,error:e}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);
    if(e){if(mountedRef.current)setError(e.message);}
    else if(sequence===loadSequenceRef.current&&mountedRef.current){
