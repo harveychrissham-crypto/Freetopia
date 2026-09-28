@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
+import AppIcon from '../../components/AppIcon';
 
 const C = { bg:'#060B12', panel:'#0A121C', panel2:'#0E1824', line:'#182533', text:'#E9EEF4', muted:'#7F8D9D', blue:'#4B78A8', violet:'#4A3F78', pink:'#7A496F', white:'#F4F6F8', danger:'#A95B69' };
 
@@ -113,7 +114,7 @@ export default function Messages() {
     <SafeAreaView style={s.safe}>
       <View style={s.mobileHead}>
         <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
-        <View style={s.headActions}><Pressable onPress={()=>router.push('/explore')}><Text style={s.icon}>⌕</Text></Pressable><Pressable onPress={()=>router.push('/new-message')}><Text style={s.icon}>□</Text></Pressable></View>
+        <View style={s.headActions}><Pressable onPress={()=>router.push('/explore')}><AppIcon name="search" size={18} color={C.text}/></Pressable><Pressable onPress={()=>router.push('/new-message')}><AppIcon name="plus" size={18} color={C.text}/></Pressable></View>
       </View>
       <View style={s.mobileTitleRow}><Text style={s.mobileTitle}>Messages</Text><Pressable onPress={()=>router.push('/new-message')}><Text style={s.compose}>↗</Text></Pressable></View>
       <Tabs tab={tab} setTab={setTab} requestCount={requestCount}/>
@@ -128,15 +129,15 @@ export default function Messages() {
 }
 
 function Sidebar({profile,router,requestCount}) {
-  const items=[['⌂','Home','/home'],['⌕','Explore','/explore'],['♧','Communities','/communities'],['▱','Messages','/messages'],['♧','Notifications','/notifications'],['＋','Create','/create'],['♙','Profile','/profile']];
+  const items=[['home','Home','/home'],['compass','Explore','/explore'],['users','Communities','/communities'],['message','Messages','/messages'],['bell','Notifications','/notifications'],['plus','Create','/create'],['profile','Profile','/profile']];
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
-    <View style={s.sideNav}>{items.map(([ic,label,path])=><Pressable key={label} onPress={()=>router.push(path)} style={[s.sideItem,label==='Messages'&&s.active]}><Text style={s.sideIcon}>{ic}</Text><Text style={s.sideLabel}>{label}</Text>{label==='Messages'&&requestCount>0?<Badge n={requestCount}/>:null}</Pressable>)}</View>
+    <View style={s.sideNav}>{items.map(([ic,label,path])=><Pressable key={label} onPress={()=>router.push(path)} style={[s.sideItem,label==='Messages'&&s.active]}><AppIcon name={ic} size={18} color="#AFC0D3"/><Text style={s.sideLabel}>{label}</Text>{label==='Messages'&&requestCount>0?<Badge n={requestCount}/>:null}</Pressable>)}</View>
     <View style={s.proCard}><Text style={s.proTitle}>✦ Freetopia Pro</Text><Text style={s.proBody}>Unlock more features, customize your experience, and get closer to your community.</Text><View style={s.proButton}><Text style={s.proButtonText}>Coming soon</Text></View></View>
   </View>;
 }
 function Topbar({query,setQuery,router,profile}) {
-  return <View style={s.topbar}><TextInput value={query} onChangeText={setQuery} placeholder="Search Freetopia..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Pressable accessibilityLabel="Notifications" onPress={()=>router.push('/notifications')} style={s.topIconButton}><Text style={s.topIcon}>♧</Text></Pressable><Pressable accessibilityLabel="Messages" onPress={()=>router.push('/messages')} style={s.topIconButton}><Text style={s.topIcon}>□</Text></Pressable><Pressable onPress={()=>router.push('/profile')}>{profile?.avatar_url?<Image source={{uri:getImageUrl(profile.avatar_url,{width:800,height:800,quality:100})}} style={s.topAvatar}/>:<View style={s.topAvatar}><Text style={s.topAvatarText}>{(profile?.display_name||profile?.username||'F')[0].toUpperCase()}</Text></View>}</Pressable></View></View>;
+  return <View style={s.topbar}><TextInput value={query} onChangeText={setQuery} placeholder="Search Freetopia..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Pressable accessibilityLabel="Notifications" onPress={()=>router.push('/notifications')} style={s.topIconButton}><AppIcon name="bell" size={18} color={C.text}/></Pressable><Pressable accessibilityLabel="Messages" onPress={()=>router.push('/messages')} style={s.topIconButton}><AppIcon name="message" size={18} color={C.text}/></Pressable><Pressable onPress={()=>router.push('/profile')}>{profile?.avatar_url?<Image source={{uri:getImageUrl(profile.avatar_url,{width:800,height:800,quality:100})}} style={s.topAvatar}/>:<View style={s.topAvatar}><Text style={s.topAvatarText}>{(profile?.display_name||profile?.username||'F')[0].toUpperCase()}</Text></View>}</Pressable></View></View>;
 }
 function Tabs({tab,setTab,requestCount}) {
   return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>{['Messages','Requests','Communities','Archived'].map(x=><Pressable key={x} onPress={()=>setTab(x)} style={[s.tab,tab===x&&s.tabSelected]}><Text style={[s.tabText,tab===x&&s.tabSelectedText]}>{x}</Text>{x==='Requests'&&requestCount>0?<View style={s.count}><Text style={s.countText}>{requestCount}</Text></View>:null}</Pressable>)}</ScrollView>;
