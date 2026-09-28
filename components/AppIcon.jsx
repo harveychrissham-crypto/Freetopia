@@ -21,6 +21,10 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'globe') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.72,height:size*.72,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.14,top:size*.14}}/><View style={{position:'absolute',width:size*.72,height:stroke,backgroundColor:color,left:size*.14,top:size*.48}}/><View style={{position:'absolute',width:size*.22,height:size*.72,borderLeftWidth:stroke,borderRightWidth:stroke,borderColor:color,left:size*.39,top:size*.14,borderRadius:size}}/></View>;
 
+  if (name === 'chevron-down') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.36,height:size*.36,borderRightWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],left:size*.3,top:size*.2}}/></View>;
+
+  if (name === 'write') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.5,height:stroke,backgroundColor:color,transform:[{rotate:'-45deg'}],left:size*.23,top:size*.5}}/><View style={{position:'absolute',width:size*.12,height:size*.12,backgroundColor:color,transform:[{rotate:'-45deg'}],left:size*.69,top:size*.18}}/></View>;
+
   if (name === 'search') return (
     <View style={[s.box, { width: size, height: size }]}>
       <View style={[s.searchCircle, { width: size * .55, height: size * .55, borderRadius: size, borderWidth: stroke, borderColor: color, left: size * .16, top: size * .12 }]} />
