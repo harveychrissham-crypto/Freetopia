@@ -1,8 +1,9 @@
-import { Redirect } from 'expo-router';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { Redirect, useRouter } from 'expo-router';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../providers/AuthProvider';
 
 export default function Index() {
+  const router = useRouter();
   const { session, loading, configError, startupError } = useAuth();
 
   if (configError) {
@@ -33,7 +34,14 @@ export default function Index() {
           <Text style={s.configTitle}>Startup took too long</Text>
           <Text style={s.configText}>{startupError}</Text>
         </View>
-        <Text style={s.retryHint}>You can continue to sign in below.</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Continue to sign in"
+          onPress={() => router.replace('/auth')}
+          style={({ pressed }) => [s.retryButton, pressed && s.retryButtonPressed]}
+        >
+          <Text style={s.retryButtonText}>Continue to sign in</Text>
+        </Pressable>
       </View>
     );
   }
@@ -113,6 +121,23 @@ const s = StyleSheet.create({
     fontWeight: '800',
   },
   retryHint: { color: '#7F8D9D', fontSize: 11, marginTop: 14, textAlign: 'center' },
+  retryButton: {
+    minWidth: 190,
+    marginTop: 18,
+    paddingHorizontal: 22,
+    paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+  },
+  retryButtonPressed: {
+    opacity: 0.78,
+  },
+  retryButtonText: {
+    color: '#060B12',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   configText: {
     color: '#C7AAB0',
     fontSize: 11,
