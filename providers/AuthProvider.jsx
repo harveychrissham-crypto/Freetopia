@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, supabaseConfigError } from '../lib/supabase';
 
 const AuthContext = createContext(null);
-const AUTH_STARTUP_TIMEOUT = 15000;
+const AUTH_STARTUP_TIMEOUT = 7000;
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -29,18 +29,23 @@ export function AuthProvider({ children }) {
       return () => { mounted = false; };
     }
 
-    timeoutId = setTimeout(() => {
-      if (!mounted) return;
-      setStartupError('Freetopia could not restore your session in time. Please continue to the sign-in screen.');
-      setSession(null);
-      setProfile(null);
-      setLoading(false);
-    }, AUTH_STARTUP_TIMEOUT);
-
     const loadSession = async () => {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error('SESSION_RESTORE_TIMEOUT')),
+          AUTH_STARTUP_TIMEOUT,
+        ),
+      );
+
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          timeout,
+        ]);
+
         if (!mounted) return;
+        const { data, error } = sessionResult;
+
         if (error) {
           console.warn('Unable to restore session:', error.message);
           setStartupError(null);
@@ -51,9 +56,16 @@ export function AuthProvider({ children }) {
         }
       } catch (error) {
         if (!mounted) return;
-        console.warn('Session restore failed:', error?.message || error);
-        setStartupError(null);
+
+        if (error?.message === 'SESSION_RESTORE_TIMEOUT') {
+          setStartupError('Freetopia could not restore your session in time. Please continue to the sign-in screen.');
+        } else {
+          console.warn('Session restore failed:', error?.message || error);
+          setStartupError(null);
+        }
+
         setSession(null);
+        setProfile(null);
       } finally {
         finishStartup();
       }
