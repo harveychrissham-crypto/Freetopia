@@ -37,7 +37,7 @@ export default function TabLayout() {
         <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <AppIcon name="home" size={size} color={color} /> }} />
         <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: ({ color, size }) => <AppIcon name="compass" size={size} color={color} /> }} />
         <Tabs.Screen name="communities" options={{ title: 'Communities', tabBarIcon: ({ color, size }) => <AppIcon name="users" size={size} color={color} /> }} />
-        <Tabs.Screen name="messages" options={{ title: 'Messages', href: null }} />
+        <Tabs.Screen name="messages" options={{ title: 'Messages', tabBarIcon: ({ color, size }) => <AppIcon name="message" size={size} color={color} /> }} />
         <Tabs.Screen name="notifications" options={{ title: 'Activity', href: null }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <AppIcon name="profile" size={size} color={color} /> }} />
       </Tabs>
