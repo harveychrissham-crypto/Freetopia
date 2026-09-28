@@ -21,15 +21,15 @@ export default function TabLayout() {
         tabBarStyle: desktopWeb
           ? { display: 'none' }
           : {
-              height: 68,
-              paddingTop: 8,
-              paddingBottom: 9,
+              height: 72,
+              paddingTop: 9,
+              paddingBottom: 10,
               borderTopColor: '#172538',
               borderTopWidth: 1,
               backgroundColor: '#050A11',
               elevation: 0,
             },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '700' },
+        tabBarLabelStyle: { fontSize: 9, fontWeight: '700', marginTop: 1 },
         tabBarItemStyle: { paddingTop: 1 },
         tabBarHideOnKeyboard: true,
         sceneStyle: { backgroundColor: '#060B12' },
