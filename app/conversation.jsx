@@ -271,9 +271,24 @@ export default function Conversation(){
    setInfo(current=>current?{...current,conversation_members:nextMembers,me:nextMe||current.me,other:nextOther}:current);
    const recipientCount=nextMembers.filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
    setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
-  }).subscribe(async status=>{if(status==='SUBSCRIBED'){await ch.track({user_id:user.id});}});
-  return()=>{mountedRef.current=false;statusLoadSequenceRef.current+=1;channelRef.current=null;if(typingTimerRef.current){clearTimeout(typingTimerRef.current);typingTimerRef.current=null;}broadcastTyping(false);setTyping(false);setOnlineUsers([]);supabase.removeChannel(ch)}
- },[id,load,user?.id]);
+   }).subscribe(async status=>{
+    if(status==='SUBSCRIBED'){
+     await ch.track({user_id:user.id});
+    }
+   });
+   return()=>{
+    mountedRef.current=false;
+    statusLoadSequenceRef.current+=1;
+    channelRef.current=null;
+    if(typingTimerRef.current){
+     clearTimeout(typingTimerRef.current);
+     typingTimerRef.current=null;
+    }
+    broadcastTyping(false);
+    setTyping(false);
+    setOnlineUsers([]);
+    supabase.removeChannel(ch);
+   };
 
  const previousMessageCountRef=useRef(0);
  useEffect(()=>{
