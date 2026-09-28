@@ -13,9 +13,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let mounted = true;
-    let timeoutId;
     let startupFinished = false;
-    let startupTimedOut = false;
 
     const finishStartup = () => {
       if (!mounted || startupFinished) return;
@@ -30,67 +28,38 @@ export function AuthProvider({ children }) {
       return () => { mounted = false; };
     }
 
-    const loadSession = async () => {
-      const timeout = new Promise((_, reject) => {
-        timeoutId = setTimeout(
-          () => {
-            startupTimedOut = true;
-            reject(new Error('SESSION_RESTORE_TIMEOUT'));
-          },
-          AUTH_STARTUP_TIMEOUT,
-        );
-      });
-
-      try {
-        const sessionResult = await Promise.race([
-          supabase.auth.getSession(),
-          timeout,
-        ]);
-
-        if (!mounted || startupTimedOut) return;
-        const { data, error } = sessionResult;
-
-        if (error) {
-          console.warn('Unable to restore session:', error.message);
-          setStartupError(null);
-          setSession(null);
-        } else {
-          setStartupError(null);
-          setSession(data?.session ?? null);
-        }
-      } catch (error) {
-        if (!mounted) return;
-
-        if (error?.message === 'SESSION_RESTORE_TIMEOUT') {
-          setStartupError('Freetopia could not restore your session in time. Please continue to the sign-in screen.');
-        } else {
-          console.warn('Session restore failed:', error?.message || error);
-          setStartupError(null);
-        }
-
-        setSession(null);
-        setProfile(null);
-      } finally {
-        finishStartup();
-      }
-    };
+    const timeoutId = setTimeout(() => {
+      if (!mounted || startupFinished) return;
+      startupFinished = true;
+      setStartupError('Freetopia could not restore your session in time. Please continue to the sign-in screen.');
+      setSession(null);
+      setProfile(null);
+      setLoading(false);
+    }, AUTH_STARTUP_TIMEOUT);
 
     let subscription;
     try {
-      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-        if (!mounted || startupTimedOut) return;
-        setStartupError(null);
+      const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+        if (!mounted) return;
+
         setSession(nextSession ?? null);
-        if (nextSession) finishStartup();
         if (!nextSession) setProfile(null);
+        setStartupError(null);
+
+        // Supabase Auth initializes its own client automatically. The
+        // INITIAL_SESSION event is the authoritative startup result, so
+        // avoid calling getSession() concurrently and competing for Auth's
+        // internal lock.
+        if (event === 'INITIAL_SESSION') {
+          finishStartup();
+        }
       });
       subscription = data?.subscription;
     } catch (error) {
       console.warn('Auth listener failed:', error?.message || error);
       setStartupError(null);
+      finishStartup();
     }
-
-    loadSession();
 
     return () => {
       mounted = false;
@@ -98,7 +67,6 @@ export function AuthProvider({ children }) {
       subscription?.unsubscribe();
     };
   }, []);
-
   useEffect(() => {
     let cancelled = false;
 
