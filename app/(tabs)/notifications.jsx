@@ -118,7 +118,7 @@ export default function Notifications(){
  </ScrollView></SafeAreaView>
 }
 
-function NotificationRow({item,onRead,onOpen:r,onRespond}){\n const grouped=item.grouped; const source=grouped?item.items[0]:item;
+function NotificationRow({item,onRead,onOpen:r,onRespond}){ const grouped=item.grouped; const source=grouped?item.items[0]:item;
  const actor=Array.isArray(source.actor)?source.actor[0]:source.actor; const name=actor?.display_name||actor?.username||'Someone';
  const isCommentReaction=source.type==='reaction'&&!!source.comment_id; const isReply=source.type==='comment'&&!!source.comment?.parent_id; const map={reaction:isCommentReaction?'reacted to your comment':'reacted to your post',comment:isReply?'replied to your comment':'commented on your post',follow:'started following you',follow_request:'sent you a follow request',mention:'mentioned you',message:'sent you a message',community:'updated a community',system:'sent you an update'}; const text=grouped?(isCommentReaction?`${item.items.length} people reacted to your comment`:`${item.items.length} people reacted to your post`):(map[source.type]||'interacted with you');
  const open=()=>{if(grouped){item.items.forEach(x=>onRead(x.id));}else onRead(item.id);if(source.post_id)r.push({pathname:'/post',params:source.comment_id?{id:source.post_id,commentId:source.comment_id}:{id:source.post_id}});else if(source.conversation_id)r.push({pathname:'/conversation',params:{id:source.conversation_id}});else if(source.community_id)r.push({pathname:'/community',params:{id:source.community_id}});else if(actor?.id)r.push({pathname:'/profile',params:{id:actor.id}});};
