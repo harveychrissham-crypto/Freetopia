@@ -57,6 +57,7 @@ export default function Conversation(){
  const typingTimerRef=useRef(null);
  const infoRef=useRef(null);
  const statusMessageRef=useRef(null);
+ const loadSequenceRef=useRef(0);
  const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false),[chatTheme,setChatTheme]=useState('dark'),[chatWallpaper,setChatWallpaper]=useState('minimal'),[bubbleStyle,setBubbleStyle]=useState('classic');
 
  const saveDraft=useCallback((value)=>{
@@ -139,16 +140,18 @@ export default function Conversation(){
  },[id,user?.id]);
  const load=useCallback(async()=>{
   if(!id||!user?.id)return;
+  const sequence=++loadSequenceRef.current;
   setLoading(true);
   const{data:c,error:ce}=await supabase.from('conversations').select('id,kind,title,disappearing_seconds,conversation_members(user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url))').eq('id',id).maybeSingle();
-  if(ce||!c){setError(ce?.message||'Conversation not found');setLoading(false);return}
+  if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
+  if(ce||!c){if(mountedRef.current){setError(ce?.message||'Conversation not found');setLoading(false);}return}
   const me=(c.conversation_members||[]).find(x=>x.user_id===user.id);
   const other=(c.conversation_members||[]).find(x=>x.user_id!==user.id);
   setInfo({...c,me,other}); setGroupTitle(c.title||'');
   if(me?.request_status==='accepted'){
    const{data:m,error:e}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);
-   if(e)setError(e.message);
-   else{
+   if(e){if(mountedRef.current)setError(e.message);}
+   else if(sequence===loadSequenceRef.current&&mountedRef.current){
     const {data:hidden}=await supabase.from('message_hidden_for_users').select('message_id').eq('user_id',user.id).in('message_id',(m||[]).map(x=>x.id));
     const hiddenIds=new Set((hidden||[]).map(x=>x.message_id));
     setMessages((m||[]).filter(x=>!hiddenIds.has(x.id)));
@@ -164,7 +167,7 @@ export default function Conversation(){
     }
    }
   }
-  setLoading(false)
+  if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false)
  },[id,user?.id]);
 
  useEffect(()=>{
