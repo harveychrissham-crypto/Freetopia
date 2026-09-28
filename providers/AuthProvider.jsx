@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
     let mounted = true;
     let timeoutId;
     let startupFinished = false;
+    let startupTimedOut = false;
 
     const finishStartup = () => {
       if (!mounted || startupFinished) return;
@@ -30,12 +31,15 @@ export function AuthProvider({ children }) {
     }
 
     const loadSession = async () => {
-      const timeout = new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error('SESSION_RESTORE_TIMEOUT')),
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(
+          () => {
+            startupTimedOut = true;
+            reject(new Error('SESSION_RESTORE_TIMEOUT'));
+          },
           AUTH_STARTUP_TIMEOUT,
-        ),
-      );
+        );
+      });
 
       try {
         const sessionResult = await Promise.race([
@@ -43,7 +47,7 @@ export function AuthProvider({ children }) {
           timeout,
         ]);
 
-        if (!mounted) return;
+        if (!mounted || startupTimedOut) return;
         const { data, error } = sessionResult;
 
         if (error) {
@@ -74,7 +78,7 @@ export function AuthProvider({ children }) {
     let subscription;
     try {
       const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-        if (!mounted) return;
+        if (!mounted || startupTimedOut) return;
         setStartupError(null);
         setSession(nextSession ?? null);
         if (nextSession) finishStartup();
