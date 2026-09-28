@@ -230,11 +230,17 @@ export default function Conversation(){
    }
   }).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:'conversation_id=eq.'+id},async payload=>{
    const member=payload.new||payload.old;
-   if(!member?.conversation_id)return;
-   const accepted=payload.eventType==='DELETE'?false:member.request_status==='accepted';
-   setInfo(current=>current?{...current,conversation_members:(current.conversation_members||[]).filter(x=>x.user_id!==member.user_id).concat(payload.eventType==='DELETE'||!accepted?[]:[member])}:current);
-   const{data:members}=await supabase.from('conversation_members').select('user_id,request_status').eq('conversation_id',id);
-   const recipientCount=(members||[]).filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
+   if(!member?.conversation_id||!mountedRef.current)return;
+   const{data:members,error:membersError}=await supabase
+    .from('conversation_members')
+    .select('user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url)')
+    .eq('conversation_id',id);
+   if(membersError||!mountedRef.current)return;
+   const nextMembers=members||[];
+   const nextMe=nextMembers.find(x=>x.user_id===user.id);
+   const nextOther=nextMembers.find(x=>x.user_id!==user.id);
+   setInfo(current=>current?{...current,conversation_members:nextMembers,me:nextMe||current.me,other:nextOther}:current);
+   const recipientCount=nextMembers.filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
    setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
   }).subscribe(async status=>{if(status==='SUBSCRIBED'){await ch.track({user_id:user.id});}});
   return()=>{channelRef.current=null;if(typingTimerRef.current)clearTimeout(typingTimerRef.current);setOnlineUsers([]);supabase.removeChannel(ch)}
