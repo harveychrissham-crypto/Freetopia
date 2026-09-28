@@ -17,7 +17,7 @@ export default function Notifications(){
   const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url)').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(50);
   if(queryError){setError(queryError.message);setItems([]);}else setItems(data||[]);
   setLoading(false);setRefreshing(false);
- },[]);
+ },[user?.id]);
  useFocusEffect(useCallback(()=>{load();},[load]));
  useEffect(()=>{
   if(!user?.id)return;
@@ -35,7 +35,7 @@ export default function Notifications(){
   const previous=items;
   const now=new Date().toISOString();
   setItems(current=>current.map(item=>item.id===id?{...item,read_at:item.read_at||now}:item));
-  const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('id',id);
+  const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('id',id).eq('recipient_id',user.id);
   if(e){setItems(previous);setError(e.message);}
  };
  const markAll=async()=>{
@@ -56,7 +56,7 @@ export default function Notifications(){
   if(e){setError(e.message);return;}
   const now=new Date().toISOString();
   setItems(current=>current.map(x=>x.id===item.id?{...x,read_at:x.read_at||now,handled:accept?'accepted':'declined'}:x));
-  await supabase.from('notifications').update({read_at:now}).eq('id',item.id);
+  await supabase.from('notifications').update({read_at:now}).eq('id',item.id).eq('recipient_id',user.id);
  };
  const unread=items.filter(x=>!x.read_at).length;
  return <SafeAreaView style={s.safe}><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)}/>} contentContainerStyle={s.content}>
