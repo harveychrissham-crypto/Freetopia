@@ -57,6 +57,7 @@ export default function Conversation(){
  const typingTimerRef=useRef(null);
  const infoRef=useRef(null);
  const statusMessageRef=useRef(null);
+ const messagesRef=useRef([]);
  const loadSequenceRef=useRef(0);
  const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false),[chatTheme,setChatTheme]=useState('dark'),[chatWallpaper,setChatWallpaper]=useState('minimal'),[bubbleStyle,setBubbleStyle]=useState('classic');
 
@@ -112,6 +113,7 @@ export default function Conversation(){
 
  useEffect(()=>{infoRef.current=info;},[info]);
  useEffect(()=>{statusMessageRef.current=statusMessage;},[statusMessage]);
+ useEffect(()=>{messagesRef.current=messages;},[messages]);
  useEffect(()=>{
   mountedRef.current=true;
   return()=>{
@@ -207,7 +209,7 @@ export default function Conversation(){
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_reads'},async payload=>{
    const messageId=payload.new?.message_id||payload.old?.message_id;
    if(!messageId)return;
-   const isRelevant=messages.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
+   const isRelevant=messagesRef.current.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
    if(!isRelevant)return;
    const{count}=await supabase.from('message_reads').select('message_id',{count:'exact',head:true}).eq('message_id',messageId);
    setMessages(current=>current.map(m=>m.id===messageId?{...m,readCount:count||0}:m));
