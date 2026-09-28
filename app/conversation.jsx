@@ -59,6 +59,7 @@ export default function Conversation(){
  const statusMessageRef=useRef(null);
  const messagesRef=useRef([]);
  const loadSequenceRef=useRef(0);
+ const draftLoadSequenceRef=useRef(0);
  const{id}=useLocalSearchParams(),{user}=useAuth(),router=useRouter(),scrollRef=useRef(null),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false),[chatTheme,setChatTheme]=useState('dark'),[chatWallpaper,setChatWallpaper]=useState('minimal'),[bubbleStyle,setBubbleStyle]=useState('classic');
 
  const saveDraft=useCallback((value)=>{
@@ -124,7 +125,10 @@ export default function Conversation(){
  },[]);
  const loadDraft=useCallback(async()=>{
   if(!id||!user?.id)return;
-  const{data}=await supabase.from('message_drafts').select('content,updated_at').eq('user_id',user.id).eq('conversation_id',id).maybeSingle();
+  const sequence=++draftLoadSequenceRef.current;
+  const conversationId=id;
+  const{data}=await supabase.from('message_drafts').select('content,updated_at').eq('user_id',user.id).eq('conversation_id',conversationId).maybeSingle();
+  if(sequence!==draftLoadSequenceRef.current||!mountedRef.current||conversationId!==id)return;
   if(data){
    const remoteTime=new Date(data.updated_at||0).getTime();
    draftLocalUpdatedAtRef.current=remoteTime||0;
@@ -132,7 +136,9 @@ export default function Conversation(){
    applyingRemoteDraftRef.current=true;
    setText(data.content||'');
    setDraftSaved(!!data.content);
-   requestAnimationFrame(()=>{applyingRemoteDraftRef.current=false;});
+   requestAnimationFrame(()=>{
+    if(sequence===draftLoadSequenceRef.current&&mountedRef.current&&conversationId===id)applyingRemoteDraftRef.current=false;
+   });
   }else{
    draftLocalUpdatedAtRef.current=0;
    draftDirtyRef.current=false;
