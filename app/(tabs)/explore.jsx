@@ -68,8 +68,21 @@ function Mobile(p){
 }
 function Search({q,setQ,search}){return <View style={s.search}><Text style={s.searchIcon}>⌕</Text><TextInput value={q} onChangeText={setQ} onSubmitEditing={search} returnKeyType="search" placeholder="Search Freetopia..." placeholderTextColor="#73849A" style={s.searchInput}/><Pressable onPress={search}><Text style={s.searchGo}>Search</Text></Pressable></View>}
 function Tabs({tab,setTab}){return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabs}>{['For You','Communities','Topics','Posts','People'].map(x=><Pressable key={x} onPress={()=>setTab(x)} style={[s.tab,tab===x&&s.activeTab]}><Text style={[s.tabText,tab===x&&s.activeTabText]}>{x}</Text></Pressable>)}</ScrollView>}
-function Hero({router}){return <View style={s.hero}><View style={s.heroShade}/><View style={s.heroCopy}><Text style={s.heroTitle}>Find your people.{'
-'}Build your world.</Text><Text style={s.heroBody}>Communities, ideas, and conversations that match what matters to you.</Text><Pressable onPress={()=>router.push('/communities')} style={s.heroButton}><Text style={s.heroButtonText}>Explore Communities  →</Text></Pressable></View></View>}
+function Hero({router}){
+  return (
+    <View style={s.hero}>
+      <View style={s.heroShade}/>
+      <View style={s.heroCopy}>
+        <Text style={s.heroTitle}>Find your people.{'
+'}Build your world.</Text>
+        <Text style={s.heroBody}>Communities, ideas, and conversations that match what matters to you.</Text>
+        <Pressable onPress={()=>router.push('/communities')} style={s.heroButton}>
+          <Text style={s.heroButtonText}>Explore Communities  →</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
 function TopicStrip({posts,onTopic}){const topics=deriveTopics(posts);if(!topics.length)return <View style={s.topicEmpty}><Text style={s.topicEmptyTitle}>No trending topics yet</Text><Text style={s.topicEmptyBody}>Hashtags from recent posts will appear here.</Text></View>;return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.horizontal}>{topics.map((x,i)=><Pressable key={x} onPress={()=>onTopic?.(x)} style={s.topic}><View style={[s.topicIcon,{backgroundColor:['#30207A','#173B67','#0E5A54','#5B193C','#24456B'][i%5]}]}><Text style={s.topicEmoji}>{['✦','↗','◒','♥','⌁'][i%5]}</Text></View><Text style={s.topicName}>{x}</Text><Text style={s.topicSub}>Tap to explore posts</Text></Pressable>)}</ScrollView>}
 function deriveTopics(posts){const words={};posts.forEach(p=>(p.content||'').replace(/[^\p{L}\p{N}# ]/gu,' ').split(/\s+/).forEach(w=>{if(w.startsWith('#')&&w.length>1)words[w.toLowerCase()]=(words[w.toLowerCase()]||0)+1;}));return Object.keys(words).sort((a,b)=>words[b]-words[a]).slice(0,5)}
 function CommunityCards({communities,router}){return <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.horizontal}>{communities.slice(0,5).map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={s.communityCard}>{<CommunityImage c={c}/>}<Text style={s.communityName} numberOfLines={1}>{c.name}</Text><Text style={s.communitySub}>{c.is_private?'Private community':'Public community'}</Text><View style={s.joinButton}><Text style={s.joinText}>View</Text></View></Pressable>)}</ScrollView>}
