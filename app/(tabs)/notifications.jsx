@@ -107,22 +107,42 @@ export default function Notifications(){
   setItems(current=>current.map(x=>x.id===item.id?{...x,read_at:x.read_at||now,requestStatus:accept?'accepted':'declined'}:x));
   await supabase.from('notifications').update({read_at:now}).eq('id',item.id).eq('recipient_id',user.id);
  };
- const unread=items.filter(x=>!x.read_at).length;
+ const grouped=groupNotifications(items); const unread=items.filter(x=>!x.read_at).length;
  return <SafeAreaView style={s.safe}><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)}/>} contentContainerStyle={s.content}>
   <View style={s.top}><View><Text style={s.eyebrow}>ACTIVITY</Text><View style={s.titleRow}><Text style={s.title}>Notifications</Text>{unread>0&&<View style={s.count}><Text style={s.countText}>{unread>99?'99+':unread}</Text></View>}</View></View>{unread>0&&<Pressable onPress={markAll} style={s.mark}><Text style={s.markText}>Mark all read</Text></Pressable>}</View>
   <Text style={s.lead}>Stay close to what’s happening around you.</Text>
   {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
   {loading&&<LoadingState label="Loading activity…" rows={4}/>}
   {!loading&&!error&&items.length===0&&<EmptyState icon="bell" title="You’re all caught up" body="New reactions, replies, and follows will appear here."/>}
-  {!loading&&items.map(item=><NotificationRow key={item.id} item={item} onRead={markRead} onOpen={r} onRespond={respond}/>)}
+  {!loading&&grouped.map(item=><NotificationRow key={item.id||item.items?.[0]?.id} item={item} onRead={markRead} onOpen={r} onRespond={respond}/>)}
  </ScrollView></SafeAreaView>
 }
 
-function NotificationRow({item,onRead,onOpen:r,onRespond}){
- const actor=Array.isArray(item.actor)?item.actor[0]:item.actor; const name=actor?.display_name||actor?.username||'Someone';
- const isCommentReaction=item.type==='reaction'&&!!item.comment_id; const isReply=item.type==='comment'&&!!item.comment?.parent_id; const map={reaction:isCommentReaction?'reacted to your comment':'reacted to your post',comment:isReply?'replied to your comment':'commented on your post',follow:'started following you',follow_request:'sent you a follow request',mention:'mentioned you',message:'sent you a message',community:'updated a community',system:'sent you an update'}; const text=map[item.type]||'interacted with you';
- const open=()=>{onRead(item.id);if(item.post_id)r.push({pathname:'/post',params:item.comment_id?{id:item.post_id,commentId:item.comment_id}:{id:item.post_id}});else if(item.conversation_id)r.push({pathname:'/conversation',params:{id:item.conversation_id}});else if(item.community_id)r.push({pathname:'/community',params:{id:item.community_id}});else if(actor?.id)r.push({pathname:'/profile',params:{id:actor.id}});};
+function NotificationRow({item,onRead,onOpen:r,onRespond}){\n const grouped=item.grouped; const source=grouped?item.items[0]:item;
+ const actor=Array.isArray(source.actor)?source.actor[0]:source.actor; const name=actor?.display_name||actor?.username||'Someone';
+ const isCommentReaction=source.type==='reaction'&&!!source.comment_id; const isReply=source.type==='comment'&&!!source.comment?.parent_id; const map={reaction:isCommentReaction?'reacted to your comment':'reacted to your post',comment:isReply?'replied to your comment':'commented on your post',follow:'started following you',follow_request:'sent you a follow request',mention:'mentioned you',message:'sent you a message',community:'updated a community',system:'sent you an update'}; const text=grouped?(isCommentReaction?`${item.items.length} people reacted to your comment`:`${item.items.length} people reacted to your post`):(map[source.type]||'interacted with you');
+ const open=()=>{if(grouped){item.items.forEach(x=>onRead(x.id));}else onRead(item.id);if(source.post_id)r.push({pathname:'/post',params:source.comment_id?{id:source.post_id,commentId:source.comment_id}:{id:source.post_id}});else if(source.conversation_id)r.push({pathname:'/conversation',params:{id:source.conversation_id}});else if(source.community_id)r.push({pathname:'/community',params:{id:source.community_id}});else if(actor?.id)r.push({pathname:'/profile',params:{id:actor.id}});};
  return <Pressable accessibilityRole="button" accessibilityLabel={`${name} ${text}`} onPress={open} style={[s.row,!item.read_at&&s.unread]}><View style={s.avatar}>{actor?.avatar_url?<Image source={{uri:getImageUrl(actor.avatar_url,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text>}</View><View style={{flex:1}}><Text style={s.message}><Text style={s.name}>{name}</Text>{' '+text}</Text><Text style={s.time}>{relativeTime(item.created_at)}</Text>{item.type==='follow_request'&&(item.requestStatus==='accepted'?<Text style={s.time}>Request accepted</Text>:item.requestStatus==='declined'?<Text style={s.time}>Request declined</Text>:<View style={{flexDirection:'row',gap:8,marginTop:8}}><Pressable accessibilityRole="button" onPress={()=>onRespond(item,true)} style={s.mark}><Text style={s.markText}>Accept</Text></Pressable><Pressable accessibilityRole="button" onPress={()=>onRespond(item,false)} style={s.mark}><Text style={s.markText}>Decline</Text></Pressable></View>)}</View>{!item.read_at&&<View style={s.dot}/>}</Pressable>
 }
 function relativeTime(value){const ms=Date.now()-new Date(value).getTime();const minutes=Math.max(0,Math.floor(ms/60000));if(minutes<1)return'Just now';if(minutes<60)return minutes+'m ago';const hours=Math.floor(minutes/60);if(hours<24)return hours+'h ago';const days=Math.floor(hours/24);if(days<7)return days+'d ago';return new Date(value).toLocaleDateString(undefined,{month:'short',day:'numeric',year:days>365?'numeric':undefined});}
 const s=StyleSheet.create({safe:{flex:1,backgroundColor:c.bg},content:{paddingHorizontal:18,paddingTop:16,paddingBottom:104,maxWidth:760,width:'100%',alignSelf:'center'},top:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingBottom:2},eyebrow:{fontSize:9,fontWeight:'850',letterSpacing:1.4,color:'#7893AD'},title:{marginTop:6,fontSize:26,fontWeight:'850',letterSpacing:-.8,color:c.ink},titleRow:{flexDirection:'row',alignItems:'center',gap:8},count:{minWidth:22,height:22,paddingHorizontal:6,borderRadius:8,backgroundColor:'#13253A',borderWidth:1,borderColor:'#203A55',alignItems:'center',justifyContent:'center'},countText:{color:'#BFD6EE',fontSize:9,fontWeight:'800'},lead:{marginTop:5,fontSize:12,lineHeight:18,color:c.muted,marginBottom:16},mark:{paddingHorizontal:10,paddingVertical:8,borderWidth:1,borderColor:'#1B3044',borderRadius:9,backgroundColor:'#0B1621'},markText:{fontSize:10,fontWeight:'700',color:c.ink},error:{marginBottom:12,padding:12,borderRadius:10,backgroundColor:'#180F15',borderWidth:1,borderColor:'#3B202B'},errorText:{fontSize:12,color:'#C88491'},empty:{marginTop:10,padding:30, borderWidth:1,borderColor:'#172636',borderRadius:14,alignItems:'center',backgroundColor:c.surface},icon:{fontSize:28,color:c.accent},h:{marginTop:12,fontSize:17,fontWeight:'700',color:c.ink},p:{marginTop:7,textAlign:'center',fontSize:13,lineHeight:20,color:c.muted},row:{flexDirection:'row',alignItems:'center',gap:12,minHeight:68,paddingVertical:11,paddingHorizontal:10,borderBottomWidth:1,borderBottomColor:c.line,borderRadius:11},unread:{backgroundColor:'#0D1926',borderWidth:1,borderColor:'#19304A'},avatar:{width:43,height:43,borderRadius:22,backgroundColor:'#253447',alignItems:'center',justifyContent:'center',borderWidth:1,borderColor:'#30465D'},avatarText:{color:'#fff',fontWeight:'750'},avatarImage:{width:42,height:42,borderRadius:21},message:{fontSize:12.5,lineHeight:19,color:'#DCE5EF'},name:{fontWeight:'750'},time:{marginTop:3,fontSize:9,color:'#687A8D'},dot:{width:7,height:7,borderRadius:4,backgroundColor:'#4B78A8',marginLeft:3}});
+
+
+function groupNotifications(items){
+ const out=[]; const reactionGroups=new Map();
+ for(const item of items){
+  const canGroup=item.type==='reaction'&&!!item.post_id;
+  if(!canGroup){out.push(item);continue;}
+  const key=item.comment_id?'comment:'+item.comment_id:'post:'+item.post_id;
+  const existing=reactionGroups.get(key);
+  if(existing){
+   existing.items.push(item);
+   if(new Date(item.created_at)>new Date(existing.created_at))existing.created_at=item.created_at;
+   if(!item.read_at)existing.read_at=null;
+  }else{
+   const group={...item,grouped:true,items:[item]};
+   reactionGroups.set(key,group);out.push(group);
+  }
+ }
+ return out.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+}
