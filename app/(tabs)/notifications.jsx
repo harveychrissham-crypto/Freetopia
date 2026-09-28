@@ -17,7 +17,7 @@ export default function Notifications(){
   const sequence=++loadSequenceRef.current;
   if(pull)setRefreshing(true);else setLoading(true);
   setError('');
-  const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url)').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(50);
+  const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,undefined').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(50);
   if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
   if(queryError){setError(queryError.message);setItems([]);}else{
    let rows=data||[];
@@ -49,7 +49,7 @@ export default function Notifications(){
     if(!id)return;
     let {data:item}=await supabase
      .from('notifications')
-     .select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url)')
+     .select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url),comment:comment_id(id,parent_id)')
      .eq('id',id)
      .eq('recipient_id',user.id)
      .maybeSingle();
@@ -120,8 +120,8 @@ export default function Notifications(){
 
 function NotificationRow({item,onRead,onOpen:r,onRespond}){
  const actor=Array.isArray(item.actor)?item.actor[0]:item.actor; const name=actor?.display_name||actor?.username||'Someone';
- const map={reaction:'reacted to your post',comment:'replied to your post',follow:'started following you',follow_request:'sent you a follow request',mention:'mentioned you',message:'sent you a message',community:'updated a community',system:'sent you an update'}; const text=map[item.type]||'interacted with you';
- const open=()=>{onRead(item.id);if(item.post_id)r.push({pathname:'/post',params:{id:item.post_id}});else if(item.conversation_id)r.push({pathname:'/conversation',params:{id:item.conversation_id}});else if(item.community_id)r.push({pathname:'/community',params:{id:item.community_id}});else if(actor?.id)r.push({pathname:'/profile',params:{id:actor.id}});};
+ const isCommentReaction=item.type==='reaction'&&!!item.comment_id; const isReply=item.type==='comment'&&!!item.comment?.parent_id; const map={reaction:isCommentReaction?'reacted to your comment':'reacted to your post',comment:isReply?'replied to your comment':'commented on your post',follow:'started following you',follow_request:'sent you a follow request',mention:'mentioned you',message:'sent you a message',community:'updated a community',system:'sent you an update'}; const text=map[item.type]||'interacted with you';
+ const open=()=>{onRead(item.id);if(item.post_id)r.push({pathname:'/post',params:item.comment_id?{id:item.post_id,commentId:item.comment_id}:{id:item.post_id}});else if(item.conversation_id)r.push({pathname:'/conversation',params:{id:item.conversation_id}});else if(item.community_id)r.push({pathname:'/community',params:{id:item.community_id}});else if(actor?.id)r.push({pathname:'/profile',params:{id:actor.id}});};
  return <Pressable accessibilityRole="button" accessibilityLabel={`${name} ${text}`} onPress={open} style={[s.row,!item.read_at&&s.unread]}><View style={s.avatar}>{actor?.avatar_url?<Image source={{uri:getImageUrl(actor.avatar_url,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text>}</View><View style={{flex:1}}><Text style={s.message}><Text style={s.name}>{name}</Text>{' '+text}</Text><Text style={s.time}>{relativeTime(item.created_at)}</Text>{item.type==='follow_request'&&(item.requestStatus==='accepted'?<Text style={s.time}>Request accepted</Text>:item.requestStatus==='declined'?<Text style={s.time}>Request declined</Text>:<View style={{flexDirection:'row',gap:8,marginTop:8}}><Pressable accessibilityRole="button" onPress={()=>onRespond(item,true)} style={s.mark}><Text style={s.markText}>Accept</Text></Pressable><Pressable accessibilityRole="button" onPress={()=>onRespond(item,false)} style={s.mark}><Text style={s.markText}>Decline</Text></Pressable></View>)}</View>{!item.read_at&&<View style={s.dot}/>}</Pressable>
 }
 function relativeTime(value){const ms=Date.now()-new Date(value).getTime();const minutes=Math.max(0,Math.floor(ms/60000));if(minutes<1)return'Just now';if(minutes<60)return minutes+'m ago';const hours=Math.floor(minutes/60);if(hours<24)return hours+'h ago';const days=Math.floor(hours/24);if(days<7)return days+'d ago';return new Date(value).toLocaleDateString(undefined,{month:'short',day:'numeric',year:days>365?'numeric':undefined});}
