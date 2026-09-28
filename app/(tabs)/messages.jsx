@@ -96,7 +96,7 @@ export default function Messages() {
             <View style={s.inbox}>
               <View style={s.inboxHead}>
                 <View><Text style={s.kicker}>CONNECT</Text><Text style={s.title}>Messages</Text></View>
-                <Pressable onPress={()=>router.push('/new-message')} style={s.new}><Text style={s.newText}>＋ New</Text></Pressable>
+                <Pressable onPress={()=>router.push('/new-message')} style={s.new}><AppIcon name="plus" size={14} color={C.white}/><Text style={s.newText}>New</Text></Pressable>
               </View>
               <Tabs tab={tab} setTab={setTab} requestCount={requestCount} />
               {error ? <Error text={error}/> : null}
@@ -116,7 +116,7 @@ export default function Messages() {
         <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
         <View style={s.headActions}><Pressable onPress={()=>router.push('/explore')}><AppIcon name="search" size={18} color={C.text}/></Pressable><Pressable onPress={()=>router.push('/new-message')}><AppIcon name="plus" size={18} color={C.text}/></Pressable></View>
       </View>
-      <View style={s.mobileTitleRow}><Text style={s.mobileTitle}>Messages</Text><Pressable onPress={()=>router.push('/new-message')}><Text style={s.compose}>↗</Text></Pressable></View>
+      <View style={s.mobileTitleRow}><Text style={s.mobileTitle}>Messages</Text><Pressable onPress={()=>router.push('/new-message')}><AppIcon name="write" size={20} color={C.text}/></Pressable></View>
       <Tabs tab={tab} setTab={setTab} requestCount={requestCount}/>
       {tab==='Communities' ? <CommunityList communities={communities} router={router}/> :
         <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />} contentContainerStyle={s.mobileList}>
@@ -133,7 +133,7 @@ function Sidebar({profile,router,requestCount}) {
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
     <View style={s.sideNav}>{items.map(([ic,label,path])=><Pressable key={label} onPress={()=>router.push(path)} style={[s.sideItem,label==='Messages'&&s.active]}><AppIcon name={ic} size={18} color="#AFC0D3"/><Text style={s.sideLabel}>{label}</Text>{label==='Messages'&&requestCount>0?<Badge n={requestCount}/>:null}</Pressable>)}</View>
-    <View style={s.proCard}><Text style={s.proTitle}>✦ Freetopia Pro</Text><Text style={s.proBody}>Unlock more features, customize your experience, and get closer to your community.</Text><View style={s.proButton}><Text style={s.proButtonText}>Coming soon</Text></View></View>
+    <View style={s.proCard}><View style={{flexDirection:'row',alignItems:'center',gap:7}}><AppIcon name="spark" size={14} color={C.text}/><Text style={s.proTitle}>Freetopia Pro</Text></View><Text style={s.proBody}>Unlock more features, customize your experience, and get closer to your community.</Text><View style={s.proButton}><Text style={s.proButtonText}>Coming soon</Text></View></View>
   </View>;
 }
 function Topbar({query,setQuery,router,profile}) {
@@ -156,14 +156,14 @@ function Row({c,tab,open,accept,decline,archive}) {
   </View>;
 }
 function ConversationPreview(){return <View style={s.previewPanel}><Text style={s.previewHint}>Select a conversation</Text><Text style={s.previewTitle}>Your conversations live here</Text><Text style={s.previewBody}>Open a message to continue the conversation.</Text></View>}
-function QuickRail({requestCount,archiveCount,router,onArchive}){return <View style={s.quickRail}><View style={s.quickCard}><Text style={s.quickTitle}>Quick Access</Text><View style={s.quickGrid}><Quick icon="♧" label="My Communities" onPress={()=>router.push('/communities')}/><Quick icon="☆" label="Saved"/><Quick icon="▣" label="Archive" value={archiveCount} onPress={onArchive}/><Quick icon="♙" label="Achievements"/></View></View><View style={s.quickCard}><Text style={s.quickTitle}>Inbox</Text><QuickLine label="Hidden Requests" value={requestCount}/><QuickLine label="Archived chats" value={archiveCount}/><Pressable onPress={()=>router.push('/new-message')} style={s.railNew}><Text style={s.railNewText}>Start a new conversation →</Text></Pressable></View><View style={s.railPromo}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Freetopia</Text><Text style={s.promoBody}>One conversation at a time.</Text></View></View>}
-function Quick({icon,label,value,onPress}){return <Pressable onPress={onPress} disabled={!onPress} style={s.quick}><Text style={s.quickIcon}>{icon}</Text><Text style={s.quickLabel}>{label}</Text>{value>0?<Text style={s.quickValue}>{value}</Text>:null}</Pressable>}
+function QuickRail({requestCount,archiveCount,router,onArchive}){return <View style={s.quickRail}><View style={s.quickCard}><Text style={s.quickTitle}>Quick Access</Text><View style={s.quickGrid}><Quick icon="users" label="My Communities" onPress={()=>router.push('/communities')}/><Quick icon="bookmark" label="Saved"/><Quick icon="archive" label="Archive" value={archiveCount} onPress={onArchive}/><Quick icon="spark" label="Achievements"/></View></View><View style={s.quickCard}><Text style={s.quickTitle}>Inbox</Text><QuickLine label="Hidden Requests" value={requestCount}/><QuickLine label="Archived chats" value={archiveCount}/><Pressable onPress={()=>router.push('/new-message')} style={s.railNew}><Text style={s.railNewText}>Start a new conversation →</Text></Pressable></View><View style={s.railPromo}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Freetopia</Text><Text style={s.promoBody}>One conversation at a time.</Text></View></View>}
+function Quick({icon,label,value,onPress}){return <Pressable onPress={onPress} disabled={!onPress} style={s.quick}><AppIcon name={icon} size={17} color="#9FB8D5"/><Text style={s.quickLabel}>{label}</Text>{value>0?<Text style={s.quickValue}>{value}</Text>:null}</Pressable>}
 function QuickLine({label,value}){return <View style={s.quickLine}><Text style={s.quickLineLabel}>{label}</Text><Text style={s.quickLineValue}>{value}</Text></View>}
 function CommunityList({communities,router,query=''}) {
   const visible=(communities||[]).filter(c=>!query.trim()||`${c.name||''} ${c.description||''}`.toLowerCase().includes(query.trim().toLowerCase()));
-  if (!visible.length) return <View style={s.communityBox}><Text style={s.communityIcon}>♧</Text><Text style={s.emptyTitle}>{query.trim()?'No matching communities':'No communities yet'}</Text><Text style={s.emptyBody}>{query.trim()?'Try a different search.':'Real communities will appear here as they are created.'}</Text></View>;
+  if (!visible.length) return <View style={s.communityBox}><AppIcon name="users" size={26} color={C.violet}/><Text style={s.emptyTitle}>{query.trim()?'No matching communities':'No communities yet'}</Text><Text style={s.emptyBody}>{query.trim()?'Try a different search.':'Real communities will appear here as they are created.'}</Text></View>;
   return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.communityList}>
-    <Pressable onPress={()=>router.push('/create-community')} style={s.createCommunity}><Text style={s.createCommunityText}>＋ Create Community</Text></Pressable>
+    <Pressable onPress={()=>router.push('/create-community')} style={s.createCommunity}><AppIcon name="plus" size={14} color={C.text}/><Text style={s.createCommunityText}>Create Community</Text></Pressable>
     {visible.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={s.communityRow}>
       {c.avatar_url?<Image source={{uri:getImageUrl(c.avatar_url,{width:800,height:800,quality:100})}} style={s.communityAvatar}/>:<View style={s.communityAvatar}><Text style={s.communityAvatarText}>{c.name?.[0]?.toUpperCase()}</Text></View>}
       <View style={{flex:1}}><Text style={s.communityName}>{c.name}</Text><Text style={s.communityMembers}>{c.is_private?'Private community':'Public community'}</Text></View>
@@ -171,7 +171,7 @@ function CommunityList({communities,router,query=''}) {
     </Pressable>)}
   </ScrollView>;
 }
-function Empty({tab}){return <View style={s.empty}><Text style={s.emptyIcon}>{tab==='Archived'?'▣':'✉'}</Text><Text style={s.emptyTitle}>{tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'}</Text><Text style={s.emptyBody}>{tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'}</Text></View>}
+function Empty({tab}){return <View style={s.empty}><AppIcon name={tab==='Archived'?'archive':'message'} size={26} color={C.blue}/><Text style={s.emptyTitle}>{tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'}</Text><Text style={s.emptyBody}>{tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'}</Text></View>}
 function Error({text}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load messages</Text><Text style={s.errorText}>{text}</Text></View>}
 function Loading(){return <View style={s.loading}><Text style={s.muted}>Loading conversations…</Text></View>}
 function Badge({n}){return <View style={s.badge}><Text style={s.badgeText}>{n>99?'99+':n}</Text></View>}
