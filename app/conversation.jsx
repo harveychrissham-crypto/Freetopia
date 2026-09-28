@@ -606,7 +606,7 @@ export default function Conversation(){
    {loading?<View style={s.center}><Text style={s.muted}>Loading conversation…</Text></View>:
     info?.me?.request_status==='pending'?
      <View style={s.request}><View style={s.requestIcon}><Text style={s.requestIconText}>✦</Text></View><Text style={s.h}>Message request</Text><Text style={s.p}>Accept this request to read and send messages.</Text><Pressable onPress={accept} style={s.accept}><Text style={s.wh}>Accept request</Text></Pressable></View>:
-     <><View style={[s.chatCanvas,themeStyles.scroll]}><ChatWallpaper type={wallpaper.kind}/><ScrollView ref={scrollRef} onScroll={e=>{
+     <View style={s.flex}><View style={[s.chatCanvas,themeStyles.scroll]}><ChatWallpaper type={wallpaper.kind}/><ScrollView ref={scrollRef} onScroll={e=>{
  const {contentOffset,contentSize,layoutMeasurement}=e.nativeEvent;
  const distance=Math.max(0,contentSize.height-(contentOffset.y+layoutMeasurement.height));
  const near=distance<180;
@@ -649,7 +649,7 @@ export default function Conversation(){
        {text.trim()&&<Text style={s.draftLabel}>{draftSaved?'Draft saved':'Saving draft…'}</Text>}
       <Pressable onPress={()=>setAttachmentOpen(v=>!v)} disabled={uploading||recorderState.isRecording} style={s.attach}><AppIcon name="plus" size={18} color="#AFC7E1"/></Pressable>{recorderState.isRecording?<View style={s.recordingWrap}><Pressable onPress={cancelVoice} style={s.recordCancel}><Text style={s.recordCancelText}>×</Text></Pressable><View style={s.recordingLive}><View style={s.recordingWave}>{Array.from({length:18}).map((_,i)=><View key={i} style={[s.recordingBar,{height:7+((i*7+Math.floor((recorderState.durationMillis||0)/180))%13)}]}/>)}</View><Text style={s.recordingText}>Recording {Math.max(1,Math.round((recorderState.durationMillis||0)/1000))}s</Text></View><Pressable onPress={sendVoice} style={s.recordingButton}><Text style={s.recordingSendText}>Send</Text></Pressable></View>:<Pressable onPress={sendVoice} disabled={uploading||sending} style={s.voiceButton}><Text style={s.voiceIcon}>🎙</Text></Pressable>}<TextInput value={text} onChangeText={v=>{if(!applyingRemoteDraftRef.current){draftDirtyRef.current=true;setText(v);if(v.trim())handleTypingInput(v);else{if(typingTimerRef.current)clearTimeout(typingTimerRef.current);broadcastTyping(false)}saveDraft(v)}}} onKeyPress={onInputKeyPress} placeholder={editingId?'Edit message…':'Write a message…'} placeholderTextColor="#718092" style={[s.input,themeStyles.input]} multiline maxLength={2000} returnKeyType="send" blurOnSubmit={false}/>
       <Pressable disabled={sending||uploading||!text.trim()||recorderState.isRecording} onPress={send} style={[s.send,(!text.trim()||sending||recorderState.isRecording)&&s.sendDisabled]}><Text style={s.sendText}>{sending?'…':editingId?'Save':'Send'}</Text></Pressable>
-     </View></>}
+     </View></View>}
   </KeyboardAvoidingView>
   </SafeAreaView>
  );
