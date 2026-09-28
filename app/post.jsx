@@ -7,6 +7,7 @@ import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, St
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
+import AppIcon from '../components/AppIcon';
 
 const c={bg:'#060B12',ink:'#E9EEF4',muted:'#7F8D9D',line:'#182533',accent:'#4B78A8',danger:'#A95B69'};
 const reasons=['Spam or misleading','Harassment or bullying','Hate or abusive content','Violence or threats','Sexual content','Other'];
