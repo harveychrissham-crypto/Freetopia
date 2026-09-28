@@ -13,29 +13,10 @@ export default function TabLayout() {
 
   const refreshUnread = useCallback(async () => {
     if (!session?.user?.id) { setUnreadMessages(0); return; }
-    const { data: members, error: memberError } = await supabase
-      .from('conversation_members')
-      .select('conversation_id')
-      .eq('user_id', session.user.id)
-      .eq('request_status', 'accepted');
-    if (memberError || !members?.length) { setUnreadMessages(0); return; }
-    const ids = members.map(x => x.conversation_id);
-    const { data: messages, error: messageError } = await supabase
-      .from('messages')
-      .select('id,sender_id')
-      .in('conversation_id', ids)
-      .neq('sender_id', session.user.id)
-      .order('created_at', { ascending: false })
-      .limit(500);
-    if (messageError || !messages?.length) { setUnreadMessages(0); return; }
-    const { data: reads, error: readError } = await supabase
-      .from('message_reads')
-      .select('message_id')
-      .eq('user_id', session.user.id)
-      .in('message_id', messages.map(x => x.id));
-    if (readError) { setUnreadMessages(0); return; }
-    const readSet = new Set((reads || []).map(x => x.message_id));
-    setUnreadMessages(messages.reduce((n, m) => n + (readSet.has(m.id) ? 0 : 1), 0));
+    const { data, error } = await supabase.rpc('get_message_inbox');
+    if (error) { setUnreadMessages(0); return; }
+    const total = (data || []).reduce((sum, row) => sum + Number(row.unread_count || 0), 0);
+    setUnreadMessages(total);
   }, [session?.user?.id]);
 
   useEffect(() => {
