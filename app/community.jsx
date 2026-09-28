@@ -5,6 +5,7 @@ import { useLocalSearchParams,useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../providers/AuthProvider';
 import { supabase } from '../lib/supabase';
+import { getImageUrl } from '../lib/imageUrl';
 
 const C={bg:'#060B12',panel:'#0A121C',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',accent:'#4B78A8',danger:'#A95B69'};
 
@@ -54,7 +55,7 @@ export default function Community(){
   </View>
   <View style={s.postCtaRow}><View><Text style={s.section}>Community posts</Text><Text style={s.sectionHint}>{isActive?'Share something with this community.':'Join the community to participate.'}</Text></View>{isActive&&<Pressable onPress={()=>r.push({pathname:'/create',params:{communityId:id}})} style={s.postCta}><Text style={s.postCtaText}>＋ Post</Text></Pressable>}</View>
   {visiblePosts.length===0?<View style={s.empty}><Text style={s.emptyTitle}>No posts yet</Text><Text style={s.p}>Posts shared with this community will appear here.</Text></View>:visiblePosts.map(p=><Pressable key={p.id} onPress={()=>r.push({pathname:'/post',params:{id:p.id}})} style={s.post}>
-   <View style={s.postHead}>{p.profiles?.avatar_url?<Image source={{uri:p.profiles.avatar_url}} style={s.postAvatar}/>:<View style={s.postAvatarFallback}><Text style={s.postAvatarText}>{(p.profiles?.display_name||p.profiles?.username||'M').charAt(0).toUpperCase()}</Text></View>}<View style={{flex:1}}><Text style={s.author}>{p.profiles?.display_name||p.profiles?.username||'Member'}</Text>{p.profiles?.username?<Text style={s.handle}>@{p.profiles.username} · {relative(p.created_at)}</Text>:<Text style={s.handle}>{relative(p.created_at)}</Text>}</View></View>
+   <View style={s.postHead}>{p.profiles?.avatar_url?<Image source={{uri:getImageUrl(p.profiles.avatar_url,{width:800,height:800,quality:100})}} style={s.postAvatar}/>:<View style={s.postAvatarFallback}><Text style={s.postAvatarText}>{(p.profiles?.display_name||p.profiles?.username||'M').charAt(0).toUpperCase()}</Text></View>}<View style={{flex:1}}><Text style={s.author}>{p.profiles?.display_name||p.profiles?.username||'Member'}</Text>{p.profiles?.username?<Text style={s.handle}>@{p.profiles.username} · {relative(p.created_at)}</Text>:<Text style={s.handle}>{relative(p.created_at)}</Text>}</View></View>
    <Text style={s.text}>{p.content||''}</Text><Text style={s.time}>{new Date(p.created_at).toLocaleString()}</Text>
   </Pressable>)}
   {!!error&&<View style={s.error}><Text style={s.errorText}>{error}</Text></View>}
