@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getImageUrl } from '../lib/imageUrl';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useFocusEffect } from 'expo-router';
@@ -79,11 +79,37 @@ export default function PostScreen(){
 
  useFocusEffect(useCallback(()=>{load();},[load]));
 
+ useEffect(()=>{
+  if(!id)return;
+  let active=true;
+  const hydrateComment=async(record)=>{
+   if(!record?.id)return;
+   const{data,error:e}=await supabase.from('comments').select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').eq('id',record.id).maybeSingle();
+   if(!active||e||!data)return;
+   setComments(current=>{
+    const exists=current.some(comment=>comment.id===data.id);
+    const next=exists?current.map(comment=>comment.id===data.id?data:comment):[...current,data];
+    return next.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+   });
+  };
+  const channel=supabase.channel(`post-comments-${id}`)
+   .on('postgres_changes',{event:'INSERT',schema:'public',table:'comments',filter:`post_id=eq.${id}`},payload=>{hydrateComment(payload.new);})
+   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'comments',filter:`post_id=eq.${id}`},payload=>{hydrateComment(payload.new);})
+   .on('postgres_changes',{event:'DELETE',schema:'public',table:'comments'},payload=>{
+    const old=payload.old;
+    if(old?.post_id!==id)return;
+    setComments(current=>current.filter(comment=>comment.id!==old.id));
+    setReplyTo(current=>current?.id===old.id?null:current);
+   })
+   .subscribe();
+  return()=>{active=false;supabase.removeChannel(channel);};
+ },[id]);
+
  const addComment=async()=>{
   const value=text.trim();if(!value||!user||saving)return;
   setSaving(true);setError('');
   const{data,error:insertError}=await supabase.from('comments').insert({post_id:id,author_id:user.id,content:value,parent_id:replyTo?.id||null}).select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').single();
-  if(insertError)setError(insertError.message);else{setComments(current=>[...current,data]);setText('');setReplyTo(null);}
+  if(insertError)setError(insertError.message);else{setComments(current=>current.some(comment=>comment.id===data.id)?current:[...current,data].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));setText('');setReplyTo(null);}
   setSaving(false);
  };
 
