@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../providers/AuthProvider';
 
 const c = {
   ink: '#17171b',
@@ -16,6 +17,7 @@ const c = {
 
 export default function Auth() {
   const router = useRouter();
+  const { session, loading: authLoading } = useAuth();
   const [mode, setMode] = useState('sign-in');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,6 +26,10 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && session) router.replace('/home');
+  }, [authLoading, session, router]);
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
