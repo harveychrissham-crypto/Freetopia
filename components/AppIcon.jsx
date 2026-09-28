@@ -5,6 +5,22 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   const common = { position: 'absolute', backgroundColor: color };
   const scale = size / 20;
 
+  if (name === 'check') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.42,height:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'-45deg'}],left:size*.28,top:size*.34}} /></View>;
+
+  if (name === 'arrow-left') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.55,height:stroke,backgroundColor:color,left:size*.25,top:size*.46}}/><View style={{position:'absolute',width:size*.34,height:size*.34,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],left:size*.2,top:size*.29}}/></View>;
+
+  if (name === 'chevron-right') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.34,height:size*.34,borderRightWidth:stroke,borderTopWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],left:size*.22,top:size*.32}}/></View>;
+
+  if (name === 'location') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.55,height:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.4,left:size*.225,top:size*.12}}/><View style={{position:'absolute',width:size*.18,height:size*.18,borderRadius:size,backgroundColor:color,left:size*.41,top:size*.305}}/></View>;
+
+  if (name === 'clock') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.72,height:size*.72,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.14,top:size*.14}}/><View style={{position:'absolute',width:stroke,height:size*.25,backgroundColor:color,left:size*.48,top:size*.27}}/><View style={{position:'absolute',width:size*.2,height:stroke,backgroundColor:color,left:size*.48,top:size*.49}}/></View>;
+
+  if (name === 'settings') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.55,height:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.225,top:size*.225}}/><View style={{position:'absolute',width:size*.22,height:size*.22,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.39,top:size*.39}}/></View>;
+
+  if (name === 'info') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.72,height:size*.72,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.14,top:size*.14}}/><View style={{position:'absolute',width:stroke,height:size*.28,backgroundColor:color,left:size*.48,top:size*.38}}/><View style={{position:'absolute',width:size*.08,height:size*.08,borderRadius:size,backgroundColor:color,left:size*.46,top:size*.25}}/></View>;
+
+  if (name === 'globe') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.72,height:size*.72,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.14,top:size*.14}}/><View style={{position:'absolute',width:size*.72,height:stroke,backgroundColor:color,left:size*.14,top:size*.48}}/><View style={{position:'absolute',width:size*.22,height:size*.72,borderLeftWidth:stroke,borderRightWidth:stroke,borderColor:color,left:size*.39,top:size*.14,borderRadius:size}}/></View>;
+
   if (name === 'search') return (
     <View style={[s.box, { width: size, height: size }]}>
       <View style={[s.searchCircle, { width: size * .55, height: size * .55, borderRadius: size, borderWidth: stroke, borderColor: color, left: size * .16, top: size * .12 }]} />
