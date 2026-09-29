@@ -129,6 +129,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size, focused }) => <View style={[navIcon, focused && navIconActive]}><AppIcon name="bell" size={size} color={color} /></View>,
         }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size, focused }) => <View style={[navIcon, focused && navIconActive]}><AppIcon name="profile" size={size} color={color} /></View> }} />
+        <Tabs.Screen name="communities" options={{ href: null }} />
       </Tabs>
     </>
   );
