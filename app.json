@@ -27,6 +27,7 @@
       }
     },
     "plugins": [
+      "expo-splash-screen",
       "./plugins/withFreetopiaPortrait",
       "expo-router",
       [
