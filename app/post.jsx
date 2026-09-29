@@ -67,7 +67,7 @@ export default function PostScreen(){
 
  const load=useCallback(async()=>{
   if(!id)return;
-  setLoading(true);setError('');
+  setLoading(!post);setError('');
   const [postResult,commentsResult]=await Promise.all([
    supabase.from('posts').select('id,content,created_at,author_id,community_id,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name),post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,duration_seconds,sort_order,processing_status,playback_url,thumbnail_path)').eq('id',id).maybeSingle(),
    supabase.from('comments').select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').eq('post_id',id).order('created_at',{ascending:true}),
@@ -75,7 +75,7 @@ export default function PostScreen(){
   if(postResult.error)setError(postResult.error.message);else { setPost(postResult.data); const reactions=postResult.data?.post_reactions||[]; setReactionCount(reactions.filter(x=>x.reaction_type==='like').length); setLiked(reactions.some(x=>x.user_id===user?.id&&x.reaction_type==='like')); }
   if(commentsResult.error)setError(commentsResult.error.message);else setComments(commentsResult.data||[]);
   setLoading(false);
- },[id,user?.id]);
+ },[id,user?.id,post]);
 
  useFocusEffect(useCallback(()=>{load();},[load]));
  useEffect(()=>{
