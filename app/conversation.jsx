@@ -167,9 +167,11 @@ export default function Conversation(){
    else if(sequence===loadSequenceRef.current&&mountedRef.current){
     const {data:hidden}=await supabase.from('message_hidden_for_users').select('message_id').eq('user_id',user.id).in('message_id',(m||[]).map(x=>x.id));
     const hiddenIds=new Set((hidden||[]).map(x=>x.message_id));
-    setMessages((m||[]).filter(x=>!hiddenIds.has(x.id)));
+    const visibleMessages=(m||[]).filter(x=>!hiddenIds.has(x.id));
+    setMessages(visibleMessages);
+    if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false);
     const {data:pins}=await supabase.from('message_pins').select('message_id,pinned_by,pinned_at').eq('conversation_id',id).order('pinned_at',{ascending:false});
-    setPinned(pins||[]);
+    if(sequence===loadSequenceRef.current&&mountedRef.current)setPinned(pins||[]);
     const own=(m||[]).filter(x=>x.sender_id===user.id&&!x.deleted_at); const recipients=(c.conversation_members||[]).filter(x=>x.user_id!==user.id&&x.request_status==='accepted').map(x=>x.user_id); const deliveryIds=own.map(x=>x.id); let deliveries=[]; if(deliveryIds.length){const{data:d}=await supabase.from('message_deliveries').select('message_id,user_id,delivered_at').in('message_id',deliveryIds);deliveries=d||[];} const readsOwn=deliveryIds.length?(await supabase.from('message_reads').select('message_id,user_id').in('message_id',deliveryIds)).data||[]:[]; const deliveryMap=new Map(); deliveries.filter(x=>x.delivered_at).forEach(x=>deliveryMap.set(x.message_id,(deliveryMap.get(x.message_id)||0)+1)); const readMap=new Map(); readsOwn.forEach(x=>readMap.set(x.message_id,(readMap.get(x.message_id)||0)+1)); setMessages((m||[]).map(x=>x.sender_id===user.id?{...x,deliveryCount:deliveryMap.get(x.id)||0,readCount:readMap.get(x.id)||0,recipientCount:recipients.length}:x));
    const unread=(m||[]).filter(x=>x.sender_id!==user.id&&!x.deleted_at);
     setUnreadBoundaryId(unread.length?unread[0].id:null);
