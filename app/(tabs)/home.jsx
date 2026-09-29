@@ -13,58 +13,24 @@ const C = { bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#
 const tabs = ['For You','Following','Communities'];
 
 export default function Home() {
- const router=useRouter(),{width}=useWindowDimensions(),{user,profile}=useAuth(),desktop=Platform.OS==='web'&&width>=1000;
- const[activeTab,setActiveTab]=useState('For You'),[posts,setPosts]=useState([]),[communities,setCommunities]=useState([]),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[unreadNotifications,setUnreadNotifications]=useState(0);
- const loadSeq=useRef(0); const postsLoadedRef=useRef(false);
- const load=useCallback(async(pull=false)=>{
-  const seq=++loadSeq.current;
-  pull?setRefreshing(true):setLoading(!postsLoadedRef.current);setError('');
-  const unreadPromise=user?.id?supabase.from('notifications').select('id',{count:'exact',head:true}).eq('recipient_id',user.id).is('read_at',null):Promise.resolve({count:0,error:null});
-  const communitiesPromise=supabase.from('communities').select('id,name,slug,description,is_private').order('created_at',{ascending:false}).limit(5);
-  let authorIds=null;
-  if(activeTab==='Following'&&user?.id){const{data,error:e}=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted');if(e){setError(e.message);authorIds=[user.id]}else authorIds=[user.id,...(data||[]).map(r=>r.following_id)]}
-  let query=supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,location_name,feeling,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name),post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,duration_seconds,sort_order,processing_status,playback_url,thumbnail_path),post_polls(question,post_poll_options(id,option_text,sort_order)),post_poll_votes(user_id,option_id),post_tags(user_id,profiles:user_id(id,username,display_name))').order('created_at',{ascending:false}).limit(10);
-  if(activeTab==='Following'&&authorIds)query=query.in('author_id',authorIds);
-  if(activeTab==='Communities')query=query.not('community_id','is',null);
-  const[{data,error:postError},{data:communityData,error:communityError},unreadResult]=await Promise.all([query,communitiesPromise,unreadPromise]);
-  if(seq!==loadSeq.current)return;
-  if(postError)setError(postError.message);if(unreadResult?.error)setError(unreadResult.error.message);
-  setUnreadNotifications(unreadResult?.count||0);
-  setPosts((data||[]).map(post=>({...post,reactionCount:post.post_reactions?.filter(r=>r.reaction_type==='like').length||0,liked:post.post_reactions?.some(r=>r.user_id===user?.id&&r.reaction_type==='like')||false})));
-  setCommunities(communityData||[]);postsLoadedRef.current=true;setLoading(false);setRefreshing(false);
- },[activeTab,user?.id]);
- useFocusEffect(useCallback(()=>{load()},[load]));
- const toggleLike=async(postId,liked)=>{
-  if(!user)return;
-  setPosts(cur=>cur.map(p=>p.id===postId?{...p,liked:!liked,reactionCount:Math.max(0,p.reactionCount+(liked?-1:1))}:p));
-  const request=liked?supabase.from('post_reactions').delete().eq('post_id',postId).eq('user_id',user.id).eq('reaction_type','like'):supabase.from('post_reactions').insert({post_id:postId,user_id:user.id,reaction_type:'like'});
-  const{error:e}=await request;if(e)setPosts(cur=>cur.map(p=>p.id===postId?{...p,liked,reactionCount:Math.max(0,p.reactionCount+(liked?1:-1))}:p));
- };
- const votePoll=async(postId,optionId)=>{
-  if(!user?.id)return;
-  let previousVotes=null;
-  setPosts(cur=>cur.map(p=>{
-   if(p.id!==postId)return p;
-   previousVotes=p.post_poll_votes||[];
-   const votes=previousVotes.filter(v=>v.user_id!==user.id);
-   return {...p,post_poll_votes:[...votes,{user_id:user.id,option_id:optionId}]};
-  }));
-  const{error:e}=await supabase.from('post_poll_votes').upsert({post_id:postId,option_id:optionId,user_id:user.id},{onConflict:'post_id,user_id'});
-  if(e){
-   setPosts(cur=>cur.map(p=>p.id===postId?{...p,post_poll_votes:previousVotes||p.post_poll_votes}:p));
-   setError(e.message);
-  }
- };
- const displayName=profile?.display_name||user?.email?.split('@')[0]||'Freetopia member',initials=displayName.charAt(0).toUpperCase();
- const topics=useMemo(()=>{const counts={};posts.forEach(p=>(p.content||'').match(/#[A-Za-z0-9_]+/g)?.forEach(tag=>{const key=tag.toLowerCase();counts[key]=(counts[key]||0)+1}));return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5)},[posts]);
- const nav=path=>router.push(path);
- const sharePost=async(post)=>{
-  try{
-   await Share.share({message:post.content||'Check out this post on Freetopia.'});
-  }catch{}
- };
- if(desktop)return <SafeAreaView style={s.safe}><View style={s.desktopShell}><DesktopSidebar displayName={displayName} initials={initials} onNavigate={nav} profile={profile} unreadNotifications={unreadNotifications}/><View style={s.desktopMain}><DesktopHeader displayName={displayName} onNavigate={nav} unreadNotifications={unreadNotifications} profile={profile}/><View style={s.desktopColumns}><ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)}/>} contentContainerStyle={s.feedContent}><UpdateNotice onPress={()=>nav('/settings')} /><FeedTabs activeTab={activeTab} onChange={setActiveTab}/><Composer displayName={displayName} initials={initials} onPress={()=>nav('/create')} desktop/><FeedHeader activeTab={activeTab}/>{error?<ErrorBox message={error}/>:null}{loading?<LoadingBox/>:null}{!loading&&!error&&!posts.length?<EmptyState onCreate={()=>nav('/create')} activeTab={activeTab} router={router}/>:null}{posts.map(post=><PostCard key={post.id} post={post} onLike={toggleLike} onComments={()=>nav({pathname:'/post',params:{id:post.id}})} onShare={sharePost} onPollVote={votePoll} viewerId={user?.id} router={router} desktop/>)}</ScrollView><RightRail topics={topics} communities={communities} onCommunity={id=>nav({pathname:'/community',params:{id}})} onTopics={tag=>tag?nav({pathname:'/explore',params:{q:tag}}):nav('/explore')} onCommunities={()=>nav('/communities')} onCreate={()=>nav('/create')}/></View></View></View></SafeAreaView>;
- return <SafeAreaView style={s.mobileSafe}><ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} tintColor={C.blue}/>} contentContainerStyle={s.mobileContent}><UpdateNotice onPress={()=>nav('/settings')} /><View style={s.mobileHeader}><View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.wordmark}>Freetopia</Text></View><View style={s.headerActions}><Pressable onPress={()=>nav('/explore')} style={s.iconButton}><AppIcon name="search" size={18} color={C.text}/></Pressable><Pressable onPress={()=>nav('/notifications')} style={s.iconButton}><AppIcon name="bell" size={18} color={C.text}/>{unreadNotifications>0?<View style={s.dot}/>:null}</Pressable></View></View><FeedTabs activeTab={activeTab} onChange={setActiveTab} mobile/><Composer displayName={displayName} initials={initials} onPress={()=>nav('/create')}/>{error?<ErrorBox message={error}/>:null}{loading?<LoadingBox/>:null}{!loading&&!error&&!posts.length?<EmptyState onCreate={()=>nav('/create')} activeTab={activeTab} router={router}/>:null}{posts.map(post=><PostCard key={post.id} post={post} onLike={toggleLike} onComments={()=>nav({pathname:'/post',params:{id:post.id}})} onShare={sharePost} onPollVote={votePoll} router={router}/>)}</ScrollView><Pressable onPress={()=>nav('/create')} style={({pressed})=>[s.mobileCreate,pressed&&s.pressed]}><AppIcon name="plus" size={25} color={C.white}/></Pressable></SafeAreaView>;
+ const router=useRouter();
+ const {user,profile}=useAuth();
+ const displayName=profile?.display_name||user?.email?.split('@')[0]||'Freetopia member';
+ return <SafeAreaView style={s.mobileSafe}>
+   <View style={{flex:1,backgroundColor:C.bg,paddingHorizontal:20,paddingTop:24}}>
+    <View style={{flexDirection:'row',alignItems:'center',marginBottom:32}}>
+      <Image source={require('../../public/brand/freetopia-mark.png')} style={{width:36,height:36}}/>
+      <Text style={{marginLeft:10,fontSize:20,fontWeight:'700',color:C.text}}>Freetopia</Text>
+    </View>
+    <View style={{padding:22,borderRadius:20,borderWidth:1,borderColor:C.line,backgroundColor:C.panel}}>
+      <Text style={{fontSize:24,fontWeight:'700',color:C.text}}>Welcome, {displayName.split(' ')[0]}.</Text>
+      <Text style={{marginTop:10,fontSize:14,lineHeight:21,color:C.muted}}>Your Freetopia world is ready. We are loading the feed safely.</Text>
+      <Pressable onPress={()=>router.push('/create')} style={{marginTop:20,height:46,borderRadius:12,backgroundColor:C.blue,alignItems:'center',justifyContent:'center'}}>
+       <Text style={{fontSize:14,fontWeight:'700',color:C.white}}>Create a post</Text>
+      </Pressable>
+    </View>
+   </View>
+ </SafeAreaView>;
 }
 
 function DesktopSidebar({displayName,initials,onNavigate,profile,unreadNotifications}){const items=[['home','Home','/home'],['compass','Explore','/explore'],['users','Communities','/communities'],['message','Messages','/messages'],['bell','Notifications','/notifications'],['plus','Create','/create']];return <View style={s.sidebar}><View style={s.sidebarBrand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.sidebarLogo}/><Text style={s.sidebarWordmark}>Freetopia</Text></View><View style={s.sideNav}>{items.map(([icon,label,path])=><Pressable key={label} onPress={()=>onNavigate(path)} style={[s.sideItem,label==='Home'&&s.sideItemActive]}><AppIcon name={icon} size={19} color={label==='Home'?C.text:C.muted}/><Text style={[s.sideLabel,label==='Home'&&s.sideLabelActive]}>{label}</Text>{label==='Notifications'&&unreadNotifications>0?<View style={s.badge}><Text style={s.badgeText}>{unreadNotifications>99?'99+':unreadNotifications}</Text></View>:null}</Pressable>)}</View><Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials} uri={profile?.avatar_url||null}/><View style={{flex:1}}><Text style={s.sideProfileName}>{displayName}</Text><Text style={s.sideProfileHandle}>Your profile</Text></View><AppIcon name="chevron-down" size={15} color={C.muted}/></Pressable></View>}
