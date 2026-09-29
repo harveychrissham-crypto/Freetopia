@@ -28,7 +28,8 @@
     "react-native-screens": "~4.26.0",
     "react-native-url-polyfill": "^2.0.0",
     "expo-audio": "~57.0.5",
-    "expo-document-picker": "~57.0.2"
+    "expo-document-picker": "~57.0.2",
+    "expo-splash-screen": "~0.30.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
