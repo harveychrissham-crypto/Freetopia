@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,7 +9,7 @@ export default function NotFoundScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.container}>
         <View style={s.mark}>
-          <Text style={s.markText}>F</Text>
+          <Image source={require('../public/brand/freetopia-mark.png')} style={s.logo} resizeMode="contain" />
         </View>
         <Text style={s.code}>404</Text>
         <Text style={s.title}>This corner of Freetopia doesn’t exist.</Text>
@@ -47,7 +47,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  markText: { color: '#E9EEF4', fontSize: 25, fontWeight: '900' },
+  logo: { width: 31, height: 31 },
   code: {
     marginTop: 24,
     color: '#4B78A8',
