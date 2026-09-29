@@ -118,6 +118,12 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     </View>
   );
 
+  if (name === 'play') return (
+    <View style={[s.box,{width:size,height:size,alignItems:'center',justifyContent:'center'}]}>
+      <View style={{marginLeft:size*.08,width:0,height:0,borderTopWidth:size*.30,borderBottomWidth:size*.30,borderLeftWidth:size*.46,borderTopColor:'transparent',borderBottomColor:'transparent',borderLeftColor:color}} />
+    </View>
+  );
+
   if (name === 'photo') return (
     <View style={[s.box,{width:size,height:size,borderWidth:stroke,borderColor:color,borderRadius:size*.12}]}>
       <View style={{position:'absolute',width:size*.18,height:size*.18,borderRadius:size,backgroundColor:color,left:size*.18,top:size*.18}} />
