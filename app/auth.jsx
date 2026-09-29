@@ -324,7 +324,7 @@ const s = StyleSheet.create({
   },
   wordmark: {
     fontSize: 19,
-    fontWeight: '750',
+    fontWeight:'700',
     color: c.ink,
     letterSpacing: -0.6,
   },
@@ -358,7 +358,7 @@ const s = StyleSheet.create({
     marginTop: 13,
     fontSize: 35,
     lineHeight: 40,
-    fontWeight: '760',
+    fontWeight:'700',
     letterSpacing: -1.35,
     color: c.ink,
   },
@@ -455,7 +455,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  passwordToggleText: { fontSize: 11, fontWeight: '750', color: c.ink },
+  passwordToggleText: { fontSize: 11, fontWeight:'700', color: c.ink },
   feedbackError: {
     marginBottom: 13,
     padding: 11,
@@ -492,7 +492,7 @@ const s = StyleSheet.create({
   primaryText: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '750',
+    fontWeight:'700',
   },
   bottomCopy: {
     marginTop: 20,
@@ -502,7 +502,7 @@ const s = StyleSheet.create({
   },
   bottomLink: {
     color: c.ink,
-    fontWeight: '750',
+    fontWeight:'700',
   },
   footer: {
     marginTop: 'auto',
