@@ -35,35 +35,35 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   );
 
   if (name === 'bell') return (
-    <View style={[s.box, { width: size, height: size }]}>
-      <View style={{ position:'absolute', width:size*.56, height:size*.62, left:size*.22, top:size*.12, borderWidth:stroke, borderColor:color, borderRadius:size*.28 }} />
-      <View style={[common,{width:size*.72,height:stroke,borderRadius:stroke,left:size*.14,top:size*.72}]} />
-      <View style={[common,{width:size*.18,height:size*.09,borderRadius:size*.08,left:size*.41,top:size*.79}]} />
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.54,height:size*.58,left:size*.23,top:size*.15,borderWidth:stroke,borderColor:color,borderTopLeftRadius:size*.28,borderTopRightRadius:size*.28,borderBottomLeftRadius:size*.08,borderBottomRightRadius:size*.08}} />
+      <View style={{position:'absolute',width:size*.70,height:stroke,left:size*.15,top:size*.70,backgroundColor:color,borderRadius:stroke}} />
+      <View style={{position:'absolute',width:size*.14,height:size*.10,left:size*.43,top:size*.76,borderWidth:stroke,borderColor:color,borderBottomLeftRadius:size,borderBottomRightRadius:size}} />
     </View>
   );
 
   if (name === 'message') return (
-    <View style={[s.box, { width: size, height: size }]}>
-      <View style={{ position:'absolute', width:size*.72, height:size*.55, left:size*.1, top:size*.15, borderWidth:stroke, borderColor:color, borderRadius:size*.14 }} />
-      <View style={[common,{width:size*.22,height:stroke,left:size*.18,top:size*.68,transform:[{rotate:'-35deg'}]}]} />
-      <View style={[common,{width:size*.28,height:stroke,left:size*.25,top:size*.42,borderRadius:stroke}]} />
-      <View style={[common,{width:size*.18,height:stroke,left:size*.25,top:size*.54,borderRadius:stroke}]} />
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.74,height:size*.55,left:size*.13,top:size*.14,borderWidth:stroke,borderColor:color,borderRadius:size*.17}} />
+      <View style={{position:'absolute',width:size*.20,height:size*.20,left:size*.19,top:size*.59,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{skewX:'-28deg'}]}} />
+      <View style={{position:'absolute',width:size*.34,height:stroke,left:size*.28,top:size*.36,backgroundColor:color,borderRadius:stroke}} />
+      <View style={{position:'absolute',width:size*.22,height:stroke,left:size*.28,top:size*.50,backgroundColor:color,borderRadius:stroke}} />
     </View>
   );
 
   if (name === 'home') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.54,height:size*.54,left:size*.23,top:size*.28,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.04}} />
-      <View style={{position:'absolute',width:size*.53,height:size*.53,left:size*.235,top:size*.02,borderLeftWidth:stroke,borderTopWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],borderRadius:size*.04}} />
-      <View style={[common,{width:size*.16,height:size*.29,left:size*.42,top:size*.51,borderRadius:size*.03}]} />
+      <View style={{position:'absolute',width:size*.52,height:size*.44,left:size*.24,top:size*.38,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.08}} />
+      <View style={{position:'absolute',width:size*.56,height:size*.56,left:size*.22,top:size*.08,borderLeftWidth:stroke,borderTopWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],borderRadius:size*.08}} />
+      <View style={{position:'absolute',width:size*.13,height:size*.24,left:size*.435,top:size*.58,borderWidth:stroke,borderBottomWidth:0,borderColor:color,borderTopLeftRadius:size*.04,borderTopRightRadius:size*.04}} />
     </View>
   );
 
   if (name === 'compass') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.76,height:size*.76,left:size*.12,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
-      <View style={{position:'absolute',width:size*.18,height:size*.48,left:size*.41,top:size*.26,backgroundColor:color,transform:[{rotate:'42deg'}],borderRadius:size*.04}} />
-      <View style={{position:'absolute',width:size*.18,height:size*.18,left:size*.41,top:size*.41,borderRadius:size,backgroundColor:'#060B12'}} />
+      <View style={{position:'absolute',width:size*.22,height:size*.42,left:size*.39,top:size*.27,borderWidth:stroke,borderColor:color,transform:[{rotate:'42deg'}],borderRadius:size*.04}} />
+      <View style={{position:'absolute',width:size*.08,height:size*.08,left:size*.46,top:size*.46,borderRadius:size,backgroundColor:color}} />
     </View>
   );
 
@@ -78,8 +78,8 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'profile') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.31,height:size*.31,left:size*.345,top:size*.1,borderWidth:stroke,borderColor:color,borderRadius:size}} />
-      <View style={{position:'absolute',width:size*.68,height:size*.35,left:size*.16,top:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.35}} />
+      <View style={{position:'absolute',width:size*.30,height:size*.30,left:size*.35,top:size*.10,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.66,height:size*.34,left:size*.17,top:size*.54,borderWidth:stroke,borderColor:color,borderRadius:size*.34}} />
     </View>
   );
 
