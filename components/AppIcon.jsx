@@ -147,6 +147,13 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     </View>
   );
 
+  if (name === 'heart') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.42,height:size*.42,left:size*.10,top:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'-45deg'}]}} />
+      <View style={{position:'absolute',width:size*.42,height:size*.42,left:size*.48,top:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}]}} />
+    </View>
+  );
+
   if (name === 'bookmark') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.72,left:size*.24,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.04}} />
