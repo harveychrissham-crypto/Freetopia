@@ -38,13 +38,18 @@ export default function Messages() {
     pull ? setRefreshing(true) : setLoading(true);
     setError('');
     try {
-      const [{ data, error:e }, { data:communityData, error:communityError }] = await Promise.all([supabase
+      const { data, error:e } = await supabase
         .from('conversations')
         .select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))')
-        .order('created_at',{ascending:false}), supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20)]);
+        .order('created_at',{ascending:false});
       if(sequence!==loadSequence.current||!mountedRef.current)return;
-      setCommunities(communityData || []);
-      if (e || communityError) { setError((e || communityError).message); setItems([]); }
+      if (e) { setError(e.message); setItems([]); }
+      else if (tab==='Communities') {
+        const { data:communityData, error:communityError } = await supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20);
+        if(sequence!==loadSequence.current||!mountedRef.current)return;
+        if(communityError)setError(communityError.message);
+        setCommunities(communityData||[]);
+      }
       else {
         const base = (data||[]).map(c => {
           const members = c.conversation_members || [];
