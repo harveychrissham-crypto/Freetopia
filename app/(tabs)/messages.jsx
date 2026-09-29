@@ -29,13 +29,15 @@ export default function Messages() {
   const loadInFlight = useRef(false);
   const reloadPending = useRef(false);
   const mountedRef = useRef(true);
+  const itemsLengthRef = useRef(0);
+  itemsLengthRef.current = items.length;
 
   const load = useCallback(async (pull=false) => {
     if (!user?.id || !mountedRef.current) return;
     if(loadInFlight.current&&!pull)return;
     const sequence=++loadSequence.current;
     loadInFlight.current=true;
-    pull ? setRefreshing(true) : setLoading(!items.length);
+    pull ? setRefreshing(true) : setLoading(!itemsLengthRef.current);
     setError('');
     try {
       // Fetch the lightweight conversation list and inbox summary together so the
@@ -87,7 +89,7 @@ export default function Messages() {
         setTimeout(()=>{if(mountedRef.current)load();},0);
       }
     }
-  },[user?.id,tab,items.length]);
+  },[user?.id,tab]);
 
   useFocusEffect(useCallback(()=>{ load(); },[load]));
 
