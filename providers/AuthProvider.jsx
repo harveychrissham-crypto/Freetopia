@@ -110,6 +110,11 @@ export function AuthProvider({ children }) {
     loading,
     configError,
     startupError,
+    setAuthenticatedSession: (nextSession) => {
+      setSession(nextSession ?? null);
+      setStartupError(null);
+      setLoading(false);
+    },
     refreshProfile: async () => {
       if (supabaseConfigError || !session?.user?.id) return null;
       try {
