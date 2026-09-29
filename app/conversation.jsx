@@ -321,9 +321,10 @@ export default function Conversation(){
     const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:'audio/mp4',upsert:false});
     if(up.error)throw up.error;
     const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
-    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:'audio',expires_at:expiryForMessage()});
+    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:'audio',expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
     if(ins.error)throw ins.error;
-    setUploading(false);load();
+    if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);
+    setUploading(false);
    }else{
     const perm=await AudioModule.requestRecordingPermissionsAsync();
     if(!perm.granted){Alert.alert('Microphone permission needed','Allow Freetopia to use your microphone for voice messages.');return;}
@@ -342,8 +343,11 @@ export default function Conversation(){
    const{error:e}=await supabase.from('messages').update({content:v,edited_at:new Date().toISOString()}).eq('id',editingId).eq('sender_id',user.id);
    if(e)setError(e.message);else{setText('');setEditingId(null);}
   }else{
-   const{error:e}=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:v,reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()});
-   if(e)setError(e.message);else {setText('');setReplyTo(null);draftDirtyRef.current=false;if(typingTimerRef.current)clearTimeout(typingTimerRef.current);broadcastTyping(false);draftLocalUpdatedAtRef.current=0;await supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id);setDraftSaved(false);} 
+   const{data:inserted,error:e}=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:v,reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
+   if(e)setError(e.message);else {
+    if(inserted) setMessages(current=>current.some(x=>x.id===inserted.id)?current:[...current,inserted]);
+    setText('');setReplyTo(null);draftDirtyRef.current=false;if(typingTimerRef.current)clearTimeout(typingTimerRef.current);broadcastTyping(false);draftLocalUpdatedAtRef.current=0;supabase.from('message_drafts').delete().eq('user_id',user.id).eq('conversation_id',id).then(()=>{});setDraftSaved(false);
+   }
   }
   setSending(false);
  };
