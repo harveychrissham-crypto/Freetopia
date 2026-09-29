@@ -21,13 +21,13 @@ const C = {
 };
 
 const settingItems = [
-  ['Account', 'Username, email, bio, profile', '◯'],
-  ['Privacy & Security', 'Password, 2FA, active sessions', '▣'],
-  ['Notifications', 'Push, email, in-app', '♧'],
-  ['Appearance', 'Dark mode, font size, language', '☼'],
-  ['Data & Storage', 'Downloads, cache, media', '▤'],
-  ['Help & Support', 'FAQs, contact us, report a problem', '?'],
-  ['About Freetopia', 'Version, terms, privacy', 'ⓘ'],
+  ['Account', 'Username, email, bio, profile', 'profile'],
+  ['Privacy & Security', 'Password, 2FA, active sessions', 'settings'],
+  ['Notifications', 'Push, email, in-app', 'bell'],
+  ['Appearance', 'Dark mode, font size, language', 'spark'],
+  ['Data & Storage', 'Downloads, cache, media', 'archive'],
+  ['Help & Support', 'FAQs, contact us, report a problem', 'info'],
+  ['About Freetopia', 'Version, terms, privacy', 'info'],
 ];
 
 export default function Settings() {
@@ -224,9 +224,9 @@ function AccountPanel({ name, handle, initials, email, profile, onEdit }) {
       <View style={s.card}>
         <Text style={s.cardTitle}>Privacy & Security</Text>
         <SettingLine icon="globe" title="Profile visibility" subtitle={profile?.is_private ? 'Private profile' : 'Public profile'} />
-        <SettingLine icon="▣" title="Password" subtitle="Manage your sign-in password" />
-        <SettingLine icon="◌" title="Two-Factor Authentication" subtitle="Not connected yet" muted />
-        <SettingLine icon="▤" title="Active Sessions" subtitle="Session management is not connected yet" muted last />
+        <SettingLine icon="settings" title="Password" subtitle="Manage your sign-in password" />
+        <SettingLine icon="spark" title="Two-Factor Authentication" subtitle="Not connected yet" muted />
+        <SettingLine icon="archive" title="Active Sessions" subtitle="Session management is not connected yet" muted last />
       </View>
     </>
   );
@@ -248,8 +248,8 @@ function SecurityPanel({ privateProfile, onToggle, privacyBusy, password, setPas
       </View>
       <View style={s.card}>
         <Text style={s.cardTitle}>Additional security</Text>
-        <SettingLine icon="◌" title="Two-Factor Authentication" subtitle="Not connected yet" muted />
-        <SettingLine icon="▤" title="Active Sessions" subtitle="Session management is not connected yet" muted last />
+        <SettingLine icon="spark" title="Two-Factor Authentication" subtitle="Not connected yet" muted />
+        <SettingLine icon="archive" title="Active Sessions" subtitle="Session management is not connected yet" muted last />
       </View>
     </>
   );
@@ -263,9 +263,9 @@ function RightRail({ profile, name, handle, onEdit, privateProfile }) {
   return <View style={s.rightRail}>
     <View style={s.railCard}>
       <Text style={s.railTitle}>Appearance</Text>
-      <SettingLine icon="☾" title="Dark Mode" subtitle="Freetopia dark theme" />
-      <SettingLine icon="☼" title="Light" subtitle="Not connected yet" muted />
-      <SettingLine icon="▣" title="System" subtitle="Not connected yet" muted last />
+      <SettingLine icon="spark" title="Dark Mode" subtitle="Freetopia dark theme" />
+      <SettingLine icon="spark" title="Light" subtitle="Not connected yet" muted />
+      <SettingLine icon="settings" title="System" subtitle="Not connected yet" muted last />
     </View>
     <View style={s.railCard}>
       <Text style={s.railTitle}>Language</Text>
@@ -277,9 +277,9 @@ function RightRail({ profile, name, handle, onEdit, privateProfile }) {
     </View>
     <View style={s.railCard}>
       <Text style={s.railTitle}>Quick Actions</Text>
-      <Pressable onPress={onEdit} style={s.quickRow}><Text style={s.quickIcon}>◉</Text><Text style={s.quickText}>Edit Profile</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
-      <Pressable style={s.quickRow}><Text style={s.quickIcon}>▤</Text><Text style={s.quickText}>Data & Storage</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
-      <Pressable style={s.quickRow}><Text style={s.quickIcon}>?</Text><Text style={s.quickText}>Help & Support</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
+      <Pressable onPress={onEdit} style={s.quickRow}><AppIcon name="profile" size={16} color={C.muted}/><Text style={s.quickText}>Edit Profile</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
+      <Pressable style={s.quickRow}><AppIcon name="archive" size={16} color={C.muted}/><Text style={s.quickText}>Data & Storage</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
+      <Pressable style={s.quickRow}><AppIcon name="info" size={16} color={C.muted}/><Text style={s.quickText}>Help & Support</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
     </View>
     <View style={s.promo}><Image source={require('../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Your journey matters.</Text><Text style={s.promoBody}>Keep building your world.</Text></View>
   </View>;
@@ -290,7 +290,7 @@ function Sidebar({ router }) {
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
     <View style={s.sideNav}>{items.map(([icon,label,path]) => <Pressable key={label} onPress={() => router.push(path)} style={s.sideItem}><AppIcon name={icon} size={18} color="#AFC0D3"/><Text style={s.sideLabel}>{label}</Text>{label === 'Messages' ? <Badge n="3"/> : null}{label === 'Notifications' ? <Badge n="5"/> : null}</Pressable>)}</View>
-    <View style={s.sidebarPromo}><Image source={require('../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.sidebarPromoTitle}>Your journey matters.</Text><Text style={s.sidebarPromoBody}>Keep building.</Text><Pressable style={s.promoButton}><Text style={s.promoButtonText}>Upgrade →</Text></Pressable></View>
+    <View style={s.sidebarPromo}><Image source={require('../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.sidebarPromoTitle}>Your journey matters.</Text><Text style={s.sidebarPromoBody}>Keep building.</Text><Pressable style={s.promoButton}><Text style={s.promoButtonText}>Upgrade</Text><AppIcon name="arrow-right" size={14} color={C.text}/></Pressable></View>
   </View>;
 }
 
