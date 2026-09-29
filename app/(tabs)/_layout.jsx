@@ -1,4 +1,5 @@
-import { AppState, Platform, View, useEffect, useState, useCallback, useWindowDimensions, useRef } from 'react-native';
+import { AppState, Platform, View, useWindowDimensions } from 'react-native';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Redirect, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../providers/AuthProvider';
