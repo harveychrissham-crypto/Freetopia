@@ -3,6 +3,7 @@ import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase, supabaseConfigError } from '../lib/supabase';
+import AppIcon from '../components/AppIcon';
 import { useAuth } from '../providers/AuthProvider';
 
 const c = {
@@ -234,7 +235,7 @@ export default function Auth() {
                   accessibilityRole="button"
                   accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  <Text style={s.passwordToggleText}>{showPassword ? 'Hide' : 'Show'}</Text>
+                  <AppIcon name={showPassword ? 'eye-off' : 'eye'} size={18} color={c.ink} />
                 </Pressable>
               </View>
             </View>
@@ -454,11 +455,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  passwordToggleText: {
-    fontSize: 11,
-    fontWeight: '750',
-    color: c.ink,
-  },
+  passwordToggleText: { fontSize: 11, fontWeight: '750', color: c.ink },
   feedbackError: {
     marginBottom: 13,
     padding: 11,
