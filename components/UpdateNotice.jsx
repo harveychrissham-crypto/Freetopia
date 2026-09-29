@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppIcon from './AppIcon';
@@ -7,6 +7,8 @@ import AppIcon from './AppIcon';
 const C = { panel:'#0E1824', line:'#203246', text:'#F4F7FA', muted:'#8A99AA', blue:'#4B78A8' };
 const version = Constants.expoConfig?.version || '0.2.1';
 const storageKey = 'freetopia-update-seen-' + version;
+
+const updateUrl = 'https://github.com/harveychrissham-crypto/Freetopia/releases/latest';
 
 export default function UpdateNotice({ onPress }) {
   const [visible,setVisible] = useState(false);
@@ -22,9 +24,9 @@ export default function UpdateNotice({ onPress }) {
       <View style={s.iconWrap}><AppIcon name="spark" size={18} color={C.text}/></View>
       <View style={s.body}>
         <Text style={s.title}>Freetopia has been updated</Text>
-        <Text style={s.message}>You’re now using version {version}. We’ve polished the experience and improved the app.</Text>
+        <Text style={s.message}>You’re now using version {version}. A new Freetopia build is ready. Tap Install update to get the latest Android version.</Text>
         <View style={s.actions}>
-          {onPress ? <Pressable onPress={onPress} style={({pressed})=>[s.primary,pressed&&s.pressed]}><Text style={s.primaryText}>What’s new</Text></Pressable> : null}
+          <Pressable onPress={onPress || (() => Linking.openURL(updateUrl))} style={({pressed})=>[s.primary,pressed&&s.pressed]}><Text style={s.primaryText}>Install update</Text></Pressable>
           <Pressable onPress={dismiss} style={({pressed})=>[s.dismiss,pressed&&s.pressed]}><Text style={s.dismissText}>Dismiss</Text></Pressable>
         </View>
       </View>
