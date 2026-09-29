@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { supabase, supabaseConfigError } from '../lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase, supabaseConfigError, supabaseAuthStorageKey } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
 
 const c = {
@@ -17,7 +18,7 @@ const c = {
 
 export default function Auth() {
   const router = useRouter();
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, setAuthenticatedSession } = useAuth();
   const [mode, setMode] = useState('sign-in');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -101,9 +102,8 @@ export default function Auth() {
       }
 
       if (result.data.session) {
-        // Navigate from the confirmed sign-in response as well as the auth listener.
-        // This prevents the app from remaining on the sign-in screen if the realtime
-        // auth event arrives late or is missed during startup.
+        await AsyncStorage.setItem(supabaseAuthStorageKey, JSON.stringify(result.data.session));
+        setAuthenticatedSession(result.data.session);
         navigationLock.current = true;
         router.replace('/home');
       } else {
