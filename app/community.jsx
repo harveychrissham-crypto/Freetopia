@@ -1,4 +1,4 @@
-import { useCallback,useState } from 'react';
+import { useCallback,useRef,useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Image, Pressable,RefreshControl,ScrollView,StyleSheet,Text,View } from 'react-native';
 import { useLocalSearchParams,useRouter } from 'expo-router';
@@ -11,10 +11,10 @@ import AppIcon from '../components/AppIcon';
 const C={bg:'#060B12',panel:'#0A121C',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',accent:'#4B78A8',danger:'#A95B69'};
 
 export default function Community(){
- const params=useLocalSearchParams(),id=Array.isArray(params.id)?params.id[0]:params.id;const r=useRouter();const {user}=useAuth();const [community,setCommunity]=useState(null);const [member,setMember]=useState(null);const [members,setMembers]=useState(0);const [posts,setPosts]=useState([]);const [loading,setLoading]=useState(true);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+ const loadedRef=useRef(false); const params=useLocalSearchParams(),id=Array.isArray(params.id)?params.id[0]:params.id;const r=useRouter();const {user}=useAuth();const [community,setCommunity]=useState(null);const [member,setMember]=useState(null);const [members,setMembers]=useState(0);const [posts,setPosts]=useState([]);const [loading,setLoading]=useState(true);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
  const load=useCallback(async(pull=false)=>{
   if(!id)return;
-  setLoading(!pull);setError('');
+  setLoading(!pull&&!loadedRef.current);setError('');
   const [c,m,mc,p]=await Promise.all([
    supabase.from('communities').select('id,name,slug,description,is_private,creator_id').eq('id',id).single(),
    supabase.from('community_members').select('role,status').eq('community_id',id).eq('user_id',user?.id||'').maybeSingle(),
@@ -22,7 +22,7 @@ export default function Community(){
    supabase.from('posts').select('id,content,created_at,author_id,profiles:author_id(id,display_name,username,avatar_url),post_media(id,storage_path,media_type,width,height,sort_order,thumbnail_path)').eq('community_id',id).order('created_at',{ascending:false}).limit(30)
   ]);
   if(c.error)setError(c.error.message);else{setCommunity(c.data);setMember(m.data);setMembers(mc.count||0);setPosts(p.data||[])}
-  setLoading(false);
+  setLoading(false);loadedRef.current=true;
  },[id,user?.id]);
  useFocusEffect(useCallback(()=>{load();},[load]));
  if(loading)return <SafeAreaView style={s.safe}><View style={s.center}><Text style={s.loadingText}>Loading community…</Text></View></SafeAreaView>;
@@ -45,7 +45,7 @@ export default function Community(){
  const visiblePosts=community.is_private&&!isActive?[]:posts;
 
  return <SafeAreaView style={s.safe}><ScrollView refreshControl={<RefreshControl refreshing={false} onRefresh={()=>load(true)}/>} contentContainerStyle={s.content}>
-  <View style={s.topbar}><Pressable onPress={()=>r.back()}><Text style={s.back}>←</Text></Pressable><Text style={s.topTitle}>Community</Text><Pressable onPress={()=>r.push('/communities')}><Text style={s.close}>×</Text></Pressable></View>
+  <View style={s.topbar}><Pressable onPress={()=>r.back()}><AppIcon name="arrow-left" size={18} color={C.text}/></Pressable><Text style={s.topTitle}>Community</Text><Pressable onPress={()=>r.push('/communities')}><AppIcon name="close" size={17} color={C.muted}/></Pressable></View>
   <View style={s.hero}>
    <View style={s.badge}><Text style={s.badgeText}>{community.is_private?'PRIVATE':'COMMUNITY'}</Text></View>
    <Text style={s.title}>{community.name}</Text>
