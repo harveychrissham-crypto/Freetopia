@@ -1,6 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { supabase, supabaseAuthStorageKey, supabaseConfigError } from '../lib/supabase';
+import { supabase, supabaseConfigError } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 const AUTH_STARTUP_TIMEOUT = 7000;
@@ -40,22 +39,6 @@ export function AuthProvider({ children }) {
     }, AUTH_STARTUP_TIMEOUT);
 
     let subscription;
-    const restoreStoredSession = async () => {
-      try {
-        const raw = await AsyncStorage.getItem(supabaseAuthStorageKey);
-        if (raw && mounted) {
-          const storedSession = JSON.parse(raw);
-          if (storedSession?.access_token && storedSession?.user) {
-            setSession(storedSession);
-          }
-        }
-      } catch (error) {
-        console.warn('Stored auth session restore failed:', error?.message || error);
-      } finally {
-        finishStartup();
-      }
-    };
-
     try {
       const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
         if (!mounted) return;
@@ -65,7 +48,7 @@ export function AuthProvider({ children }) {
         setStartupError(null);
 
         if (event === 'INITIAL_SESSION') {
-          restoreStoredSession();
+          finishStartup();
         }
       });
       subscription = data?.subscription;

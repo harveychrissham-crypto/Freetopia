@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase, supabaseConfigError, supabaseAuthStorageKey } from '../lib/supabase';
+import { supabase, supabaseConfigError } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
 
 const c = {
@@ -43,6 +42,7 @@ export default function Auth() {
   };
 
   const submit = async () => {
+    if (loading) return;
     setError('');
     setMessage('');
 
@@ -85,11 +85,19 @@ export default function Auth() {
             options: { data: { display_name: cleanName } },
           });
 
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Freetopia could not reach the authentication service. Check your internet connection and try again.')), 15000)
-      );
+      let timeoutId;
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(
+          'Freetopia could not reach its authentication service. Check this device’s internet connection and try again. If it persists on other networks, check the Supabase project status.'
+        )), 10000);
+      });
 
-      const result = await Promise.race([authRequest, timeout]);
+      let result;
+      try {
+        result = await Promise.race([authRequest, timeout]);
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (result.error) {
         setError(result.error.message);
@@ -102,7 +110,6 @@ export default function Auth() {
       }
 
       if (result.data.session) {
-        await AsyncStorage.setItem(supabaseAuthStorageKey, JSON.stringify(result.data.session));
         setAuthenticatedSession(result.data.session);
         navigationLock.current = true;
         router.replace('/home');
@@ -251,7 +258,7 @@ export default function Auth() {
             >
               <Text style={s.primaryText}>
                 {loading
-                  ? 'Please wait…'
+                  ? 'Connecting…'
                   : mode === 'sign-in'
                     ? 'Sign in to Freetopia'
                     : 'Create my account'}
