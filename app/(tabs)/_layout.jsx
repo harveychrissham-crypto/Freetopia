@@ -101,15 +101,15 @@ export default function TabLayout() {
         tabBarStyle: desktopWeb
           ? { display: 'none' }
           : {
-              height: 76,
+              height: 80,
               paddingTop: 8,
-              paddingBottom: 9,
+              paddingBottom: 10,
               borderTopColor: '#182533',
               borderTopWidth: 1,
               backgroundColor: '#050A11',
               elevation: 0,
             },
-        tabBarLabelStyle: { fontSize: 9, fontWeight: '750', marginTop: 2 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '750', marginTop: 3 },
         tabBarItemStyle: { paddingTop: 0 },
         tabBarHideOnKeyboard: true,
         sceneStyle: { backgroundColor: '#060B12' },
@@ -119,7 +119,7 @@ export default function TabLayout() {
         <Tabs.Screen name="messages" options={{
           title: 'Messages',
           tabBarBadge: unreadMessages > 0 ? (unreadMessages > 99 ? '99+' : unreadMessages) : undefined,
-          tabBarBadgeStyle: { backgroundColor: '#4B78A8', color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
+          tabBarBadgeStyle: { backgroundColor: '#4B78A8', color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
           tabBarIcon: ({ color, size, focused }) => <View style={[navIcon, focused && navIconActive]}><AppIcon name="message" size={size} color={color} /></View>,
         }} />
         <Tabs.Screen name="notifications" options={{
