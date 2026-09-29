@@ -109,7 +109,7 @@ export default function TabLayout() {
               backgroundColor: '#050A11',
               elevation: 0,
             },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '750', marginTop: 3 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight:'700', marginTop: 3 },
         tabBarItemStyle: { paddingTop: 0 },
         tabBarHideOnKeyboard: true,
         sceneStyle: { backgroundColor: '#060B12' },
