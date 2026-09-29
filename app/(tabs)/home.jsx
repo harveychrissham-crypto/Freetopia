@@ -28,7 +28,7 @@ export default function Home() {
   if(activeTab==='Communities')query=query.not('community_id','is',null);
   const[{data,error:postError},{data:communityData,error:communityError},unreadResult]=await Promise.all([query,communitiesPromise,unreadPromise]);
   if(seq!==loadSeq.current)return;
-  if(postError)setError(postError.message);if(communityError)setError(communityError.message);if(unreadResult?.error)setError(unreadResult.error.message);
+  if(postError)setError(postError.message);if(unreadResult?.error)setError(unreadResult.error.message);
   setUnreadNotifications(unreadResult?.count||0);
   setPosts((data||[]).map(post=>({...post,reactionCount:post.post_reactions?.filter(r=>r.reaction_type==='like').length||0,liked:post.post_reactions?.some(r=>r.user_id===user?.id&&r.reaction_type==='like')||false})));
   setCommunities(communityData||[]);setLoading(false);setRefreshing(false);
