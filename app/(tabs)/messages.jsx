@@ -38,32 +38,30 @@ export default function Messages() {
     pull ? setRefreshing(true) : setLoading(true);
     setError('');
     try {
-      const { data, error:e } = await supabase
-        .from('conversations')
-        .select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))')
-        .order('created_at',{ascending:false});
+      // Fetch the lightweight conversation list and inbox summary together so the
+      // Messages screen never waits on one network round-trip before starting the next.
+      const [conversationResult,inboxResult]=await Promise.all([
+        supabase.from('conversations').select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))').order('created_at',{ascending:false}),
+        tab==='Communities'?Promise.resolve({data:null,error:null}):supabase.rpc('get_message_inbox')
+      ]);
       if(sequence!==loadSequence.current||!mountedRef.current)return;
-      if (e) { setError(e.message); setItems([]); }
-      else if (tab==='Communities') {
-        const { data:communityData, error:communityError } = await supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20);
+      const {data,error:e}=conversationResult;
+      if(e){setError(e.message);setItems([]);}
+      else if(tab==='Communities'){
+        const {data:communityData,error:communityError}=await supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20);
         if(sequence!==loadSequence.current||!mountedRef.current)return;
         if(communityError)setError(communityError.message);
         setCommunities(communityData||[]);
       }
       else {
-        const base = (data||[]).map(c => {
-          const members = c.conversation_members || [];
-          return { ...c, me:members.find(m=>m.user_id===user.id), other:members.find(m=>m.user_id!==user.id) };
+        const base=(data||[]).map(c=>{
+          const members=c.conversation_members||[];
+          return {...c,me:members.find(m=>m.user_id===user.id),other:members.find(m=>m.user_id!==user.id)};
         }).filter(c=>c.me);
-        const ids = base.map(c=>c.id);
-        let inboxRows = [];
-        if (ids.length) {
-          const ir = await supabase.rpc('get_message_inbox');
-          if (sequence!==loadSequence.current||!mountedRef.current)return;
-          if (!ir.error) inboxRows = ir.data || [];
-          else setError(ir.error.message);
-        }
-        if (sequence!==loadSequence.current||!mountedRef.current)return;
+        let inboxRows=[];
+        if(!inboxResult.error) inboxRows=inboxResult.data||[];
+        else setError(inboxResult.error.message);
+        if(sequence!==loadSequence.current||!mountedRef.current)return;
         const latestBy = {};
         const unreadBy = {};
         (inboxRows||[]).forEach(m => {
