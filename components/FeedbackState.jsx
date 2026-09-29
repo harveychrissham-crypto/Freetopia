@@ -30,7 +30,7 @@ const s=StyleSheet.create({
  avatar:{width:38,height:38,borderRadius:19},
  skeletonCopy:{flex:1},
  loadingLabel:{height:34,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},
- loadingText:{fontSize:10,fontWeight:'650',color:C.muted},
+ loadingText:{fontSize:10,fontWeight:'600',color:C.muted},
  empty:{marginTop:10,padding:28,alignItems:'center',borderWidth:1,borderColor:C.line,borderRadius:13,backgroundColor:C.panel},
  icon:{width:42,height:42,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:'#102236',borderWidth:1,borderColor:'#1B334D'},
  title:{marginTop:12,fontSize:15,fontWeight:'800',color:C.text,textAlign:'center'},
