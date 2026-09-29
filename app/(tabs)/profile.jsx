@@ -135,7 +135,7 @@ export default function Profile() {
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />} contentContainerStyle={s.mobileContent}>
-        <View style={s.mobileTop}><Pressable onPress={()=>router.back()}><Text style={s.back}>‹</Text></Pressable><Text style={s.mobileTitle}>{isOwn?'Profile':'Profile'}</Text>{isOwn?<Pressable onPress={()=>router.push('/settings')}><Text style={s.mobileMore}>•••</Text></Pressable>:<View style={{width:20}}/>}</View>
+        <View style={s.mobileTop}><Pressable onPress={()=>router.back()}><AppIcon name="arrow-left" size={20} color={C.text}/></Pressable><Text style={s.mobileTitle}>{isOwn?'Profile':'Profile'}</Text>{isOwn?<Pressable onPress={()=>router.push('/settings')}><AppIcon name="more" size={18} color={C.text}/></Pressable>:<View style={{width:20}}/>}</View>
         {profileHeader}
         <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         {error ? <ErrorBox message={error}/> : null}
@@ -147,10 +147,10 @@ export default function Profile() {
 }
 
 function ProfileSidebar({name,initials,onNavigate}) {
-  const items=[['⌂','Home','/home'],['⌕','Explore','/explore'],['♧','Communities','/communities'],['▱','Messages','/messages'],['♧','Notifications','/notifications'],['＋','Create','/create'],['♙','Profile','/profile']];
+  const items=[['home','Home','/home'],['compass','Explore','/explore'],['users','Communities','/communities'],['message','Messages','/messages'],['bell','Notifications','/notifications'],['plus','Create','/create'],['profile','Profile','/profile']];
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.brandLogo}/><Text style={s.brandText}>Freetopia</Text></View>
-    <View style={s.sideNav}>{items.map(([icon,label,path])=><Pressable key={label} onPress={()=>onNavigate(path)} style={[s.sideItem,label==='Profile'&&s.activeSide]}><Text style={s.sideIcon}>{icon}</Text><Text style={s.sideLabel}>{label}</Text></Pressable>)}</View>
+    <View style={s.sideNav}>{items.map(([icon,label,path])=><Pressable key={label} onPress={()=>onNavigate(path)} style={[s.sideItem,label==='Profile'&&s.activeSide]}><View style={s.sideIcon}><AppIcon name={icon} size={18} color={label==='Profile'?C.text:C.muted}/></View><Text style={s.sideLabel}>{label}</Text></Pressable>)}</View>
     <Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials}/><View style={{flex:1}}><Text style={s.sideName}>{name}</Text><Text style={s.sideSub}>Profile</Text></View><Text style={s.sideChevron}>⌄</Text></Pressable>
   </View>;
 }
@@ -159,7 +159,7 @@ function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSe
     <View style={s.cover}>{profile?.cover_url?<Image source={{uri:getImageUrl(profile.cover_url,{width:2000,height:1000,quality:100})}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/><Text style={s.coverStars}>✦  ·  ✧   ·   ✦</Text></>}</View>
     <View style={s.profileBody}>
       <Pressable onPress={onEdit} disabled={!onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><Text style={s.cameraText}>⌾</Text></View>}</Pressable>
-      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={({pressed})=>[s.outline,pressed&&s.pressed]}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={({pressed})=>[s.followButton,(following||pending)&&s.followingButton,pressed&&s.pressed]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':pending?'Requested':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={({pressed})=>[s.circle,pressed&&s.pressed]}><Text style={s.circleText}>•••</Text></Pressable>}</View>
+      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={({pressed})=>[s.outline,pressed&&s.pressed]}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={({pressed})=>[s.followButton,(following||pending)&&s.followingButton,pressed&&s.pressed]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':pending?'Requested':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={({pressed})=>[s.circle,pressed&&s.pressed]}><AppIcon name="more" size={18} color={C.text}/></Pressable>}</View>
       <Text style={s.name}>{name}</Text>
       <Text style={s.handle}>{handle}</Text>
       <Text style={s.bio}>{profile?.bio || 'Dream big. Build bigger. Share your world with Freetopia.'}</Text>
@@ -175,7 +175,7 @@ function ProfilePosts({posts,activeTab,profile,name,onPost}) {
   if (activeTab==='Replies') return <Empty title="No replies to show" body={profile?.id ? 'Replies from this profile will appear here when available.' : 'Replies will appear here when you reply to posts.'} />;
   if (!posts.length) return <Empty title={activeTab==='Media'?'No media posts yet':activeTab==='Reactions'?(profile?.id===undefined?'No reactions to show': 'No matching reactions yet'):'Nothing here yet'} body={activeTab==='Posts'?(profile?.id?'Posts from this profile will appear here as they are shared.':'Your posts will appear here as you share them.'):activeTab==='Reactions'?'This view shows posts from this profile that you have reacted to.':'This section only shows data that is currently available.'}/>;
   return <View>{posts.map(post=><Pressable key={post.id} onPress={()=>onPost(post.id)} style={s.post}>
-    <View style={s.postHead}><Avatar initials={name?.charAt(0).toUpperCase()||"F"} uri={profile?.avatar_url}/><View style={{flex:1}}><Text style={s.postAuthor}>{name||"Freetopia member"} <Text style={s.postHandle}>· {relative(post.created_at)}</Text></Text><Text style={s.postText}>{post.content||''}</Text></View><Text style={s.more}>•••</Text></View>
+    <View style={s.postHead}><Avatar initials={name?.charAt(0).toUpperCase()||"F"} uri={profile?.avatar_url}/><View style={{flex:1}}><Text style={s.postAuthor}>{name||"Freetopia member"} <Text style={s.postHandle}>· {relative(post.created_at)}</Text></Text><Text style={s.postText}>{post.content||''}</Text></View><AppIcon name="more" size={18} color={C.muted}/></View>
     {post.post_media?.length?<ProfileMedia media={post.post_media}/>:null}
     <View style={s.postActions}><Text style={s.action}>♡ {post.post_reactions?.filter(x=>x.reaction_type==='like').length||0}</Text><Text style={s.action}>□ Reply</Text><Text style={s.action}>↗ Share</Text><Text style={s.action}>♧</Text></View>
   </Pressable>)}</View>;
