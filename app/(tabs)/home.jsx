@@ -15,10 +15,10 @@ const tabs = ['For You','Following','Communities'];
 export default function Home() {
  const router=useRouter(),{width}=useWindowDimensions(),{user,profile}=useAuth(),desktop=Platform.OS==='web'&&width>=1000;
  const[activeTab,setActiveTab]=useState('For You'),[posts,setPosts]=useState([]),[communities,setCommunities]=useState([]),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[unreadNotifications,setUnreadNotifications]=useState(0);
- const loadSeq=useRef(0);
+ const loadSeq=useRef(0); const postsLoadedRef=useRef(false);
  const load=useCallback(async(pull=false)=>{
   const seq=++loadSeq.current;
-  pull?setRefreshing(true):setLoading(true);setError('');
+  pull?setRefreshing(true):setLoading(!postsLoadedRef.current);setError('');
   const unreadPromise=user?.id?supabase.from('notifications').select('id',{count:'exact',head:true}).eq('recipient_id',user.id).is('read_at',null):Promise.resolve({count:0,error:null});
   const communitiesPromise=supabase.from('communities').select('id,name,slug,description,is_private').order('created_at',{ascending:false}).limit(5);
   let authorIds=null;
@@ -31,7 +31,7 @@ export default function Home() {
   if(postError)setError(postError.message);if(unreadResult?.error)setError(unreadResult.error.message);
   setUnreadNotifications(unreadResult?.count||0);
   setPosts((data||[]).map(post=>({...post,reactionCount:post.post_reactions?.filter(r=>r.reaction_type==='like').length||0,liked:post.post_reactions?.some(r=>r.user_id===user?.id&&r.reaction_type==='like')||false})));
-  setCommunities(communityData||[]);setLoading(false);setRefreshing(false);
+  setCommunities(communityData||[]);postsLoadedRef.current=true;setLoading(false);setRefreshing(false);
  },[activeTab,user?.id]);
  useFocusEffect(useCallback(()=>{load()},[load]));
  const toggleLike=async(postId,liked)=>{
