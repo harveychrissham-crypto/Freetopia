@@ -181,7 +181,13 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     </View>
   );
 
-  if (name === 'close') return (\n    <View style={[s.box,{width:size,height:size}]}>\n      <View style={{position:'absolute',width:size*.68,height:stroke,backgroundColor:color,transform:[{rotate:'45deg'}],borderRadius:stroke}} />\n      <View style={{position:'absolute',width:size*.68,height:stroke,backgroundColor:color,transform:[{rotate:'-45deg'}],borderRadius:stroke}} />\n    </View>\n  );\n\n  if (name === 'dots') return (
+  if (name === 'close') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.68,height:stroke,backgroundColor:color,transform:[{rotate:'45deg'}],borderRadius:stroke}} />
+      <View style={{position:'absolute',width:size*.68,height:stroke,backgroundColor:color,transform:[{rotate:'-45deg'}],borderRadius:stroke}} />
+    </View>
+  );
+\n  if (name === 'dots') return (
     <View style={[s.box,{width:size,height:size,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:size*.1}]}>
       {[0,1,2].map(i=><View key={i} style={{width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color}} />)}
     </View>
