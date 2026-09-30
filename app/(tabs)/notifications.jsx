@@ -14,10 +14,11 @@ const c={bg:'#060B12',ink:'#E9EEF4',muted:'#7F8D9D',line:'#172636',surface:'#091
 export default function Notifications(){
  const r=useRouter(); const {width}=useWindowDimensions(); const isDesktop=Platform.OS==='web'&&width>=1000; const {user}=useAuth(); const loadSequenceRef=useRef(0); const mountedRef=useRef(true); const [items,setItems]=useState([]); const [loading,setLoading]=useState(true); const [refreshing,setRefreshing]=useState(false); const [error,setError]=useState('');
  const load=useCallback(async(pull=false)=>{
-  if(!user?.id)return;
+  if(!user?.id||!mountedRef.current)return;
   const sequence=++loadSequenceRef.current;
   if(pull)setRefreshing(true);else setLoading(true);
   setError('');
+  try{
   const {data,error:queryError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url),comment:comment_id(id,parent_id)').eq('recipient_id',user.id).order('created_at',{ascending:false}).limit(50);
   if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
   if(queryError){setError(queryError.message);setItems([]);}else{
@@ -38,7 +39,11 @@ export default function Notifications(){
    }
    setItems(rows);
   }
-  if(sequence===loadSequenceRef.current&&mountedRef.current){setLoading(false);setRefreshing(false);}
+  }catch(e){
+   if(sequence===loadSequenceRef.current&&mountedRef.current)setError(e?.message||'Unable to load notifications. Please try again.');
+  }finally{
+   if(sequence===loadSequenceRef.current&&mountedRef.current){setLoading(false);setRefreshing(false);}
+  }
  },[user?.id]);
  useFocusEffect(useCallback(()=>{load();},[load]));
  useEffect(()=>()=>{mountedRef.current=false;loadSequenceRef.current+=1;},[]);
@@ -65,7 +70,7 @@ export default function Notifications(){
     }
     setItems(current=>current.some(x=>x.id===item.id)?current:[item,...current].slice(0,50));
    })
-   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},payload=>{
+.on('postgres_changes',{event:'UPDATE',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},payload=>{
     if(!mountedRef.current)return;
     setItems(current=>current.map(x=>x.id===payload.new?.id?{...x,...payload.new}:x));
    })
