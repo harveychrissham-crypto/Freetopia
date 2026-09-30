@@ -189,31 +189,42 @@ export default function Conversation(){
     if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false);
     // Delivery/read/pin bookkeeping is intentionally secondary to rendering the chat.
     (async()=>{
-      const {data:pins}=await supabase.from('message_pins').select('message_id,pinned_by,pinned_at').eq('conversation_id',id).order('pinned_at',{ascending:false});
-      if(sequence===loadSequenceRef.current&&mountedRef.current)setPinned(pins||[]);
-      const own=(m||[]).filter(x=>x.sender_id===user.id&&!x.deleted_at);
-      const recipients=(c.conversation_members||[]).filter(x=>x.user_id!==user.id&&x.request_status==='accepted').map(x=>x.user_id);
-      const deliveryIds=own.map(x=>x.id);
-      let deliveries=[]; let readsOwn=[];
-      if(deliveryIds.length){
-        const [{data:d},{data:r}]=await Promise.all([
-          supabase.from('message_deliveries').select('message_id,user_id,delivered_at').in('message_id',deliveryIds),
-          supabase.from('message_reads').select('message_id,user_id').in('message_id',deliveryIds)
-        ]);
-        deliveries=d||[]; readsOwn=r||[];
+      try{
+        const {data:pins,error:pe}=await supabase.from('message_pins').select('message_id,pinned_by,pinned_at').eq('conversation_id',id).order('pinned_at',{ascending:false});
+        if(pe)throw pe;
+        if(sequence===loadSequenceRef.current&&mountedRef.current)setPinned(pins||[]);
+        const own=(m||[]).filter(x=>x.sender_id===user.id&&!x.deleted_at);
+        const recipients=(c.conversation_members||[]).filter(x=>x.user_id!==user.id&&x.request_status==='accepted').map(x=>x.user_id);
+        const deliveryIds=own.map(x=>x.id);
+        let deliveries=[]; let readsOwn=[];
+        if(deliveryIds.length){
+          const [{data:d,error:de},{data:r,error:re}]=await Promise.all([
+            supabase.from('message_deliveries').select('message_id,user_id,delivered_at').in('message_id',deliveryIds),
+            supabase.from('message_reads').select('message_id,user_id').in('message_id',deliveryIds)
+          ]);
+          if(de)throw de;
+          if(re)throw re;
+          deliveries=d||[]; readsOwn=r||[];
+        }
+        const deliveryMap=new Map(); deliveries.filter(x=>x.delivered_at).forEach(x=>deliveryMap.set(x.message_id,(deliveryMap.get(x.message_id)||0)+1));
+        const readMap=new Map(); readsOwn.forEach(x=>readMap.set(x.message_id,(readMap.get(x.message_id)||0)+1));
+        if(sequence===loadSequenceRef.current&&mountedRef.current)setMessages(current=>current.map(x=>x.sender_id===user.id?{...x,deliveryCount:deliveryMap.get(x.id)||0,readCount:readMap.get(x.id)||0,recipientCount:recipients.length}:x));
+        const unread=(m||[]).filter(x=>x.sender_id!==user.id&&!x.deleted_at);
+        if(sequence===loadSequenceRef.current&&mountedRef.current)setUnreadBoundaryId(unread.length?unread[0].id:null);
+        if(unread.length){
+          const {data:reads,error:readError}=await supabase.from('message_reads').select('message_id').eq('user_id',user.id).in('message_id',unread.map(x=>x.id));
+          if(readError)throw readError;
+          const seen=new Set((reads||[]).map(x=>x.message_id));
+          const missing=unread.filter(x=>!seen.has(x.id)).map(x=>({message_id:x.id,user_id:user.id}));
+          if(missing.length){
+            const {error:markError}=await supabase.from('message_reads').upsert(missing,{onConflict:'message_id,user_id'});
+            if(markError)throw markError;
+          }
+        }
+      }catch(e){
+        if(sequence===loadSequenceRef.current&&mountedRef.current&&!error)setError(e?.message||'Some chat read receipts could not be synchronized.');
       }
-      const deliveryMap=new Map(); deliveries.filter(x=>x.delivered_at).forEach(x=>deliveryMap.set(x.message_id,(deliveryMap.get(x.message_id)||0)+1));
-      const readMap=new Map(); readsOwn.forEach(x=>readMap.set(x.message_id,(readMap.get(x.message_id)||0)+1));
-      if(sequence===loadSequenceRef.current&&mountedRef.current)setMessages(current=>current.map(x=>x.sender_id===user.id?{...x,deliveryCount:deliveryMap.get(x.id)||0,readCount:readMap.get(x.id)||0,recipientCount:recipients.length}:x));
-      const unread=(m||[]).filter(x=>x.sender_id!==user.id&&!x.deleted_at);
-      setUnreadBoundaryId(unread.length?unread[0].id:null);
-      if(unread.length){
-        const {data:reads}=await supabase.from('message_reads').select('message_id').eq('user_id',user.id).in('message_id',unread.map(x=>x.id));
-        const seen=new Set((reads||[]).map(x=>x.message_id));
-        const missing=unread.filter(x=>!seen.has(x.id)).map(x=>({message_id:x.id,user_id:user.id}));
-        if(missing.length)await supabase.from('message_reads').upsert(missing,{onConflict:'message_id,user_id'});
-      }
-    })();
+    })();;
    }
   }
   if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false)
