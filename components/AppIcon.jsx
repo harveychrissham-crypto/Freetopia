@@ -13,7 +13,12 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'chevron-right') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.34,height:size*.34,borderRightWidth:stroke,borderTopWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],left:size*.22,top:size*.32}}/></View>;
 
-  if (name === 'location') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.55,height:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.4,left:size*.225,top:size*.12}}/><View style={{position:'absolute',width:size*.18,height:size*.18,borderRadius:size,backgroundColor:color,left:size*.41,top:size*.305}}/></View>;
+  if (name === 'location') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.62,height:size*.62,left:size*.19,top:size*.08,borderWidth:stroke,borderColor:color,borderRadius:size*.5,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.16,height:size*.16,left:size*.42,top:size*.29,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+    </View>
+  );
 
   if (name === 'clock') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.72,height:size*.72,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.14,top:size*.14}}/><View style={{position:'absolute',width:stroke,height:size*.25,backgroundColor:color,left:size*.48,top:size*.27}}/><View style={{position:'absolute',width:size*.2,height:stroke,backgroundColor:color,left:size*.48,top:size*.49}}/></View>;
 
@@ -137,9 +142,9 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'share') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.68,height:size*.68,left:size*.12,top:size*.2,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,borderRadius:size*.06,transform:[{rotate:'-45deg'}]}} />
-      <View style={{position:'absolute',width:size*.62,height:stroke,left:size*.18,top:size*.47,backgroundColor:color}} />
-      <View style={{position:'absolute',width:size*.34,height:size*.34,left:size*.51,top:size*.14,borderTopWidth:stroke,borderRightWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.62,height:stroke,left:size*.15,top:size*.54,backgroundColor:color,borderRadius:stroke,transform:[{rotate:'-25deg'}]}} />
+      <View style={{position:'absolute',width:size*.38,height:size*.38,left:size*.47,top:size*.12,borderTopWidth:stroke,borderRightWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.38,height:size*.38,left:size*.47,top:size*.50,borderBottomWidth:stroke,borderRightWidth:stroke,borderColor:color,transform:[{rotate:'-45deg'}]}} />
     </View>
   );
 
@@ -193,15 +198,15 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'heart') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.42,height:size*.42,left:size*.10,top:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'-45deg'}]}} />
-      <View style={{position:'absolute',width:size*.42,height:size*.42,left:size*.48,top:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.34,height:size*.48,left:size*.20,top:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,borderBottomLeftRadius:size*.12,transform:[{rotate:'-45deg'}]}} />
+      <View style={{position:'absolute',width:size*.34,height:size*.48,left:size*.46,top:size*.18,borderRightWidth:stroke,borderBottomWidth:stroke,borderColor:color,borderBottomRightRadius:size*.12,transform:[{rotate:'45deg'}]}} />
     </View>
   );
 
   if (name === 'bookmark') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.52,height:size*.72,left:size*.24,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.04}} />
-      <View style={{position:'absolute',width:size*.26,height:size*.18,left:size*.37,top:size*.56,backgroundColor:'#060B12',transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.52,height:size*.70,left:size*.24,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.04}} />
+      <View style={{position:'absolute',width:size*.30,height:size*.24,left:size*.35,top:size*.55,backgroundColor:'#060B12',transform:[{rotate:'45deg'}]}} />
     </View>
   );
 
