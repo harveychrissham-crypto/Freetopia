@@ -49,11 +49,11 @@ begin
 
   if conversation_id is not null then
     if target_status is null or target_status = 'declined' then
-      update public.conversation_members
+      update public.conversation_members cm
       set request_status = 'pending',
           is_archived = false
-      where conversation_id = conversation_id
-        and user_id = target_user_id;
+      where cm.conversation_id = create_message_request.conversation_id
+        and cm.user_id = target_user_id;
     end if;
     return conversation_id;
   end if;
