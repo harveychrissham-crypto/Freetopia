@@ -78,6 +78,7 @@ export default function Notifications(){
   return()=>{supabase.removeChannel(channel);};
  },[user?.id]);
  const markRead=async id=>{
+  if(!user?.id||!mountedRef.current)return;
   const now=new Date().toISOString();
   let previousReadAt=null;
   setItems(current=>current.map(item=>{
@@ -86,15 +87,18 @@ export default function Notifications(){
    return item.read_at?item:{...item,read_at:now};
   }));
   const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('id',id).eq('recipient_id',user.id);
+  if(!mountedRef.current)return;
   if(e){
    setItems(current=>current.map(item=>item.id===id?{...item,read_at:previousReadAt}:item));
    setError(e.message);
   }
  };
  const markAll=async()=>{
+  if(!user?.id||!mountedRef.current)return;
   const now=new Date().toISOString();
   setItems(current=>current.map(item=>({...item,read_at:item.read_at||now})));
   const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('recipient_id',user.id).is('read_at',null);
+  if(!mountedRef.current)return;
   if(e){
    setItems(current=>current.map(item=>item.read_at===now?{...item,read_at:null}:item));
    setError(e.message);
@@ -102,16 +106,18 @@ export default function Notifications(){
  };
  const respond=async(item,accept)=>{
   const actor=Array.isArray(item.actor)?item.actor[0]:item.actor;
-  if(!user?.id||!actor?.id)return;
+  if(!user?.id||!actor?.id||!mountedRef.current)return;
   setError('');
   const query=accept
    ?supabase.from('follows').update({status:'accepted'}).eq('follower_id',actor.id).eq('following_id',user.id)
    :supabase.from('follows').delete().eq('follower_id',actor.id).eq('following_id',user.id);
   const {error:e}=await query;
+  if(!mountedRef.current)return;
   if(e){setError(e.message);return;}
   const now=new Date().toISOString();
   setItems(current=>current.map(x=>x.id===item.id?{...x,read_at:x.read_at||now,requestStatus:accept?'accepted':'declined'}:x));
-  await supabase.from('notifications').update({read_at:now}).eq('id',item.id).eq('recipient_id',user.id);
+  const {error:notificationError}=await supabase.from('notifications').update({read_at:now}).eq('id',item.id).eq('recipient_id',user.id);
+  if(notificationError&&mountedRef.current)setError(notificationError.message);
  };
  const grouped=groupNotifications(items); const unread=items.filter(x=>!x.read_at).length;
  return <SafeAreaView style={s.safe}>{!isDesktop&&<View style={s.mobileHeader}><Pressable accessibilityRole="button" accessibilityLabel="Go to Home" onPress={()=>r.replace('/(tabs)/home')} style={s.brandButton}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.brandLogo}/><Text style={s.brand}>Freetopia</Text></Pressable><View style={s.headerActions}><Pressable accessibilityRole="button" accessibilityLabel="Search" onPress={()=>r.push('/(tabs)/explore')} style={s.headerButton}><AppIcon name="search" size={19} color="#C7D7E8"/></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Messages" onPress={()=>r.push('/(tabs)/messages')} style={s.headerButton}><AppIcon name="message" size={19} color="#C7D7E8"/></Pressable></View></View>}<ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)}/>} contentContainerStyle={s.content}>
