@@ -558,6 +558,11 @@ export default function Conversation(){
  const handle=info?.other?.profiles?.username;
  const avatar=info?.other?.profiles?.avatar_url;
  const initials=(name||'?').slice(0,1).toUpperCase();
+ const recipientId=info?.other?.profiles?.id||info?.other?.user_id||null;
+ const openRecipientProfile=()=>{
+  if(info?.kind==='group'){setChatInfoOpen(true);return;}
+  if(recipientId)router.push({pathname:'/profile',params:{id:recipientId}});
+ };
 
  const accept=async()=>{
   if(!id||!user?.id)return;
@@ -593,10 +598,10 @@ export default function Conversation(){
   <KeyboardAvoidingView style={s.flex} behavior={Platform.OS==='ios'?'padding':undefined} keyboardVerticalOffset={8}>
    <View style={[s.head,themeStyles.head]}>
     <Pressable onPress={()=>router.back()} hitSlop={10} style={s.backButton}><AppIcon name="arrow-left" size={18}/></Pressable>
-    <Pressable onPress={()=>info?.kind==='group'?setChatInfoOpen(true):(info?.other?.user_id?router.push({pathname:'/profile',params:{id:info.other.user_id}}):null)} hitSlop={8} style={s.avatar} accessibilityRole="button" accessibilityLabel={info?.kind==='group'?'Open group info':`Open ${name} profile`}>
-     {avatar?<Image source={{uri:getImageUrl(avatar,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text style={s.avatarText}>{initials}</Text>}
+    <Pressable onPress={openRecipientProfile} hitSlop={12} style={s.avatar} accessibilityRole="button" accessibilityLabel={info?.kind==='group'?'Open group info':`Open ${name} profile`}>
+     {avatar?<Image pointerEvents="none" source={{uri:getImageUrl(avatar,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text pointerEvents="none" style={s.avatarText}>{initials}</Text>}
     </Pressable>
-    <Pressable onPress={()=>info?.kind==='group'?setChatInfoOpen(true):(info?.other?.user_id?router.push({pathname:'/profile',params:{id:info.other.user_id}}):null)} style={s.headCopy} hitSlop={6} accessibilityRole="button" accessibilityLabel={info?.kind==='group'?'Open group information':`Open ${name} profile`}>
+    <Pressable onPress={openRecipientProfile} style={[s.headCopy,{minWidth:0}]} hitSlop={8} accessibilityRole="button" accessibilityLabel={info?.kind==='group'?'Open group information':`Open ${name} profile`}>
      <Text style={s.name} numberOfLines={1}>{name}</Text>
      {handle&&<Text style={s.handle} numberOfLines={1}>@{handle}</Text>}{info?.kind==='group'?<View style={s.presenceRow}><View style={[s.presenceDot,onlineUsers.filter(x=>x!==user.id).length>0&&s.presenceDotOnline]}/><Text style={s.status}>{onlineUsers.filter(x=>x!==user.id).length} online</Text></View>:info?.other?.user_id&&onlineUsers.includes(info.other.user_id)?<View style={s.presenceRow}><View style={[s.presenceDot,s.presenceDotOnline]}/><Text style={s.status}>online</Text></View>:<View style={s.presenceRow}><View style={s.presenceDot}/><Text style={s.status}>offline</Text></View>}{typing&&<View style={s.typingRow}><Text style={s.typingLabel}>typing</Text><View style={s.typingDots}><Text style={s.typingDot}>•</Text><Text style={s.typingDot}>•</Text><Text style={s.typingDot}>•</Text></View></View>}
     </Pressable>
