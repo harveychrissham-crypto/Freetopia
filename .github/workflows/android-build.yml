@@ -132,8 +132,35 @@ jobs:
           TAG="freetopia-v${{ github.run_number }}-$BUILD_TYPE"
           TITLE="Freetopia Android $BUILD_TYPE #${{ github.run_number }}"
 
-          gh release create "$TAG" "${{ steps.apk.outputs.path }}" \
-            --repo "${{ github.repository }}" \
-            --title "$TITLE" \
-            --notes "Freetopia Android $BUILD_TYPE build from commit ${{ github.sha }}." \
-            --target "${{ github.sha }}"
+          for attempt in 1 2 3; do
+            echo "Publishing APK to GitHub Releases, attempt ${attempt}/3"
+
+            # If a previous attempt created the release before failing, reuse it.
+            if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "Release $TAG already exists; uploading APK asset..."
+              if gh release upload "$TAG" "${{ steps.apk.outputs.path }}" \
+                --repo "${{ github.repository }}" \
+                --clobber; then
+                echo "Successfully published APK to existing release."
+                exit 0
+              fi
+            else
+              echo "Release $TAG does not exist; creating it..."
+              if gh release create "$TAG" "${{ steps.apk.outputs.path }}" \
+                --repo "${{ github.repository }}" \
+                --title "$TITLE" \
+                --notes "Freetopia Android $BUILD_TYPE build from commit ${{ github.sha }}." \
+                --target "${{ github.sha }}"; then
+                echo "Successfully created release and published APK."
+                exit 0
+              fi
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Release publishing attempt ${attempt} failed; retrying in 30 seconds..."
+              sleep 30
+            fi
+          done
+
+          echo "Failed to publish APK to GitHub Releases after 3 attempts."
+          exit 1
