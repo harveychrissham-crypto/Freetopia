@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { FlatList, Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
@@ -15,10 +15,11 @@ const C = { bg:'#060B12', panel:'#0A121C', panel2:'#0E1824', line:'#182533', tex
 export default function Messages() {
   const { user, profile } = useAuth();
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === 'web' && width >= 1000;
   const { colors, accent, textScale, densityScale } = useAppearance();
-  const [tab,setTab] = useState('Messages');
+  const [tab,setTab] = useState(params?.tab==='Requests' || params?.tab==='Archived' || params?.tab==='Communities' ? params.tab : 'Messages');
   const [items,setItems] = useState([]);
   const [loading,setLoading] = useState(true);
   const [refreshing,setRefreshing] = useState(false);
@@ -32,6 +33,10 @@ export default function Messages() {
   const reloadPending = useRef(false);
   const mountedRef = useRef(true);
   const itemsLengthRef = useRef(0);
+  useEffect(()=>{
+    const requested=params?.tab;
+    if(requested==='Requests'||requested==='Archived'||requested==='Communities')setTab(requested);
+  },[params?.tab]);
   itemsLengthRef.current = items.length;
 
   const load = useCallback(async (pull=false) => {
