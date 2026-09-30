@@ -78,7 +78,7 @@ export default function PostScreen(){
  },[id,user?.id,post]);
 
  useFocusEffect(useCallback(()=>{load();},[load]));
- useEffect(()=>{
+ useEffect(()=>{mountedRef.current=true;
   if(!id)return;
   let active=true;
   const hydrate=async()=>{
@@ -130,9 +130,10 @@ export default function PostScreen(){
  const addComment=async()=>{
   const value=text.trim();if(!value||!user||saving)return;
   setSaving(true);setError('');
+  try{
   const{data,error:insertError}=await supabase.from('comments').insert({post_id:id,author_id:user.id,content:value,parent_id:replyTo?.id||null}).select('id,content,created_at,parent_id,profiles:author_id(id,username,display_name)').single();
-  if(insertError)setError(insertError.message);else{setComments(current=>current.some(comment=>comment.id===data.id)?current:[...current,data].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));setText('');setReplyTo(null);}
-  setSaving(false);
+  if(insertError)throw insertError;else if(mountedRef.current){setComments(current=>current.some(comment=>comment.id===data.id)?current:[...current,data].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));setText('');setReplyTo(null);}
+  }catch(err){if(mountedRef.current)setError(err?.message||'Could not add your comment. Please try again.');}finally{if(mountedRef.current)setSaving(false);}
  };
 
  const toggleLike=async()=>{if(!user||!post)return;const next=!liked;setLiked(next);setReactionCount(v=>Math.max(0,v+(next?1:-1)));const q=next?supabase.from('post_reactions').insert({post_id:post.id,user_id:user.id,reaction_type:'like'}):supabase.from('post_reactions').delete().eq('post_id',post.id).eq('user_id',user.id).eq('reaction_type','like');const{error:e}=await q;if(e){setLiked(!next);setReactionCount(v=>Math.max(0,v+(next?-1:1)));setError(e.message);}};
