@@ -8,7 +8,7 @@ const C = { panel:'#0E1824', line:'#203246', text:'#F4F7FA', muted:'#8A99AA', bl
 const version = Constants.expoConfig?.version || '0.2.1';
 const storageKey = 'freetopia-update-seen-' + version;
 
-const updateUrl = 'https://github.com/harveychrissham-crypto/Freetopia/releases/latest';
+const updateUrl = 'https://github.com/harveychrissham-crypto/Freetopia/releases/latest/download/app-release.apk';
 
 export default function UpdateNotice({ onPress }) {
   const [visible,setVisible] = useState(false);
@@ -24,9 +24,9 @@ export default function UpdateNotice({ onPress }) {
       <View style={s.iconWrap}><AppIcon name="spark" size={18} color={C.text}/></View>
       <View style={s.body}>
         <Text style={s.title}>Freetopia has been updated</Text>
-        <Text style={s.message}>You’re now using version {version}. A new Freetopia build is ready. Tap Install update to get the latest Android version.</Text>
+        <Text style={s.message}>You’re now using version {version}. A new Freetopia build is ready. Tap Download update to get the latest Android APK.</Text>
         <View style={s.actions}>
-          <Pressable onPress={onPress || (() => Linking.openURL(updateUrl))} style={({pressed})=>[s.primary,pressed&&s.pressed]}><Text style={s.primaryText}>Install update</Text></Pressable>
+          <Pressable onPress={onPress || (() => Linking.openURL(updateUrl))} style={({pressed})=>[s.primary,pressed&&s.pressed]}><Text style={s.primaryText}>Download update</Text></Pressable>
           <Pressable onPress={dismiss} style={({pressed})=>[s.dismiss,pressed&&s.pressed]}><Text style={s.dismissText}>Dismiss</Text></Pressable>
         </View>
       </View>
