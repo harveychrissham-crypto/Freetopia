@@ -51,6 +51,44 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     </View>
   );
 
+  if (name === 'nav-home') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.52,height:size*.44,left:size*.24,top:size*.40,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.08}} />
+      <View style={{position:'absolute',width:size*.58,height:size*.58,left:size*.21,top:size*.06,borderLeftWidth:stroke,borderTopWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],borderRadius:size*.07}} />
+      <View style={{position:'absolute',width:size*.13,height:size*.23,left:size*.435,top:size*.57,borderWidth:stroke,borderBottomWidth:0,borderColor:color,borderTopLeftRadius:size*.04,borderTopRightRadius:size*.04}} />
+    </View>
+  );
+
+  if (name === 'nav-explore') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.76,height:size*.76,left:size*.12,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.30,height:size*.50,left:size*.35,top:size*.25,borderWidth:stroke,borderColor:color,transform:[{rotate:'42deg'}],borderRadius:size*.05}} />
+      <View style={{position:'absolute',width:size*.09,height:size*.09,left:size*.455,top:size*.455,borderRadius:size,backgroundColor:color}} />
+    </View>
+  );
+
+  if (name === 'nav-message') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.76,height:size*.57,left:size*.12,top:size*.13,borderWidth:stroke,borderColor:color,borderRadius:size*.18}} />
+      <View style={{position:'absolute',width:size*.20,height:size*.20,left:size*.18,top:size*.58,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{skewX:'-28deg'}]}} />
+    </View>
+  );
+
+  if (name === 'nav-bell') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.52,height:size*.58,left:size*.24,top:size*.14,borderWidth:stroke,borderColor:color,borderTopLeftRadius:size*.28,borderTopRightRadius:size*.28,borderBottomLeftRadius:size*.10,borderBottomRightRadius:size*.10}} />
+      <View style={{position:'absolute',width:size*.70,height:stroke,left:size*.15,top:size*.70,backgroundColor:color,borderRadius:stroke}} />
+      <View style={{position:'absolute',width:size*.13,height:size*.10,left:size*.435,top:size*.76,borderWidth:stroke,borderColor:color,borderBottomLeftRadius:size,borderBottomRightRadius:size}} />
+    </View>
+  );
+
+  if (name === 'nav-profile') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.31,height:size*.31,left:size*.345,top:size*.08,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.68,height:size*.36,left:size*.16,top:size*.53,borderWidth:stroke,borderColor:color,borderRadius:size*.35}} />
+    </View>
+  );
+
   if (name === 'home') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.44,left:size*.24,top:size*.38,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.08}} />
