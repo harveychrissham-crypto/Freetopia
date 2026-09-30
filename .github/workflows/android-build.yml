@@ -57,10 +57,46 @@ jobs:
       - name: Generate Android project
         run: npx expo prebuild --platform android --no-install --non-interactive
 
-      - name: Setup Gradle Cache
-        uses: gradle/gradle-build-action@v2
-        with:
-          cache-read-only: false
+      - name: Install Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          NDK_VERSION="27.1.12297006"
+          SDKMANAGER="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+
+          rm -rf \
+            "${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" \
+            "${ANDROID_SDK_ROOT}/.temp"/*
+
+          yes | "${SDKMANAGER}" --licenses >/dev/null || true
+
+          installed=false
+          for attempt in 1 2 3; do
+            echo "Installing NDK ${NDK_VERSION}, attempt ${attempt}"
+            if "${SDKMANAGER}" --install "ndk;${NDK_VERSION}" && \
+              test -f "${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}/source.properties"; then
+              installed=true
+              break
+            fi
+
+            echo "NDK installation attempt ${attempt} failed; clearing partial download"
+            rm -rf \
+              "${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" \
+              "${ANDROID_SDK_ROOT}/.temp"/*
+            sleep 10
+          done
+
+          if [ "$installed" != "true" ]; then
+            echo "NDK ${NDK_VERSION} could not be installed"
+            exit 1
+          fi
+
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_VERSION=${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Validate JavaScript bundle
         run: npx expo export --platform android --clear
