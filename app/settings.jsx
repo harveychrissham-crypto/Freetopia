@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
@@ -193,10 +193,41 @@ export default function Settings() {
             <Pressable onPress={updatePassword} disabled={passwordBusy} style={s.primaryButton}><Text style={s.primaryButtonText}>{passwordBusy ? 'Updating…' : 'Update Password'}</Text></Pressable>
             {!!passwordMessage && <Text style={s.message}>{passwordMessage}</Text>}
           </View>
-        ) : active !== 'Account' ? (
+        ) : active === 'Notifications' ? (
           <View style={s.mobileSecurity}>
-            <Text style={s.sectionTitle}>{active}</Text>
-            <Text style={s.comingBody}>This section is ready for its next connected controls. Nothing here is presented as working when it is not.</Text>
+            <Text style={s.sectionTitle}>Notifications</Text>
+            <Text style={s.comingBody}>Manage notification activity from the Notifications screen.</Text>
+            <Pressable onPress={() => router.push('/notifications')} style={s.primaryButton}><Text style={s.primaryButtonText}>Open Notifications</Text></Pressable>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Push notifications</Text><Text style={s.lineSub}>Device push controls are not connected yet.</Text></View>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Email notifications</Text><Text style={s.lineSub}>Email preference controls are not connected yet.</Text></View>
+          </View>
+        ) : active === 'Appearance' ? (
+          <View style={s.mobileSecurity}>
+            <Text style={s.sectionTitle}>Appearance</Text>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Dark mode</Text><Text style={s.lineSub}>Freetopia currently uses its dark theme.</Text></View>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Font size</Text><Text style={s.lineSub}>Global font-size controls are not connected yet.</Text></View>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Language</Text><Text style={s.lineSub}>English is currently the available language.</Text></View>
+          </View>
+        ) : active === 'Data & Storage' ? (
+          <View style={s.mobileSecurity}>
+            <Text style={s.sectionTitle}>Data & Storage</Text>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Downloads</Text><Text style={s.lineSub}>Downloaded files are managed by your device.</Text></View>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Media</Text><Text style={s.lineSub}>Media is stored through the connected Supabase storage layer.</Text></View>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Cache</Text><Text style={s.lineSub}>No destructive cache-clear action is exposed until a real cache layer is connected.</Text></View>
+          </View>
+        ) : active === 'Help & Support' ? (
+          <View style={s.mobileSecurity}>
+            <Text style={s.sectionTitle}>Help & Support</Text>
+            <Pressable onPress={() => Linking.openURL('mailto:harveysham36@gmail.com?subject=Freetopia%20Support')} style={s.actionRow}><View style={{flex:1}}><Text style={s.lineTitle}>Contact us</Text><Text style={s.lineSub}>Email the Freetopia support address.</Text></View><AppIcon name="arrow-right" size={15} color={C.muted}/></Pressable>
+            <Pressable onPress={() => Linking.openURL('mailto:harveysham36@gmail.com?subject=Freetopia%20Bug%20Report')} style={s.actionRow}><View style={{flex:1}}><Text style={s.lineTitle}>Report a problem</Text><Text style={s.lineSub}>Send a bug report by email.</Text></View><AppIcon name="arrow-right" size={15} color={C.muted}/></Pressable>
+            <View style={s.settingNote}><Text style={s.lineTitle}>FAQs</Text><Text style={s.lineSub}>The in-app FAQ page has not been connected yet.</Text></View>
+          </View>
+        ) : active === 'About Freetopia' ? (
+          <View style={s.mobileSecurity}>
+            <Text style={s.sectionTitle}>About Freetopia</Text>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Version</Text><Text style={s.lineSub}>Freetopia 0.2.1</Text></View>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Terms</Text><Text style={s.lineSub}>Terms content is not connected to an in-app document yet.</Text></View>
+            <View style={s.settingNote}><Text style={s.lineTitle}>Privacy</Text><Text style={s.lineSub}>Privacy content is not connected to an in-app document yet.</Text></View>
           </View>
         ) : null}
 
@@ -361,7 +392,7 @@ const s = StyleSheet.create({
   cardHeading:{marginBottom:10},cardTitle:{color:C.text,fontSize: 18,fontWeight:'800'},cardHint:{color:C.muted,fontSize:9,lineHeight:14,marginTop:3},
   infoField:{marginTop:11},fieldLabel:{color:'#A8B5C7',fontSize:9,marginBottom:5},readonly:{height:40,borderRadius:8,borderWidth:1,borderColor:'#20354D',backgroundColor:'#0B1726',justifyContent:'center',paddingHorizontal:12},readonlyText:{color:C.text,fontSize: 15},
   outlineWide:{height:40,borderRadius:9,borderWidth:1,borderColor:'#2B4665',alignItems:'center',justifyContent:'center',marginTop:14},outlineWideText:{color:C.text,fontSize: 14,fontWeight:'800'},
-  settingLine:{minHeight:48,flexDirection:'row',alignItems:'center',gap:10,borderBottomWidth:1,borderBottomColor:C.line},settingLineLast:{borderBottomWidth:0},lineIcon:{width:28,height:28,borderRadius:8,backgroundColor:'#0E2135',alignItems:'center',justifyContent:'center'},lineIconText:{color:'#C8D5E5',fontSize: 18},lineTitle:{color:C.text,fontSize: 14,fontWeight:'700'},lineSub:{color:C.muted,fontSize:8,lineHeight:12,marginTop:2},mutedRow:{opacity:.55},chevron:{color:'#8090A4',fontSize:20},
+  settingNote:{paddingVertical:13,borderBottomWidth:1,borderBottomColor:C.line},actionRow:{minHeight:58,flexDirection:'row',alignItems:'center',gap:10,borderBottomWidth:1,borderBottomColor:C.line},settingLine:{minHeight:48,flexDirection:'row',alignItems:'center',gap:10,borderBottomWidth:1,borderBottomColor:C.line},settingLineLast:{borderBottomWidth:0},lineIcon:{width:28,height:28,borderRadius:8,backgroundColor:'#0E2135',alignItems:'center',justifyContent:'center'},lineIconText:{color:'#C8D5E5',fontSize: 18},lineTitle:{color:C.text,fontSize: 14,fontWeight:'700'},lineSub:{color:C.muted,fontSize:8,lineHeight:12,marginTop:2},mutedRow:{opacity:.55},chevron:{color:'#8090A4',fontSize:20},
   toggleRow:{minHeight:64,flexDirection:'row',alignItems:'center',gap:14,borderBottomWidth:1,borderBottomColor:C.line},toggle:{width:42,height:24,borderRadius:12,backgroundColor:'#18273A',borderWidth:1,borderColor:'#2A415C',padding:2,justifyContent:'center'},toggleOn:{backgroundColor:C.violet,borderColor:C.pink},toggleKnob:{width:18,height:18,borderRadius:9,backgroundColor:'#8090A4'},toggleKnobOn:{alignSelf:'flex-end',backgroundColor:'#fff'},
   passwordInput:{height:42,borderRadius:9,borderWidth:1,borderColor:'#20354D',backgroundColor:'#0B1726',paddingHorizontal:12,color:C.text,fontSize: 15,marginTop:12},primaryButton:{height:40,borderRadius:9,backgroundColor:C.violet,alignItems:'center',justifyContent:'center',marginTop:10},primaryButtonText:{color:'#fff',fontSize: 14,fontWeight:'800'},message:{color:C.muted,fontSize:9,marginTop:8},
   rightRail:{width:270,padding:12,borderLeftWidth:1,borderLeftColor:C.line},railCard:{backgroundColor:C.panel,borderWidth:1,borderColor:C.line,borderRadius:12,padding:12,marginBottom:10},railTitle:{color:C.text,fontSize: 16,fontWeight:'800',marginBottom:6},quickRow:{minHeight:42,flexDirection:'row',alignItems:'center',gap:9,borderBottomWidth:1,borderBottomColor:C.line},quickIcon:{color:'#C6D3E2',fontSize:17},quickText:{color:C.text,fontSize: 14,fontWeight:'600',flex:1},
