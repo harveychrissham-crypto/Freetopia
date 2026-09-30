@@ -295,7 +295,9 @@ export default function Conversation(){
    setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
    }).subscribe(async status=>{
     if(status==='SUBSCRIBED'){
-     await ch.track({user_id:user.id});
+     try{await ch.track({user_id:user.id});}catch{}
+    }else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&mountedRef.current){
+     setError('Realtime connection interrupted. Messages will retry when the connection recovers.');
     }
    });
    return()=>{
