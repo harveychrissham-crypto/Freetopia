@@ -176,7 +176,15 @@ export default function Settings() {
           ))}
         </View>
 
-        {active === 'Privacy & Security' ? (
+        {active === 'Account' ? (
+          <View style={s.mobileSecurity}>
+            <Text style={s.sectionTitle}>Account</Text>
+            <InfoField label="Full Name" value={name} />
+            <InfoField label="Username" value={profile?.username || 'Not set'} />
+            <InfoField label="Email Address" value={user?.email || 'Not available'} />
+            <Pressable onPress={() => router.push('/edit-profile')} style={s.primaryButton}><Text style={s.primaryButtonText}>Edit Profile Details</Text></Pressable>
+          </View>
+        ) : active === 'Privacy & Security' ? (
           <View style={s.mobileSecurity}>
             <Text style={s.sectionTitle}>Privacy & Security</Text>
             <SettingToggle title="Private profile" subtitle="Only approved followers can see your profile and follower-only content." value={privateProfile} onPress={updatePrivacy} />
@@ -184,6 +192,11 @@ export default function Settings() {
             <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="New password" placeholderTextColor={C.muted} style={s.passwordInput} />
             <Pressable onPress={updatePassword} disabled={passwordBusy} style={s.primaryButton}><Text style={s.primaryButtonText}>{passwordBusy ? 'Updating…' : 'Update Password'}</Text></Pressable>
             {!!passwordMessage && <Text style={s.message}>{passwordMessage}</Text>}
+          </View>
+        ) : active !== 'Account' ? (
+          <View style={s.mobileSecurity}>
+            <Text style={s.sectionTitle}>{active}</Text>
+            <Text style={s.comingBody}>This section is ready for its next connected controls. Nothing here is presented as working when it is not.</Text>
           </View>
         ) : null}
 
@@ -286,10 +299,10 @@ function RightRail({ profile, name, handle, onEdit, privateProfile }) {
 }
 
 function Sidebar({ router }) {
-  const items = [['home','Home','/home'],['compass','Explore','/explore'],['users','Communities','/communities'],['message','Messages','/messages'],['bell','Notifications','/notifications'],['plus','Create','/create'],['profile','Profile','/profile']];
+  const items = [['home','Home','/home'],['compass','Explore','/explore'],['users','Communities','/communities'],['message','Messages','/messages'],['bell','Notifications','/notifications'],['plus','Create','/create'],['profile','Profile','/profile'],['settings','Settings','/settings']];
   return <View style={s.sidebar}>
     <View style={s.brand}><Image source={require('../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
-    <View style={s.sideNav}>{items.map(([icon,label,path]) => <Pressable key={label} onPress={() => router.push(path)} style={s.sideItem}><AppIcon name={icon} size={18} color="#AFC0D3"/><Text style={s.sideLabel}>{label}</Text>{label === 'Messages' ? <Badge n="3"/> : null}{label === 'Notifications' ? <Badge n="5"/> : null}</Pressable>)}</View>
+    <View style={s.sideNav}>{items.map(([icon,label,path]) => <Pressable key={label} onPress={() => router.push(path)} style={[s.sideItem, label === 'Settings' && s.sideItemActive]}><AppIcon name={icon} size={18} color="#AFC0D3"/><Text style={s.sideLabel}>{label}</Text>{label === 'Messages' ? <Badge n="3"/> : null}{label === 'Notifications' ? <Badge n="5"/> : null}</Pressable>)}</View>
     <View style={s.sidebarPromo}><Image source={require('../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.sidebarPromoTitle}>Your journey matters.</Text><Text style={s.sidebarPromoBody}>Keep building.</Text><Pressable style={s.promoButton}><Text style={s.promoButtonText}>Upgrade</Text><AppIcon name="arrow-right" size={14} color={C.text}/></Pressable></View>
   </View>;
 }
@@ -326,7 +339,7 @@ const s = StyleSheet.create({
   brand:{flexDirection:'row',alignItems:'center',gap:9},
   logo:{width:34,height:34},brandText:{color:C.text,fontSize:17,fontWeight:'800'},
   sideNav:{marginTop:34,gap:4,flex:1},
-  sideItem:{minHeight:45,paddingHorizontal:11,borderRadius:10,flexDirection:'row',alignItems:'center',gap:12},
+  sideItem:{minHeight:45,paddingHorizontal:11,borderRadius:10,flexDirection:'row',alignItems:'center',gap:12},sideItemActive:{backgroundColor:'#13253A',borderWidth:1,borderColor:'#203A55'},
   sideIcon:{width:20,color:'#AFC0D3',fontSize:18,textAlign:'center'},sideLabel:{color:'#C9D4E2',fontSize:12,fontWeight:'600',flex:1},
   badge:{minWidth:18,height:18,borderRadius:9,backgroundColor:C.violet,alignItems:'center',justifyContent:'center'},badgeText:{color:'#fff',fontSize:9,fontWeight:'800'},
   sidebarPromo:{marginTop:'auto',borderRadius:14,padding:14,backgroundColor:'#25104B',borderWidth:1,borderColor:'#5A2BB2'},
