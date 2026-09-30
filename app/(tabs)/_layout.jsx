@@ -1,117 +1,118 @@
-import { Platform, View, useWindowDimensions } from 'react-native';
-import { Redirect, Tabs } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Redirect, Slot, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
 
-const navIcon = {
-  width: 42,
-  height: 30,
-  borderRadius: 12,
-  alignItems: 'center',
-  justifyContent: 'center',
-};
+const NAV_ITEMS = [
+  { label: 'Home', icon: 'home', path: '/home' },
+  { label: 'Explore', icon: 'compass', path: '/explore' },
+  { label: 'Messages', icon: 'message', path: '/messages' },
+  { label: 'Notifications', icon: 'bell', path: '/notifications' },
+  { label: 'Profile', icon: 'profile', path: '/profile' },
+];
 
-const navIconActive = {
-  backgroundColor: '#14263A',
-  borderWidth: 1,
-  borderColor: '#243B57',
-};
+function BottomNav() {
+  const router = useRouter();
+  const pathname = usePathname();
 
-function tabIcon(name, color, size, focused) {
   return (
-    <View style={[navIcon, focused && navIconActive]}>
-      <AppIcon name={name} size={size} color={color} />
+    <View style={styles.nav}>
+      {NAV_ITEMS.map((item) => {
+        const active =
+          pathname === item.path ||
+          (item.path === '/home' && (pathname === '/' || pathname?.startsWith('/home/')));
+
+        return (
+          <Pressable
+            key={item.path}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+            onPress={() => router.replace(item.path)}
+            style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+          >
+            <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
+              <AppIcon
+                name={item.icon}
+                size={21}
+                color={active ? '#DCE9F7' : '#7F8FA2'}
+              />
+            </View>
+            <Text style={[styles.label, active && styles.labelActive]}>
+              {item.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
 
 export default function TabLayout() {
-  const { width } = useWindowDimensions();
   const { session, loading } = useAuth();
-  const desktopWeb = Platform.OS === 'web' && width >= 1000;
 
   if (!loading && !session) {
     return <Redirect href="/auth" />;
   }
 
   return (
-    <>
+    <View style={styles.root}>
       <StatusBar style="light" />
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: '#BFD6EE',
-          tabBarInactiveTintColor: '#8795A8',
-          tabBarStyle: desktopWeb
-            ? { display: 'none' }
-            : {
-                height: 80,
-                paddingTop: 8,
-                paddingBottom: 10,
-                borderTopColor: '#182533',
-                borderTopWidth: 1,
-                backgroundColor: '#050A11',
-                elevation: 0,
-              },
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '700',
-            marginTop: 3,
-          },
-          tabBarItemStyle: {
-            paddingTop: 0,
-          },
-          tabBarHideOnKeyboard: true,
-          sceneStyle: {
-            backgroundColor: '#060B12',
-          },
-        }}
-      >
-        <Tabs.Screen
-          name="home"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color, size, focused }) => tabIcon('home', color, size, focused),
-          }}
-        />
-        <Tabs.Screen
-          name="explore"
-          options={{
-            title: 'Explore',
-            tabBarIcon: ({ color, size, focused }) => tabIcon('compass', color, size, focused),
-          }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarIcon: ({ color, size, focused }) => tabIcon('message', color, size, focused),
-          }}
-        />
-        <Tabs.Screen
-          name="notifications"
-          options={{
-            title: 'Notifications',
-            tabBarIcon: ({ color, size, focused }) => tabIcon('bell', color, size, focused),
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color, size, focused }) => tabIcon('profile', color, size, focused),
-          }}
-        />
-        <Tabs.Screen
-          name="communities"
-          options={{
-            href: null,
-            tabBarButton: () => null,
-            tabBarItemStyle: { display: 'none' },
-          }}
-        />
-      </Tabs>
-    </>
+      <View style={styles.content}>
+        <Slot />
+      </View>
+      <BottomNav />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#060B12',
+  },
+  content: {
+    flex: 1,
+  },
+  nav: {
+    height: 78,
+    paddingHorizontal: 8,
+    paddingTop: 7,
+    paddingBottom: 9,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    backgroundColor: '#050A11',
+    borderTopWidth: 1,
+    borderTopColor: '#182533',
+  },
+  item: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  pressed: {
+    opacity: 0.65,
+  },
+  iconWrap: {
+    width: 42,
+    height: 31,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapActive: {
+    backgroundColor: '#14263A',
+    borderWidth: 1,
+    borderColor: '#243B57',
+  },
+  label: {
+    marginTop: 3,
+    color: '#7F8FA2',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  labelActive: {
+    color: '#DCE9F7',
+  },
+});
