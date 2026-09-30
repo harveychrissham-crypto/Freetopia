@@ -115,6 +115,10 @@ export default function Messages() {
           setCommunities(communityData||[]);
         }
       if(mountedRef.current&&sequence===loadSequence.current){setLoading(false);setRefreshing(false);}
+    } catch(e) {
+      if(sequence===loadSequence.current&&mountedRef.current) {
+        setError(e?.message||'Unable to load messages. Please try again.');
+      }
     } finally {
       if(sequence===loadSequence.current)loadInFlight.current=false;
       if(mountedRef.current&&sequence===loadSequence.current&&reloadPending.current){
@@ -148,7 +152,11 @@ export default function Messages() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, scheduleReload)
-      .subscribe();
+      .subscribe((status)=>{
+      if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&mountedRef.current){
+        setError('Realtime connection interrupted. Messages will refresh when the connection recovers.');
+      }
+    });
     return () => {
       mountedRef.current=false;
       loadSequence.current+=1;
@@ -159,8 +167,15 @@ export default function Messages() {
   }, [user?.id, load]);
 
   const change = async (c,patch) => {
-    const { error:e } = await supabase.from('conversation_members').update(patch).eq('conversation_id',c.id).eq('user_id',user.id);
-    if (e) setError(e.message); else load();
+    if(!user?.id||!c?.id||!mountedRef.current)return;
+    setError('');
+    try {
+      const { error:e } = await supabase.from('conversation_members').update(patch).eq('conversation_id',c.id).eq('user_id',user.id);
+      if(e)throw e;
+      if(mountedRef.current)await load();
+    } catch(e) {
+      if(mountedRef.current)setError(e?.message||'Could not update this conversation.');
+    }
   };
 
   const rows = useMemo(() => {
