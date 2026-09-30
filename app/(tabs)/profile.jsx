@@ -99,6 +99,7 @@ export default function Profile() {
 
   const profileHeader = (
     <ProfileHeader
+      colors={colors}
       profile={displayedProfile}
       name={name}
       handle={handle}
@@ -156,7 +157,7 @@ function ProfileSidebar({name,initials,onNavigate}) {
     <Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials}/><View style={{flex:1}}><Text style={s.sideName}>{name}</Text><Text style={s.sideSub}>Profile</Text></View><AppIcon name="chevron-down" size={15} color={C.muted}/></Pressable>
   </View>;
 }
-function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,pending,followBusy,onFollow}) {
+function ProfileHeader({colors,profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,pending,followBusy,onFollow}) {
   return <View style={s.profileHeader}>
     <View style={s.cover}>{profile?.cover_url?<Image source={{uri:getImageUrl(profile.cover_url,{width:2000,height:1000,quality:100})}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/></>}</View>
     <View style={s.profileBody}>
