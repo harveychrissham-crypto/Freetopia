@@ -151,9 +151,10 @@ export default function Conversation(){
   }
  },[id,user?.id]);
  const load=useCallback(async()=>{
-  if(!id||!user?.id)return;
+  if(!id||!user?.id||!mountedRef.current)return;
   const sequence=++loadSequenceRef.current;
   setLoading(true);
+  setError('');
   const{data:c,error:ce}=await supabase.from('conversations').select('id,kind,title,disappearing_seconds,conversation_members(user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url))').eq('id',id).maybeSingle();
   if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
   if(ce||!c){if(mountedRef.current){setError(ce?.message||'Conversation not found');setLoading(false);}return}
@@ -204,6 +205,12 @@ export default function Conversation(){
    }
   }
   if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false)
+  }catch(e){
+   if(sequence===loadSequenceRef.current&&mountedRef.current){
+    setError(e?.message||'Unable to load this conversation. Please try again.');
+    setLoading(false);
+   }
+  }
  },[id,user?.id]);
 
  useEffect(()=>{
