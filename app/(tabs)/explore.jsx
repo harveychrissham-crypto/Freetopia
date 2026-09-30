@@ -52,7 +52,7 @@ export default function Explore(){
  };
  const filtered=tab==='People'?people:tab==='Communities'?communities:tab==='Posts'?posts:[...people.slice(0,4),...communities.slice(0,5),...posts.slice(0,5)];
 
- return <SafeAreaView style={s.safe}>{desktop?<Desktop {...{router,user,profile,q,setQ,tab,setTab,search,loading,error,people,communities,posts,follow,load,filtered}}/>:<Mobile {...{router,user,q,setQ,tab,setTab,search,loading,error,people,communities,posts,follow,load}}/>}</SafeAreaView>;
+ return <SafeAreaView style={s.safe}>{desktop?<Desktop {...{router,user,profile,q,setQ,tab,setTab,search,loading,error,people,communities,posts,follow,load,filtered}}/>:<Mobile {...{router,user,q,setQ,tab,setTab,search,loading,error,people,communities,posts,follow,load,colors,textScale}}/>}</SafeAreaView>;
 }
 
 function Desktop(p){
@@ -66,7 +66,7 @@ function Desktop(p){
 
 function Mobile(p){
  return <ScrollView contentContainerStyle={s.mobileContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-  <View style={s.mobileHeader}><View><Text style={[s.mobileTitle,{color:colors.text,fontSize:26*textScale}]}>Explore</Text><Text style={s.mobileLead}>Discover new people, communities and ideas.</Text></View><Pressable onPress={()=>p.search()} style={s.filter}><AppIcon name="dots" size={18} color={C.text}/></Pressable></View>
+  <View style={s.mobileHeader}><View><Text style={[s.mobileTitle,{color:p.colors.text,fontSize:26*p.textScale}]}>Explore</Text><Text style={s.mobileLead}>Discover new people, communities and ideas.</Text></View><Pressable onPress={()=>p.search()} style={s.filter}><AppIcon name="dots" size={18} color={C.text}/></Pressable></View>
   <Search q={p.q} setQ={p.setQ} search={p.search}/><Tabs tab={p.tab} setTab={p.setTab}/>
   {p.tab==='For You'?<><Hero router={p.router}/><SectionTitle icon="spark" title="Trending Topics" action="See all" onPress={()=>p.setTab('Topics')}/><TopicStrip posts={p.posts} onTopic={x=>p.search(x)}/><SectionTitle icon="users" title="Popular Communities" action="See all" onPress={()=>p.setTab('Communities')}/><CommunityList communities={p.communities} router={p.router}/><SectionTitle icon="profile" title="Recommended for You" action="See all" onPress={()=>p.setTab('Posts')}/><PostList posts={p.posts.slice(0,5)} router={p.router}/></>:p.tab==='Communities'?<><SectionTitle icon="users" title="Communities" action="Latest"/><CommunityList communities={p.communities} router={p.router}/></>:p.tab==='Posts'?<><SectionTitle icon="message" title="Posts" action="Latest"/><PostList posts={p.posts} router={p.router}/></>:p.tab==='People'?<><SectionTitle icon="profile" title="People" action="Latest"/><PeopleList people={p.people} follow={p.follow} router={p.router}/></>:<><SectionTitle icon="spark" title="Topics" action="Recent"/><TopicStrip posts={p.posts} onTopic={x=>p.search(x)}/><SectionTitle icon="message" title="Recent conversations" action="Latest"/><PostList posts={p.posts} router={p.router}/></>}
   {p.error&&<Error text={p.error}/>} {p.loading&&<Text style={s.loading}>Loading Explore…</Text>}
