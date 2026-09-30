@@ -3,6 +3,7 @@ import { Redirect, Slot, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
+import { useAppearance } from '../../providers/AppearanceProvider';
 
 const NAV_ITEMS = [
   { label: 'Home', icon: 'nav-home', path: '/home' },
@@ -15,9 +16,10 @@ const NAV_ITEMS = [
 function BottomNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const { colors, accent, textScale } = useAppearance();
 
   return (
-    <View style={styles.nav}>
+    <View style={[styles.nav, { backgroundColor: colors.nav, borderTopColor: colors.line }]}>
       {NAV_ITEMS.map((item) => {
         const active =
           pathname === item.path ||
@@ -31,14 +33,14 @@ function BottomNav() {
             onPress={() => router.replace(item.path)}
             style={({ pressed }) => [styles.item, pressed && styles.pressed]}
           >
-            <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
+            <View style={[styles.iconWrap, active && { backgroundColor: colors.panel2, borderColor: accent, borderWidth: 1 }]}>
               <AppIcon
                 name={item.icon}
                 size={28}
-                color={active ? '#DCE9F7' : '#7F8FA2'}
+                color={active ? colors.text : colors.muted}
               />
             </View>
-            <Text style={[styles.label, active && styles.labelActive]}>
+            <Text style={[styles.label, { color: active ? colors.text : colors.muted, fontSize: 13 * textScale }]}>
               {item.label}
             </Text>
           </Pressable>
