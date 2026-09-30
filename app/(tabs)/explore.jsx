@@ -6,11 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
+import { useAppearance } from '../../providers/AppearanceProvider';
 
 const C={bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',blue:'#4B78A8',violet:'#4A3F78',pink:'#7A496F',green:'#4D705D'};
 
 export default function Explore(){
  const router=useRouter(); const params=useLocalSearchParams(); const {user,profile}=useAuth(); const {width}=useWindowDimensions();
+ const { colors, accent, textScale, densityScale } = useAppearance();
  const desktop=Platform.OS==='web'&&width>=1000;
  const [q,setQ]=useState(''); const [tab,setTab]=useState('For You'); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
  const [people,setPeople]=useState([]); const [communities,setCommunities]=useState([]); const [posts,setPosts]=useState([]); const [initialSearchApplied,setInitialSearchApplied]=useState(false);
@@ -64,7 +66,7 @@ function Desktop(p){
 
 function Mobile(p){
  return <ScrollView contentContainerStyle={s.mobileContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-  <View style={s.mobileHeader}><View><Text style={s.mobileTitle}>Explore</Text><Text style={s.mobileLead}>Discover new people, communities and ideas.</Text></View><Pressable onPress={()=>p.search()} style={s.filter}><AppIcon name="dots" size={18} color={C.text}/></Pressable></View>
+  <View style={s.mobileHeader}><View><Text style={[s.mobileTitle,{color:colors.text,fontSize:26*textScale}]}>Explore</Text><Text style={s.mobileLead}>Discover new people, communities and ideas.</Text></View><Pressable onPress={()=>p.search()} style={s.filter}><AppIcon name="dots" size={18} color={C.text}/></Pressable></View>
   <Search q={p.q} setQ={p.setQ} search={p.search}/><Tabs tab={p.tab} setTab={p.setTab}/>
   {p.tab==='For You'?<><Hero router={p.router}/><SectionTitle icon="spark" title="Trending Topics" action="See all" onPress={()=>p.setTab('Topics')}/><TopicStrip posts={p.posts} onTopic={x=>p.search(x)}/><SectionTitle icon="users" title="Popular Communities" action="See all" onPress={()=>p.setTab('Communities')}/><CommunityList communities={p.communities} router={p.router}/><SectionTitle icon="profile" title="Recommended for You" action="See all" onPress={()=>p.setTab('Posts')}/><PostList posts={p.posts.slice(0,5)} router={p.router}/></>:p.tab==='Communities'?<><SectionTitle icon="users" title="Communities" action="Latest"/><CommunityList communities={p.communities} router={p.router}/></>:p.tab==='Posts'?<><SectionTitle icon="message" title="Posts" action="Latest"/><PostList posts={p.posts} router={p.router}/></>:p.tab==='People'?<><SectionTitle icon="profile" title="People" action="Latest"/><PeopleList people={p.people} follow={p.follow} router={p.router}/></>:<><SectionTitle icon="spark" title="Topics" action="Recent"/><TopicStrip posts={p.posts} onTopic={x=>p.search(x)}/><SectionTitle icon="message" title="Recent conversations" action="Latest"/><PostList posts={p.posts} router={p.router}/></>}
   {p.error&&<Error text={p.error}/>} {p.loading&&<Text style={s.loading}>Loading Explore…</Text>}
