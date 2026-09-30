@@ -26,7 +26,6 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.52,left:size*.24,top:size*.24,borderWidth:stroke,borderColor:color,borderRadius:size}} />
       {[0,1,2,3,4,5,6,7].map(i=><View key={i} style={{position:'absolute',width:size*.16,height:size*.16,left:size*.42,top:size*.42,backgroundColor:color,borderRadius:size*.04,transform:[{rotate:`${i*45}deg`},{translateY:-size*.34}]}} />)}
-      <View style={{position:'absolute',width:size*.18,height:size*.18,left:size*.41,top:size*.41,backgroundColor:'#060B12',borderRadius:size}} />
     </View>
   );
 
@@ -213,7 +212,7 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'bookmark') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.52,height:size*.70,left:size*.24,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.04}} />
+      <View style={{position:'absolute',width:size*.52,height:size*.70,left:size*.24,top:size*.12,borderWidth:stroke,borderBottomWidth:0,borderColor:color,borderRadius:size*.04}} />
       <View style={{position:'absolute',width:size*.30,height:size*.30,left:size*.35,top:size*.50,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'-45deg'}]}} />
     </View>
   );
