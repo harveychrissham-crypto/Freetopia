@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
@@ -28,13 +28,15 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [viewProfile, setViewProfile] = useState(null); const [followingUser, setFollowingUser] = useState(false); const [followPending, setFollowPending] = useState(false); const [followBusy, setFollowBusy] = useState(false);
+  const [viewProfile, setViewProfile] = useState(null); const [followingUser, setFollowingUser] = useState(false); const [followPending, setFollowPending] = useState(false); const [followBusy, setFollowBusy] = useState(false); const mountedRef=useRef(true); const loadSequenceRef=useRef(0);
 
   const load = useCallback(async (pull=false) => {
     const targetId = profileId || user?.id;
-    if (!targetId) return;
+    if (!targetId || !mountedRef.current) return;
+    const sequence=++loadSequenceRef.current;
     pull ? setRefreshing(true) : setLoading(true);
     setError('');
+    try{
     const profileRequest = isOwn
       ? Promise.resolve({ data: profile, error: null })
       : supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private,created_at').eq('id',targetId).maybeSingle();
@@ -48,17 +50,19 @@ export default function Profile() {
       !isOwn && user ? supabase.from('follows').select('id,status').eq('follower_id',user.id).eq('following_id',targetId).maybeSingle() : Promise.resolve({data:null,error:null}),
     ]);
     const firstError = [targetProfile,following,followers,ownPostCount,ownPosts,memberships,relationship].find(x=>x.error)?.error;
-    if (firstError) setError(firstError.message);
+    if (firstError) throw firstError;
+    if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
     setViewProfile(targetProfile.data || null);
     setFollowingUser(relationship?.data?.status === 'accepted');
     setFollowPending(relationship?.data?.status === 'pending');
     setCounts({ posts:ownPostCount.count || 0, following:following.count||0, followers:followers.count||0 });
     setCommunities(memberships.count||0);
     setPosts(ownPosts.data||[]);
-    setLoading(false); setRefreshing(false);
+    }catch(err){if(sequence===loadSequenceRef.current&&mountedRef.current)setError(err?.message||'Unable to load profile. Please try again.');}
+    finally{if(sequence===loadSequenceRef.current&&mountedRef.current){setLoading(false);setRefreshing(false);}}
   },[user?.id,profileId,isOwn,profile]);
 
-  useFocusEffect(useCallback(()=>{load();},[load]));
+  useFocusEffect(useCallback(()=>{mountedRef.current=true;load();return()=>{mountedRef.current=false;loadSequenceRef.current+=1;};},[load]));
 
   const displayedProfile = isOwn ? profile : viewProfile;
   const name = displayedProfile?.display_name || displayedProfile?.username || (isOwn ? user?.email?.split('@')[0] : 'Freetopia member');
@@ -81,7 +85,7 @@ export default function Profile() {
   },[activeTab,posts,user?.id]);
 
   const toggleFollow = async () => {
-    if (!user || isOwn || followBusy || !displayedProfile?.id) return;
+    if (!user || isOwn || followBusy || !displayedProfile?.id || !mountedRef.current) return;
     const wasFollowing = followingUser, wasPending = followPending;
     const nextActive = !(wasFollowing || wasPending);
     const status = displayedProfile.is_private ? 'pending' : 'accepted';
@@ -91,10 +95,13 @@ export default function Profile() {
     const query = nextActive
       ? supabase.from('follows').insert({follower_id:user.id,following_id:displayedProfile.id,status})
       : supabase.from('follows').delete().eq('follower_id',user.id).eq('following_id',displayedProfile.id);
-    const { error: e } = await query;
-    if (e) { setFollowingUser(wasFollowing); setFollowPending(wasPending); setError(e.message); }
-    else if (nextActive ? status === 'accepted' : wasFollowing) setCounts(x=>({...x,followers:Math.max(0,x.followers+(nextActive?1:-1))}));
-    setFollowBusy(false);
+    try{
+      const { error: e } = await query;
+      if(!mountedRef.current)return;
+      if (e) { setFollowingUser(wasFollowing); setFollowPending(wasPending); setError(e.message); }
+      else if (nextActive ? status === 'accepted' : wasFollowing) setCounts(x=>({...x,followers:Math.max(0,x.followers+(nextActive?1:-1))}));
+    }catch(err){if(mountedRef.current){setFollowingUser(wasFollowing);setFollowPending(wasPending);setError(err?.message||'Could not update this follow. Please try again.');}}
+    finally{if(mountedRef.current)setFollowBusy(false);}
   };
 
   const profileHeader = (
