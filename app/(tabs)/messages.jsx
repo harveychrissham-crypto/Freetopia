@@ -49,12 +49,12 @@ export default function Messages() {
       // perfectly valid request. The explicit membership query makes Requests
       // independent from get_message_inbox.
       const conversationSelect='id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))';
-      const requestsPromise=tab==='Requests'
-        ? supabase.from('conversation_members')
-            .select('conversation_id,user_id,request_status,is_archived,is_muted,conversations:conversation_id(id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url)))')
-            .eq('user_id',user.id)
-            .eq('request_status','pending')
-        : Promise.resolve({data:[],error:null});
+      // Always fetch pending requests. The badge and Requests tab must not
+      // depend on the user already opening Requests.
+      const requestsPromise=supabase.from('conversation_members')
+        .select('conversation_id,user_id,request_status,is_archived,is_muted,conversations:conversation_id(id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url)))')
+        .eq('user_id',user.id)
+        .eq('request_status','pending');
       const [conversationResult,inboxResult,requestsResult]=await Promise.all([
         supabase.from('conversations').select(conversationSelect).order('created_at',{ascending:false}),
         tab==='Communities'||tab==='Requests'?Promise.resolve({data:null,error:null}):supabase.rpc('get_message_inbox'),
@@ -63,22 +63,15 @@ export default function Messages() {
       if(sequence!==loadSequence.current||!mountedRef.current)return;
       const {data,error:e}=conversationResult;
       if(e){setError(e.message);setItems([]);}
-      else if(tab==='Communities'){
-        const {data:communityData,error:communityError}=await supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20);
-        if(sequence!==loadSequence.current||!mountedRef.current)return;
-        if(communityError)setError(communityError.message);
-        setCommunities(communityData||[]);
-      }
       else {
         const base=(data||[]).map(c=>{
           const members=c.conversation_members||[];
           return {...c,me:members.find(m=>m.user_id===user.id),other:members.find(m=>m.user_id!==user.id)};
         }).filter(c=>c.me);
 
-        // Merge explicit pending memberships into the conversation list. This
-        // protects incoming requests even when the normal conversation query or
-        // inbox summary does not return them.
-        if(tab==='Requests' && !requestsResult.error){
+        // Explicitly merge pending memberships so incoming requests remain
+        // visible even if the normal conversation query is filtered by RLS.
+        if(!requestsResult.error){
           const existing=new Set(base.map(c=>c.id));
           (requestsResult.data||[]).forEach(row=>{
             const c=row.conversations;
@@ -91,13 +84,13 @@ export default function Messages() {
               is_muted:row.is_muted
             },other:members.find(m=>m.user_id!==user.id)});
           });
-        } else if(tab==='Requests' && requestsResult.error){
+        } else {
           setError(requestsResult.error.message);
         }
 
         let inboxRows=[];
         if(!inboxResult.error) inboxRows=inboxResult.data||[];
-        else setError(inboxResult.error.message);
+        else if(tab!=='Communities'&&tab!=='Requests') setError(inboxResult.error.message);
         if(sequence!==loadSequence.current||!mountedRef.current)return;
         const latestBy = {};
         const unreadBy = {};
@@ -115,6 +108,13 @@ export default function Messages() {
         const nextItems=base.map(c=>({...c,lastMessage:latestBy[c.id]||null,unreadCount:unreadBy[c.id]||0})).sort((a,b)=>new Date(b.lastMessage?.created_at||b.created_at).getTime()-new Date(a.lastMessage?.created_at||a.created_at).getTime());
         setItems(nextItems);
         setUnreadTotal(nextItems.reduce((sum,c)=>sum+(c.unreadCount||0),0));
+
+        if(tab==='Communities'){
+          const {data:communityData,error:communityError}=await supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(20);
+          if(sequence!==loadSequence.current||!mountedRef.current)return;
+          if(communityError)setError(communityError.message);
+          setCommunities(communityData||[]);
+        }
       }
       if(mountedRef.current&&sequence===loadSequence.current){setLoading(false);setRefreshing(false);}
     } finally {
