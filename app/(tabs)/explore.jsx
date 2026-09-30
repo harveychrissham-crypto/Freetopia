@@ -26,7 +26,16 @@ export default function Explore(){
    supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').order('created_at',{ascending:false}).limit(12)
   ]);
   if(p.error||c.error||po.error){throw (p.error||c.error||po.error);}
-  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); let requested=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id,status').eq('follower_id',user.id).in('status',['accepted','pending']).in('following_id',ids);(f.data||[]).forEach(x=>{if(x.status==='accepted')followed.add(x.following_id);else requested.add(x.following_id);});} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id),requested:requested.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
+  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); let requested=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id,status').eq('follower_id',user.id).in('status',['accepted','pending']).in('following_id',ids);if(f.error)throw f.error;(f.data||[]).forEach(x=>{if(x.status==='accepted')followed.add(x.following_id);else requested.add(x.following_id);});}
+  if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
+  setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id),requested:requested.has(x.id)})));
+  setCommunities(c.data||[]);
+  setPosts(po.data||[]);
+  }catch(err){
+   if(sequence===loadSequenceRef.current&&mountedRef.current)setError(err?.message||'Unable to load Explore. Please try again.');
+  }finally{
+   if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false);
+  }
  },[user?.id]);
  useEffect(()=>{mountedRef.current=true;load();return()=>{mountedRef.current=false;loadSequenceRef.current+=1;};},[load]);
  useEffect(()=>{const incoming=Array.isArray(params.q)?params.q[0]:params.q;const incomingTab=Array.isArray(params.tab)?params.tab[0]:params.tab;const validTabs=['For You','Communities','Topics','Posts','People'];if(incomingTab&&validTabs.includes(incomingTab))setTab(incomingTab);if(incoming&&incoming!==q&&!initialSearchApplied){setQ(incoming);setTab('Posts');setInitialSearchApplied(true);search(incoming)}},[params.q,params.tab,q,initialSearchApplied]);
