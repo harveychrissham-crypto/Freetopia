@@ -558,7 +558,7 @@ export default function Conversation(){
      <Text style={s.name} numberOfLines={1}>{name}</Text>
      {handle&&<Text style={s.handle} numberOfLines={1}>@{handle}</Text>}{info?.kind==='group'?<View style={s.presenceRow}><View style={[s.presenceDot,onlineUsers.filter(x=>x!==user.id).length>0&&s.presenceDotOnline]}/><Text style={s.status}>{onlineUsers.filter(x=>x!==user.id).length} online</Text></View>:info?.other?.user_id&&onlineUsers.includes(info.other.user_id)?<View style={s.presenceRow}><View style={[s.presenceDot,s.presenceDotOnline]}/><Text style={s.status}>online</Text></View>:<View style={s.presenceRow}><View style={s.presenceDot}/><Text style={s.status}>offline</Text></View>}{typing&&<View style={s.typingRow}><Text style={s.typingLabel}>typing</Text><View style={s.typingDots}><Text style={s.typingDot}>•</Text><Text style={s.typingDot}>•</Text><Text style={s.typingDot}>•</Text></View></View>}
     </View>
-    <Pressable onPress={()=>setSearchOpen(v=>!v)} hitSlop={10} style={s.info}><AppIcon name="search" size={16}/></Pressable><Pressable onPress={()=>setChatInfoOpen(true)} hitSlop={10} style={s.info}><Text style={s.infoText}>i</Text></Pressable>
+    <Pressable onPress={()=>setSearchOpen(v=>!v)} hitSlop={10} style={s.info}><AppIcon name="search" size={16}/></Pressable><Pressable onPress={()=>setChatInfoOpen(true)} hitSlop={10} style={s.info}><AppIcon name="info" size={16}/></Pressable>
    </View>
 
    {chatInfoOpen&&<View style={s.customOverlay}>
