@@ -62,9 +62,8 @@ export default function Messages() {
       ]);
       if(sequence!==loadSequence.current||!mountedRef.current)return;
       const {data,error:e}=conversationResult;
-      if(e){setError(e.message);setItems([]);}
-      else {
-        const base=(data||[]).map(c=>{
+      if(e)setError(e.message);
+      const base=(data||[]).map(c=>{
           const members=c.conversation_members||[];
           return {...c,me:members.find(m=>m.user_id===user.id),other:members.find(m=>m.user_id!==user.id)};
         }).filter(c=>c.me);
@@ -115,7 +114,6 @@ export default function Messages() {
           if(communityError)setError(communityError.message);
           setCommunities(communityData||[]);
         }
-      }
       if(mountedRef.current&&sequence===loadSequence.current){setLoading(false);setRefreshing(false);}
     } finally {
       if(sequence===loadSequence.current)loadInFlight.current=false;
