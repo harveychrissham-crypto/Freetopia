@@ -208,7 +208,7 @@ export default function Messages() {
               </View>
               <Tabs tab={tab} setTab={setTab} requestCount={requestCount} />
               {error ? <Error text={error}/> : null}
-              {loading ? <Loading/> : tab==='Communities' ? <CommunityList communities={communities} router={router} query={query}/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
+              {loading ? <Loading/> : tab==='Communities' ? <CommunityList communities={communities} router={router} query={query}/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} router={router} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
             </View>
             <ConversationPreview />
             <QuickRail requestCount={requestCount} archiveCount={archiveCount} router={router} onArchive={()=>setTab('Archived')} />
@@ -243,7 +243,7 @@ export default function Messages() {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />}
             ListHeaderComponent={error ? <Error text={error}/> : null}
             ListEmptyComponent={loading ? <Loading/> : <Empty tab={tab}/>}
-            renderItem={({item:c})=><Row c={c} tab={tab} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>}
+            renderItem={({item:c})=><Row c={c} tab={tab} router={router} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>}
           />
         }
       </View>
@@ -265,7 +265,7 @@ function Topbar({query,setQuery,router,profile,unreadTotal}) {
 function Tabs({tab,setTab,requestCount}) {
   return <View style={s.tabs}>{['Messages','Requests','Communities','Archived'].map(x=><Pressable key={x} onPress={()=>setTab(x)} accessibilityRole="tab" accessibilityState={{selected:tab===x}} accessibilityLabel={x==='Requests'&&requestCount>0?'Requests, '+requestCount+' pending':x} style={[s.tab,tab===x&&s.tabSelected]}><Text style={[s.tabText,tab===x&&s.tabSelectedText]}>{x}</Text>{x==='Requests'&&requestCount>0?<View style={s.count}><Text style={s.countText}>{requestCount}</Text></View>:null}</Pressable>)}</View>;
 }
-function Row({c,tab,open,accept,decline,archive}) {
+function Row({c,tab,router,open,accept,decline,archive}) {
   const p=c.other?.profiles;
   const n=p?.display_name||p?.username||c.title||'Conversation';
   const preview=c.lastMessage?.content || (tab==='Requests'?'Can we connect?':'Start a conversation');
@@ -285,7 +285,18 @@ function Row({c,tab,open,accept,decline,archive}) {
         {p?.avatar_url?<Image source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
       </Pressable>
       <View style={s.rowInfo}>
-        <View style={s.rowTop}><Text style={[s.name,unread&&s.unreadName]} numberOfLines={1}>{n}</Text>{c.lastMessage?<Text style={[s.time,unread&&s.unreadTime]}>{relative(c.lastMessage.created_at)}</Text>:null}</View>
+        <Pressable
+          onPress={(event)=>{
+            event?.stopPropagation?.();
+            if(p?.id)router.push({pathname:'/profile',params:{id:p.id}});
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`View ${n}'s profile`}
+          hitSlop={6}
+        >
+          <Text style={[s.name,unread&&s.unreadName]} numberOfLines={1}>{n}</Text>
+        </Pressable>
+        <View style={s.rowTop}>{c.lastMessage?<Text style={[s.time,unread&&s.unreadTime]}>{relative(c.lastMessage.created_at)}</Text>:null}</View>
         <View style={s.previewLine}><Text style={[s.preview,unread&&s.unreadPreview]} numberOfLines={1}>{mine?'You: ':''}{preview}</Text>{unread?<View style={s.unreadBadge}><Text style={s.unreadBadgeText}>{c.unreadCount>99?'99+':c.unreadCount}</Text></View>:null}</View>
       </View>
     </Pressable>
