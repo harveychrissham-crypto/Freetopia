@@ -27,6 +27,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [emailConfirmationNeeded, setEmailConfirmationNeeded] = useState(false);
   const navigationLock = useRef(false);
 
   useEffect(() => {
@@ -42,10 +43,31 @@ export default function Auth() {
     setMessage('');
   };
 
+  const resendConfirmation = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || loading) return;
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+      });
+      if (resendError) throw resendError;
+      setMessage('A new confirmation email has been sent. Open the newest email and confirm your address before signing in again.');
+    } catch (resendError) {
+      setError(resendError?.message || 'Could not resend the confirmation email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submit = async () => {
     if (loading) return;
     setError('');
     setMessage('');
+    setEmailConfirmationNeeded(false);
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = displayName.trim();
@@ -101,7 +123,17 @@ export default function Auth() {
       }
 
       if (result.error) {
-        setError(result.error.message);
+        const isEmailNotConfirmed =
+          result.error?.code === 'email_not_confirmed' ||
+          result.error?.error_code === 'email_not_confirmed' ||
+          /email.*not.*confirmed/i.test(result.error?.message || '');
+
+        if (isEmailNotConfirmed && mode === 'sign-in') {
+          setEmailConfirmationNeeded(true);
+          setError('Supabase still has this account marked as unconfirmed. If you already clicked the confirmation link, request a fresh confirmation email or check the account in Supabase Auth.');
+        } else {
+          setError(result.error.message);
+        }
         return;
       }
 
@@ -250,6 +282,16 @@ export default function Auth() {
               <View style={s.feedbackMessage}>
                 <Text style={s.feedbackMessageText}>{message}</Text>
               </View>
+            )}
+
+            {emailConfirmationNeeded && (
+              <Pressable
+                onPress={resendConfirmation}
+                disabled={loading}
+                style={s.resendButton}
+              >
+                <Text style={s.resendText}>{loading ? 'Sending…' : 'Resend confirmation email'}</Text>
+              </Pressable>
             )}
 
             <Pressable
@@ -477,6 +519,21 @@ const s = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: '#35734a',
+  },
+  resendButton: {
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  resendText: {
+    color: c.ink,
+    fontSize: 12,
+    fontWeight: '700',
   },
   primary: {
     minHeight: 53,
