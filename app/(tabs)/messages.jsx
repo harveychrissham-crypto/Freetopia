@@ -242,7 +242,7 @@ function Row({c,tab,open,accept,decline,archive}) {
   const mine=c.lastMessage?.sender_id===c.me?.user_id;
   const unread=c.unreadCount>0 && tab==='Messages';
   return <View style={s.row}>
-    <Pressable onPress={open} style={({pressed})=>[s.rowMain,pressed&&s.rowPressed]}>
+    <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open conversation with ${n}`} style={({pressed})=>[s.rowMain,pressed&&s.rowPressed]}>
       {p?.avatar_url?<Image source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
       <View style={s.rowInfo}>
         <View style={s.rowTop}><Text style={[s.name,unread&&s.unreadName]} numberOfLines={1}>{n}</Text>{c.lastMessage?<Text style={[s.time,unread&&s.unreadTime]}>{relative(c.lastMessage.created_at)}</Text>:null}</View>
