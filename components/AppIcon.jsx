@@ -22,7 +22,13 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'clock') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.72,height:size*.72,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.14,top:size*.14}}/><View style={{position:'absolute',width:stroke,height:size*.25,backgroundColor:color,left:size*.48,top:size*.27}}/><View style={{position:'absolute',width:size*.2,height:stroke,backgroundColor:color,left:size*.48,top:size*.49}}/></View>;
 
-  if (name === 'settings') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.55,height:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.225,top:size*.225}}/><View style={{position:'absolute',width:size*.22,height:size*.22,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.39,top:size*.39}}/></View>;
+  if (name === 'settings') return (
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.52,height:size*.52,left:size*.24,top:size*.24,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      {[0,1,2,3,4,5,6,7].map(i=><View key={i} style={{position:'absolute',width:size*.16,height:size*.16,left:size*.42,top:size*.42,backgroundColor:color,borderRadius:size*.04,transform:[{rotate:`${i*45}deg`},{translateY:-size*.34}]}} />)}
+      <View style={{position:'absolute',width:size*.18,height:size*.18,left:size*.41,top:size*.41,backgroundColor:'#060B12',borderRadius:size}} />
+    </View>
+  );
 
   if (name === 'info') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.72,height:size*.72,borderWidth:stroke,borderColor:color,borderRadius:size,left:size*.14,top:size*.14}}/><View style={{position:'absolute',width:stroke,height:size*.28,backgroundColor:color,left:size*.48,top:size*.38}}/><View style={{position:'absolute',width:size*.08,height:size*.08,borderRadius:size,backgroundColor:color,left:size*.46,top:size*.25}}/></View>;
 
@@ -116,8 +122,8 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.25,height:size*.25,left:size*.22,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
       <View style={{position:'absolute',width:size*.25,height:size*.25,left:size*.53,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
-      <View style={{position:'absolute',width:size*.48,height:size*.27,left:size*.08,top:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.25}} />
-      <View style={{position:'absolute',width:size*.38,height:size*.23,left:size*.5,top:size*.58,borderWidth:stroke,borderColor:color,borderRadius:size*.25}} />
+      <View style={{position:'absolute',width:size*.46,height:size*.25,left:size*.10,top:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.25}} />
+      <View style={{position:'absolute',width:size*.46,height:size*.25,left:size*.44,top:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.25}} />
     </View>
   );
 
@@ -138,7 +144,7 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   if (name === 'comment') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.72,height:size*.56,left:size*.12,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.14}} />
-      <View style={{position:'absolute',width:size*.22,height:stroke,left:size*.18,top:size*.67,backgroundColor:color,transform:[{rotate:'-35deg'}]}} />
+      <View style={{position:'absolute',width:size*.22,height:stroke,left:size*.18,top:size*.64,backgroundColor:color,transform:[{rotate:'-45deg'}]}} />
     </View>
   );
 
@@ -208,7 +214,8 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   if (name === 'bookmark') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.70,left:size*.24,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.04}} />
-      <View style={{position:'absolute',width:size*.30,height:size*.24,left:size*.35,top:size*.55,backgroundColor:'#060B12',transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.30,height:size*.24,left:size*.35,top:size*.55,backgroundColor:color,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.22,height:size*.12,left:size*.39,top:size*.59,backgroundColor:'#060B12',transform:[{rotate:'45deg'}]}} />
     </View>
   );
 
