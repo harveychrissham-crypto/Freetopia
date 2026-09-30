@@ -5,11 +5,11 @@ import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
 
 const NAV_ITEMS = [
-  { label: 'Home', icon: 'home', path: '/home' },
-  { label: 'Explore', icon: 'compass', path: '/explore' },
-  { label: 'Messages', icon: 'message', path: '/messages' },
-  { label: 'Notifications', icon: 'bell', path: '/notifications' },
-  { label: 'Profile', icon: 'profile', path: '/profile' },
+  { label: 'Home', icon: 'nav-home', path: '/home' },
+  { label: 'Explore', icon: 'nav-explore', path: '/explore' },
+  { label: 'Messages', icon: 'nav-message', path: '/messages' },
+  { label: 'Notifications', icon: 'nav-bell', path: '/notifications' },
+  { label: 'Profile', icon: 'nav-profile', path: '/profile' },
 ];
 
 function BottomNav() {
