@@ -42,9 +42,21 @@ export default function Messages() {
     try {
       // Fetch the lightweight conversation list and inbox summary together so the
       // Messages screen never waits on one network round-trip before starting the next.
-      const [conversationResult,inboxResult]=await Promise.all([
-        supabase.from('conversations').select('id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))').order('created_at',{ascending:false}),
-        tab==='Communities'?Promise.resolve({data:null,error:null}):supabase.rpc('get_message_inbox')
+      // Requests are fetched separately from the normal inbox. A pending member
+      // has no readable messages yet, so relying on the message inbox can hide a
+      // perfectly valid request. The explicit membership query makes Requests
+      // independent from get_message_inbox.
+      const conversationSelect='id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))';
+      const requestsPromise=tab==='Requests'
+        ? supabase.from('conversation_members')
+            .select('conversation_id,user_id,request_status,is_archived,is_muted,conversations:conversation_id(id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url)))')
+            .eq('user_id',user.id)
+            .eq('request_status','pending')
+        : Promise.resolve({data:[],error:null});
+      const [conversationResult,inboxResult,requestsResult]=await Promise.all([
+        supabase.from('conversations').select(conversationSelect).order('created_at',{ascending:false}),
+        tab==='Communities'||tab==='Requests'?Promise.resolve({data:null,error:null}):supabase.rpc('get_message_inbox'),
+        requestsPromise
       ]);
       if(sequence!==loadSequence.current||!mountedRef.current)return;
       const {data,error:e}=conversationResult;
@@ -60,6 +72,27 @@ export default function Messages() {
           const members=c.conversation_members||[];
           return {...c,me:members.find(m=>m.user_id===user.id),other:members.find(m=>m.user_id!==user.id)};
         }).filter(c=>c.me);
+
+        // Merge explicit pending memberships into the conversation list. This
+        // protects incoming requests even when the normal conversation query or
+        // inbox summary does not return them.
+        if(tab==='Requests' && !requestsResult.error){
+          const existing=new Set(base.map(c=>c.id));
+          (requestsResult.data||[]).forEach(row=>{
+            const c=row.conversations;
+            if(!c || existing.has(c.id)) return;
+            const members=c.conversation_members||[];
+            base.push({...c,me:members.find(m=>m.user_id===user.id)||{
+              user_id:user.id,
+              request_status:row.request_status,
+              is_archived:row.is_archived,
+              is_muted:row.is_muted
+            },other:members.find(m=>m.user_id!==user.id)});
+          });
+        } else if(tab==='Requests' && requestsResult.error){
+          setError(requestsResult.error.message);
+        }
+
         let inboxRows=[];
         if(!inboxResult.error) inboxRows=inboxResult.data||[];
         else setError(inboxResult.error.message);
