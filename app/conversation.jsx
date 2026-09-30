@@ -548,9 +548,15 @@ export default function Conversation(){
  const initials=(name||'?').slice(0,1).toUpperCase();
 
  const accept=async()=>{
+  if(!id||!user?.id)return;
   setError('');
-  const{error:e}=await supabase.from('conversation_members').update({request_status:'accepted'}).eq('conversation_id',id).eq('user_id',user.id);
-  if(e)setError(e.message);else load()
+  try{
+   const{error:e}=await supabase.from('conversation_members').update({request_status:'accepted'}).eq('conversation_id',id).eq('user_id',user.id);
+   if(e)throw e;
+   if(mountedRef.current)await load();
+  }catch(e){
+   if(mountedRef.current)setError(e?.message||'Could not accept this message request. Please try again.');
+  }
  };
 
  const theme=CHAT_THEMES[chatTheme]||CHAT_THEMES.dark;
