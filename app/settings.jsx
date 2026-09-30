@@ -166,7 +166,7 @@ export default function Settings() {
         <View style={s.mobileList}>
           {settingItems.slice(5).map(([title, subtitle, icon], index) => (
             <Pressable key={title} onPress={() => go(title)} style={[s.mobileRow, index === 1 && s.mobileRowLast]}>
-              <View style={s.mobileIcon}><Text style={s.mobileIconText}>{icon}</Text></View>
+              <View style={s.mobileIcon}><AppIcon name={icon} size={16} color="#D4DEEA" /></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.mobileRowTitle}>{title}</Text>
                 <Text style={s.mobileRowSub}>{subtitle}</Text>
@@ -308,7 +308,7 @@ function Sidebar({ router }) {
 }
 
 function Topbar({ router }) {
-  return <View style={s.topbar}><TextInput placeholder="Search settings..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><AppIcon name="bell" size={19} color={C.text}/><AppIcon name="message" size={19} color={C.text}/><Pressable onPress={() => router.push('/profile')}><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></Pressable></View></View>;
+  return <View style={s.topbar}><TextInput placeholder="Search settings..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Pressable onPress={() => router.push('/notifications')} hitSlop={10}><AppIcon name="bell" size={19} color={C.text}/></Pressable><Pressable onPress={() => router.push('/messages')} hitSlop={10}><AppIcon name="message" size={19} color={C.text}/></Pressable><Pressable onPress={() => router.push('/profile')} hitSlop={8}><View style={s.topAvatar}><Text style={s.topAvatarText}>F</Text></View></Pressable></View></View>;
 }
 
 function Badge({ n }) { return <View style={s.badge}><Text style={s.badgeText}>{n}</Text></View>; }
