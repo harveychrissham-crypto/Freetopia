@@ -214,8 +214,7 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   if (name === 'bookmark') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.70,left:size*.24,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size*.04}} />
-      <View style={{position:'absolute',width:size*.30,height:size*.24,left:size*.35,top:size*.55,backgroundColor:color,transform:[{rotate:'45deg'}]}} />
-      <View style={{position:'absolute',width:size*.22,height:size*.12,left:size*.39,top:size*.59,backgroundColor:'#060B12',transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.30,height:size*.30,left:size*.35,top:size*.50,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'-45deg'}]}} />
     </View>
   );
 
