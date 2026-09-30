@@ -155,6 +155,7 @@ export default function Conversation(){
   const sequence=++loadSequenceRef.current;
   setLoading(true);
   setError('');
+  try{
   const{data:c,error:ce}=await supabase.from('conversations').select('id,kind,title,disappearing_seconds,conversation_members(user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url))').eq('id',id).maybeSingle();
   if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
   if(ce||!c){if(mountedRef.current){setError(ce?.message||'Conversation not found');setLoading(false);}return}
