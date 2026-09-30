@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { useFocusEffect } from 'expo-router';
-import { useLocalSearchParams,useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { LoadingState } from '../../components/FeedbackState';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
@@ -37,31 +36,57 @@ export default function Profile() {
     pull ? setRefreshing(true) : setLoading(true);
     setError('');
     try{
-    const profileRequest = isOwn
-      ? Promise.resolve({ data: profile, error: null })
-      : supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private,created_at').eq('id',targetId).maybeSingle();
-    const [targetProfile, following, followers, ownPostCount, ownPosts, memberships, relationship] = await Promise.all([
-      profileRequest,
-      supabase.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',targetId).eq('status','accepted'),
-      supabase.from('follows').select('*',{count:'exact',head:true}).eq('following_id',targetId).eq('status','accepted'),
-      supabase.from('posts').select('*',{count:'exact',head:true}).eq('author_id',targetId),
-      supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').eq('author_id',targetId).order('created_at',{ascending:false}).limit(30),
-      supabase.from('community_members').select('*',{count:'exact',head:true}).eq('user_id',targetId).eq('status','active'),
-      !isOwn && user ? supabase.from('follows').select('id,status').eq('follower_id',user.id).eq('following_id',targetId).maybeSingle() : Promise.resolve({data:null,error:null}),
-    ]);
-    const firstError = [targetProfile,following,followers,ownPostCount,ownPosts,memberships,relationship].find(x=>x.error)?.error;
-    if (firstError) throw firstError;
-    if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
-    setViewProfile(targetProfile.data || null);
-    setFollowingUser(relationship?.data?.status === 'accepted');
-    setFollowPending(relationship?.data?.status === 'pending');
-    setCounts({ posts:ownPostCount.count || 0, following:following.count||0, followers:followers.count||0 });
-    setCommunities(memberships.count||0);
-    setPosts(ownPosts.data||[]);
-    }catch(err){if(sequence===loadSequenceRef.current&&mountedRef.current)setError(err?.message||'Unable to load profile. Please try again.');}
-    finally{if(sequence===loadSequenceRef.current&&mountedRef.current){setLoading(false);setRefreshing(false);}}
-  },[user?.id,profileId,isOwn,profile]);
+      const profileResult = isOwn
+        ? { data: profile, error: null }
+        : await supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private,created_at').eq('id',targetId).maybeSingle();
 
+      if(profileResult.error) throw profileResult.error;
+      if(!profileResult.data && !isOwn) throw new Error('Profile not found');
+
+      if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
+      setViewProfile(profileResult.data || null);
+
+      const [following, followers, ownPostCount, ownPosts, memberships, relationship] = await Promise.all([
+        supabase.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',targetId).eq('status','accepted'),
+        supabase.from('follows').select('*',{count:'exact',head:true}).eq('following_id',targetId).eq('status','accepted'),
+        supabase.from('posts').select('*',{count:'exact',head:true}).eq('author_id',targetId),
+        supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').eq('author_id',targetId).order('created_at',{ascending:false}).limit(30),
+        supabase.from('community_members').select('*',{count:'exact',head:true}).eq('user_id',targetId).eq('status','active'),
+        !isOwn && user ? supabase.from('follows').select('id,status').eq('follower_id',user.id).eq('following_id',targetId).maybeSingle() : Promise.resolve({data:null,error:null}),
+      ]);
+
+      if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
+
+      const firstSecondaryError = [following,followers,ownPostCount,ownPosts,memberships,relationship].find(x=>x.error)?.error;
+      if(firstSecondaryError){
+        setCounts({
+          posts: ownPostCount?.count || 0,
+          following: following?.count || 0,
+          followers: followers?.count || 0
+        });
+        setCommunities(memberships?.count || 0);
+        setPosts(ownPosts?.data || []);
+        setFollowingUser(relationship?.data?.status === 'accepted');
+        setFollowPending(relationship?.data?.status === 'pending');
+        setError('');
+      }else{
+        setFollowingUser(relationship?.data?.status === 'accepted');
+        setFollowPending(relationship?.data?.status === 'pending');
+        setCounts({posts:ownPostCount.count||0,following:following.count||0,followers:followers.count||0});
+        setCommunities(memberships.count||0);
+        setPosts(ownPosts.data||[]);
+      }
+    }catch(err){
+      if(sequence===loadSequenceRef.current&&mountedRef.current){
+        setError(err?.message||'Unable to load profile. Please try again.');
+      }
+    }finally{
+      if(sequence===loadSequenceRef.current&&mountedRef.current){
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  },[user?.id,profileId,isOwn,profile]);
   useFocusEffect(useCallback(()=>{mountedRef.current=true;load();return()=>{mountedRef.current=false;loadSequenceRef.current+=1;};},[load]));
 
   const displayedProfile = isOwn ? profile : viewProfile;
