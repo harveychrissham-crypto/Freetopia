@@ -18,7 +18,6 @@ export default function Profile() {
   const { id:routeId } = useLocalSearchParams();
   const profileId = Array.isArray(routeId) ? routeId[0] : routeId;
   const isOwn = !profileId || profileId === user?.id;
-  const viewingExplicitProfile = !!profileId;
   const desktop = Platform.OS === 'web' && width >= 1000;
   const { colors, accent, textScale } = useAppearance();
   const [counts, setCounts] = useState({ posts:0, following:0, followers:0 });
