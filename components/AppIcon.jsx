@@ -67,8 +67,8 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   if (name === 'nav-explore') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.76,height:size*.76,left:size*.12,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
-      <View style={{position:'absolute',width:size*.30,height:size*.50,left:size*.35,top:size*.25,borderWidth:stroke,borderColor:color,transform:[{rotate:'42deg'}],borderRadius:size*.05}} />
-      <View style={{position:'absolute',width:size*.09,height:size*.09,left:size*.455,top:size*.455,borderRadius:size,backgroundColor:color}} />
+      <View style={{position:'absolute',width:size*.24,height:size*.44,left:size*.38,top:size*.28,borderWidth:stroke,borderColor:color,transform:[{rotate:'42deg'}],borderRadius:size*.03}} />
+      <View style={{position:'absolute',width:size*.07,height:size*.07,left:size*.465,top:size*.465,borderRadius:size,backgroundColor:color}} />
     </View>
   );
 
