@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   const stroke = Math.max(1.6, size * 0.09);
   const common = { position: 'absolute', backgroundColor: color };
-  const scale = size / 20;
+  const scale = size / 20; // icon scale baseline
 
   if (name === 'check') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.42,height:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'-45deg'}],left:size*.28,top:size*.34}} /></View>;
 
