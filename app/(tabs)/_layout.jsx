@@ -34,7 +34,7 @@ function BottomNav() {
             <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
               <AppIcon
                 name={item.icon}
-                size={21}
+                size={24}
                 color={active ? '#DCE9F7' : '#7F8FA2'}
               />
             </View>
@@ -75,10 +75,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nav: {
-    height: 78,
+    height: 82,
     paddingHorizontal: 8,
-    paddingTop: 7,
-    paddingBottom: 9,
+    paddingTop: 6,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'stretch',
     backgroundColor: '#050A11',
@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   iconWrap: {
-    width: 42,
-    height: 31,
+    width: 44,
+    height: 34,
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
