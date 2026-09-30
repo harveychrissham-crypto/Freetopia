@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
+import { useAppearance } from '../../providers/AppearanceProvider';
 
 const C = { bg:'#060B12', panel:'#0A121C', panel2:'#0E1824', line:'#182533', text:'#E9EEF4', muted:'#7F8D9D', blue:'#4B78A8', violet:'#4A3F78', pink:'#7A496F', white:'#F4F6F8' };
 
@@ -19,6 +20,7 @@ export default function Profile() {
   const profileId = Array.isArray(routeId) ? routeId[0] : routeId;
   const isOwn = !profileId || profileId === user?.id;
   const desktop = Platform.OS === 'web' && width >= 1000;
+  const { colors, accent, textScale } = useAppearance();
   const [counts, setCounts] = useState({ posts:0, following:0, followers:0 });
   const [communities, setCommunities] = useState(0);
   const [posts, setPosts] = useState([]);
@@ -135,7 +137,7 @@ export default function Profile() {
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />} contentContainerStyle={s.mobileContent}>
-        <View style={s.mobileTop}><Pressable onPress={()=>router.back()}><AppIcon name="arrow-left" size={20} color={C.text}/></Pressable><Text style={s.mobileTitle}>{isOwn?'Profile':'Profile'}</Text>{isOwn?<Pressable onPress={()=>router.push('/settings')}><AppIcon name="settings" size={18} color={C.text}/></Pressable>:<View style={{width:20}}/>}</View>
+        <View style={s.mobileTop}><Pressable onPress={()=>router.back()}><AppIcon name="arrow-left" size={20} color={C.text}/></Pressable><Text style={[s.mobileTitle,{color:colors.text,fontSize:20*textScale}]}>{isOwn?'Profile':'Profile'}</Text>{isOwn?<Pressable onPress={()=>router.push('/settings')}><AppIcon name="settings" size={18} color={C.text}/></Pressable>:<View style={{width:20}}/>}</View>
         {profileHeader}
         <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         {error ? <ErrorBox message={error}/> : null}
@@ -162,7 +164,7 @@ function ProfileHeader({profile,name,handle,initials,counts,joinedAt,onEdit,onSe
       <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={({pressed})=>[s.outline,pressed&&s.pressed]}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={({pressed})=>[s.followButton,(following||pending)&&s.followingButton,pressed&&s.pressed]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':pending?'Requested':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={({pressed})=>[s.circle,pressed&&s.pressed]}><AppIcon name="settings" size={18} color={C.text}/></Pressable>}</View>
       <Text style={s.name}>{name}</Text>
       <Text style={s.handle}>{handle}</Text>
-      <View style={s.statsRow}><Stat n={counts.posts} label="Posts"/><Stat n={counts.followers} label="Followers"/><Stat n={counts.following} label="Following"/></View>
+      <View style={[s.statsRow,{borderColor:colors.line}]}><Stat n={counts.posts} label="Posts"/><Stat n={counts.followers} label="Followers"/><Stat n={counts.following} label="Following"/></View>
       <Text style={s.bio}>{profile?.bio || 'Dream big. Build bigger. Share your world with Freetopia.'}</Text>
       <View style={s.metaRow}><View style={s.metaItem}><AppIcon name="location" size={13} color={C.muted}/><Text style={s.meta}>{profile?.location || 'Add location'}</Text></View>{profile?.website?<View style={s.metaItem}><AppIcon name="globe" size={13} color={C.muted}/><Text style={s.meta}>{profile.website}</Text></View>:null}<View style={s.metaItem}><AppIcon name="clock" size={13} color={C.muted}/><Text style={s.meta}>Joined {joinedAt ? new Date(joinedAt).getFullYear() : 'recently'}</Text></View></View>
     </View>
