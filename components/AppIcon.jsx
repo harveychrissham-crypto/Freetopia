@@ -199,9 +199,9 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'archive') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.72,height:size*.52,left:size*.14,top:size*.30,borderWidth:stroke,borderColor:color,borderRadius:size*.08}} />
-      <View style={{position:'absolute',width:size*.72,height:stroke,left:size*.14,top:size*.25,backgroundColor:color}} />
-      <View style={{position:'absolute',width:size*.24,height:stroke,left:size*.38,top:size*.50,backgroundColor:color,borderRadius:stroke}} />
+      <View style={{position:'absolute',width:size*.72,height:size*.12,left:size*.14,top:size*.20,borderWidth:stroke,borderColor:color,borderRadius:size*.03}} />
+      <View style={{position:'absolute',width:size*.62,height:size*.48,left:size*.19,top:size*.32,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderBottomLeftRadius:size*.08,borderBottomRightRadius:size*.08}} />
+      <View style={{position:'absolute',width:size*.22,height:stroke,left:size*.39,top:size*.50,backgroundColor:color,borderRadius:stroke}} />
     </View>
   );
 
