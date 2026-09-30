@@ -7,5 +7,5 @@
     <Pressable onPress={()=>info?.kind==='group'?setChatInfoOpen(true):(info?.other?.user_id?router.push({pathname:'/profile',params:{id:info.other.user_id}}):null)} hitSlop={8} style={s.avatar} accessibilityRole="button" accessibilityLabel={info?.kind==='group'?'Open group info':`Open ${name} profile`}>
      {avatar?<Image source={{uri:getImageUrl(avatar,{width:800,height:800,quality:100})}} style={s.avatarImage}/>:<Text style={s.avatarText}>{initials}</Text>}
     </Pressable>
-    <View style={s.headCopy}>
+    <Pressable onPress={()=>info?.kind==='group'?setChatInfoOpen(true):(info?.other?.user_id?router.push({pathname:'/profile',params:{id:info.other.user_id}}):null)} style={s.headCopy} hitSlop={6} accessibilityRole="button" accessibilityLabel={info?.kind==='group'?'Open group information':`Open ${name} profile`}>
      <Text style={s.name} numberOfLines={1}>{name}</Text>
