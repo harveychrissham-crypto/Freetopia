@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as IntentLauncher from 'expo-intent-launcher';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppIcon from './AppIcon';
@@ -22,35 +20,16 @@ export default function UpdateNotice({ onPress }) {
     return () => { mounted=false; };
   },[]);
   const dismiss=async()=>{ setVisible(false); await AsyncStorage.setItem(storageKey,'1'); };
-  const installUpdate=async()=>{
-    if (onPress) { onPress(); return; }
-    if (Platform.OS !== 'android') return;
-    setDownloading(true);
-    setError('');
-    try {
-      const fileUri = `${FileSystem.cacheDirectory}freetopia-latest.apk`;
-      const result = await FileSystem.downloadAsync(updateUrl, fileUri);
-      const contentUri = await FileSystem.getContentUriAsync(result.uri);
-      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-        data: contentUri,
-        type: 'application/vnd.android.package-archive',
-        flags: 1 | 268435456,
-      });
-    } catch (e) {
-      setError('Could not start the installer. Please try again.');
-    } finally {
-      setDownloading(false);
-    }
-  };
+  const installUpdate=async()=>{ await Linking.openURL(updateUrl); };
   if(!visible) return null;
   return (
     <View style={s.card}>
       <View style={s.iconWrap}><AppIcon name="spark" size={18} color={C.text}/></View>
       <View style={s.body}>
         <Text style={s.title}>Freetopia has been updated</Text>
-        <Text style={s.message}>You’re now using version {version}. A new Freetopia build is ready. Tap Download update to download and install the latest Android APK.</Text>
+        <Text style={s.message}>You’re now using version {version}. A new Freetopia build is ready. Tap Download update to open the latest Android APK download.</Text>
         <View style={s.actions}>
-          <Pressable disabled={downloading} onPress={installUpdate} style={({pressed})=>[s.primary,pressed&&s.pressed,downloading&&s.disabled]}><Text style={s.primaryText}>{downloading ? 'Downloading…' : 'Download & install'}</Text></Pressable>
+          <Pressable disabled={downloading} onPress={installUpdate} style={({pressed})=>[s.primary,pressed&&s.pressed,downloading&&s.disabled]}><Text style={s.primaryText}>{downloading ? 'Downloading…' : 'Download update'}</Text></Pressable>
           <Pressable onPress={dismiss} style={({pressed})=>[s.dismiss,pressed&&s.pressed]}><Text style={s.dismissText}>Dismiss</Text></Pressable>
         </View>
       </View>
