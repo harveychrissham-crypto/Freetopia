@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { useFocusEffect } from 'expo-router';
 import { Image, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
@@ -14,22 +14,26 @@ const C={bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#E9E
 export default function Communities(){
  const router=useRouter(); const {user,profile}=useAuth(); const {width}=useWindowDimensions(); const desktop=Platform.OS==='web'&&width>=1000;
  const [items,setItems]=useState([]); const [posts,setPosts]=useState([]); const [mine,setMine]=useState(new Set()); const [membership,setMembership]=useState({}); const [tab,setTab]=useState('All');
- const [query,setQuery]=useState(''); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
+ const [query,setQuery]=useState(''); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const mountedRef=useRef(true); const loadSequenceRef=useRef(0);
  const load=useCallback(async()=>{
+  if(!mountedRef.current)return; const sequence=++loadSequenceRef.current;
   setLoading(true); setError('');
+  try{
   const [c,p,m]=await Promise.all([
    supabase.from('communities').select('id,name,slug,description,is_private,avatar_url,creator_id,created_at').order('created_at',{ascending:false}).limit(60),
    supabase.from('posts').select('id,community_id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name)').not('community_id','is',null).order('created_at',{ascending:false}).limit(150),
    user?supabase.from('community_members').select('community_id,status,role').eq('user_id',user.id):Promise.resolve({data:[],error:null})
   ]);
   const e=c.error||p.error||m.error;
-  if(e)setError(e.message);
+  if(e)throw e;
   const recent=p.data||[]; const postStats={};
   recent.forEach(x=>{if(!postStats[x.community_id])postStats[x.community_id]={count:0,last:x.created_at};postStats[x.community_id].count+=1;if(new Date(x.created_at)>new Date(postStats[x.community_id].last))postStats[x.community_id].last=x.created_at;});
   setItems((c.data||[]).map(x=>({...x,postCount:postStats[x.id]?.count||0,lastPostAt:postStats[x.id]?.last||null})));
-  setPosts(recent); const memberships=(m.data||[]); setMembership(Object.fromEntries(memberships.map(x=>[x.community_id,x]))); setMine(new Set(memberships.filter(x=>x.status==='active').map(x=>x.community_id))); setLoading(false);
+  if(sequence!==loadSequenceRef.current||!mountedRef.current)return; setPosts(recent); const memberships=(m.data||[]); setMembership(Object.fromEntries(memberships.map(x=>[x.community_id,x]))); setMine(new Set(memberships.filter(x=>x.status==='active').map(x=>x.community_id)));
+  }catch(err){if(sequence===loadSequenceRef.current&&mountedRef.current)setError(err?.message||'Unable to load communities. Please try again.');}
+  finally{if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false);}
  },[user?.id]);
- useFocusEffect(useCallback(()=>{load();},[load]));
+ useFocusEffect(useCallback(()=>{mountedRef.current=true;load();return()=>{mountedRef.current=false;loadSequenceRef.current+=1;};},[load]));
 
  const searched=useMemo(()=>{const q=query.trim().toLowerCase();return items.filter(x=>!q||String(x.name||'').toLowerCase().includes(q)||String(x.description||'').toLowerCase().includes(q)||String(x.slug||'').toLowerCase().includes(q));},[items,query]);
  const filtered=useMemo(()=>{
