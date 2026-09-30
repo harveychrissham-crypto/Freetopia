@@ -16,10 +16,11 @@ export default function Messages() {
   const { user, profile } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams();
+  const requestedTab = Array.isArray(params?.tab) ? params.tab[0] : params?.tab;
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === 'web' && width >= 1000;
   const { colors, accent, textScale, densityScale } = useAppearance();
-  const [tab,setTab] = useState(params?.tab==='Requests' || params?.tab==='Archived' || params?.tab==='Communities' ? params.tab : 'Messages');
+  const [tab,setTab] = useState(requestedTab==='Requests' || requestedTab==='Archived' || requestedTab==='Communities' ? requestedTab : 'Messages');
   const [items,setItems] = useState([]);
   const [loading,setLoading] = useState(true);
   const [refreshing,setRefreshing] = useState(false);
@@ -34,9 +35,8 @@ export default function Messages() {
   const mountedRef = useRef(true);
   const itemsLengthRef = useRef(0);
   useEffect(()=>{
-    const requested=params?.tab;
-    if(requested==='Requests'||requested==='Archived'||requested==='Communities')setTab(requested);
-  },[params?.tab]);
+    if(requestedTab==='Requests'||requestedTab==='Archived'||requestedTab==='Communities')setTab(requestedTab);
+  },[requestedTab]);
   itemsLengthRef.current = items.length;
 
   const load = useCallback(async (pull=false) => {
