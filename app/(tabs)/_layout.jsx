@@ -34,7 +34,7 @@ function BottomNav() {
             <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
               <AppIcon
                 name={item.icon}
-                size={24}
+                size={28}
                 color={active ? '#DCE9F7' : '#7F8FA2'}
               />
             </View>
@@ -95,9 +95,9 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   iconWrap: {
-    width: 44,
-    height: 34,
-    borderRadius: 11,
+    width: 48,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
