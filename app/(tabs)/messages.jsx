@@ -271,38 +271,28 @@ function Row({c,tab,router,open,accept,decline,archive}) {
   const preview=c.lastMessage?.content || (tab==='Requests'?'Can we connect?':'Start a conversation');
   const mine=c.lastMessage?.sender_id===c.me?.user_id;
   const unread=c.unreadCount>0 && tab==='Messages';
+  const openProfile=()=>{
+    if(p?.id)router.push({pathname:'/profile',params:{id:p.id}});
+  };
   return <View style={s.row}>
-    <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open conversation with ${n}`} style={({pressed})=>[s.rowMain,pressed&&s.rowPressed]}>
+    <View style={s.rowMain}>
       <Pressable
-        onPress={(event)=>{
-          event?.stopPropagation?.();
-          if(p?.id)router.push({pathname:'/profile',params:{id:p.id}});
-        }}
+        onPress={openProfile}
         accessibilityRole="button"
         accessibilityLabel={`View ${n}'s profile`}
         hitSlop={8}
+        style={({pressed})=>[s.avatar,pressed&&s.avatarPressed]}
       >
-        {p?.avatar_url?<Image source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
+        {p?.avatar_url?<Image pointerEvents="none" source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatar}/>:<View pointerEvents="none" style={s.avatar}><Text style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
       </Pressable>
-      <View style={s.rowInfo}>
+      <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open conversation with ${n}`} style={({pressed})=>[s.rowInfo,pressed&&s.rowPressed]}>
         <View style={s.rowTop}>
-          <Pressable
-            onPress={(event)=>{
-              event?.stopPropagation?.();
-              if(p?.id)router.push({pathname:'/profile',params:{id:p.id}});
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`View ${n}'s profile`}
-            hitSlop={6}
-            style={{flex:1,minWidth:0}}
-          >
-            <Text style={[s.name,unread&&s.unreadName]} numberOfLines={1}>{n}</Text>
-          </Pressable>
+          <Text style={[s.name,unread&&s.unreadName]} numberOfLines={1}>{n}</Text>
           {c.lastMessage?<Text style={[s.time,unread&&s.unreadTime]}>{relative(c.lastMessage.created_at)}</Text>:null}
         </View>
         <View style={s.previewLine}><Text style={[s.preview,unread&&s.unreadPreview]} numberOfLines={1}>{mine?'You: ':''}{preview}</Text>{unread?<View style={s.unreadBadge}><Text style={s.unreadBadgeText}>{c.unreadCount>99?'99+':c.unreadCount}</Text></View>:null}</View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
     {tab==='Requests' ? <View style={s.requestActions}><Pressable onPress={accept} style={({pressed})=>[s.accept,pressed&&s.pressed]}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={decline} style={({pressed})=>[s.decline,pressed&&s.pressed]}><Text style={s.declineText}>Decline</Text></Pressable></View> : <Pressable accessibilityLabel={tab==='Archived'?'Unarchive conversation':'Archive conversation'} onPress={archive} style={({pressed})=>[s.archive,pressed&&s.pressed]}><AppIcon name="archive" size={14} color="#93A7BC"/></Pressable>}
   </View>;
 }
