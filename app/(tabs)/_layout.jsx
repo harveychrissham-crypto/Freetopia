@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Redirect, Slot, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../providers/AuthProvider';
@@ -52,14 +52,27 @@ function BottomNav() {
 
 export default function TabLayout() {
   const { session, loading } = useAuth();
+  const { colors, isLight } = useAppearance();
 
-  if (!loading && !session) {
+  if (loading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.bg }]}>
+        <StatusBar style={isLight ? 'dark' : 'light'} />
+        <View style={styles.authLoading}>
+          <ActivityIndicator size="small" color={colors.accent} />
+          <Text style={[styles.authLoadingText, { color: colors.muted }]}>Loading your Freetopia session…</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!session) {
     return <Redirect href="/auth" />;
   }
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style={isLight ? 'dark' : 'light'} />
       <View style={styles.content}>
         <Slot />
       </View>
@@ -75,6 +88,17 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  authLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  authLoadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
   },
   nav: {
     height: 82,
