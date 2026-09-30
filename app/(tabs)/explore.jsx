@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -14,31 +14,36 @@ export default function Explore(){
  const router=useRouter(); const params=useLocalSearchParams(); const {user,profile}=useAuth(); const {width}=useWindowDimensions();
  const { colors, accent, textScale, densityScale } = useAppearance();
  const desktop=Platform.OS==='web'&&width>=1000;
- const [q,setQ]=useState(''); const [tab,setTab]=useState('For You'); const [loading,setLoading]=useState(true); const [error,setError]=useState('');
+ const [q,setQ]=useState(''); const [tab,setTab]=useState('For You'); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const mountedRef=useRef(true); const loadSequenceRef=useRef(0);
  const [people,setPeople]=useState([]); const [communities,setCommunities]=useState([]); const [posts,setPosts]=useState([]); const [initialSearchApplied,setInitialSearchApplied]=useState(false);
  const load=useCallback(async()=>{
+  if(!mountedRef.current)return; const sequence=++loadSequenceRef.current;
   setLoading(true);setError('');
+  try{
   const [p,c,po]=await Promise.all([
    supabase.from('profiles').select('id,username,display_name,bio,avatar_url,is_private').neq('id',user?.id||'').order('created_at',{ascending:false}).limit(12),
    supabase.from('communities').select('id,name,slug,description,is_private,avatar_url,created_at').order('created_at',{ascending:false}).limit(12),
    supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').order('created_at',{ascending:false}).limit(12)
   ]);
-  if(p.error||c.error||po.error){setError((p.error||c.error||po.error).message);}
+  if(p.error||c.error||po.error){throw (p.error||c.error||po.error);}
   const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); let requested=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id,status').eq('follower_id',user.id).in('status',['accepted','pending']).in('following_id',ids);(f.data||[]).forEach(x=>{if(x.status==='accepted')followed.add(x.following_id);else requested.add(x.following_id);});} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id),requested:requested.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
  },[user?.id]);
- useEffect(()=>{load()},[load]);
+ useEffect(()=>{mountedRef.current=true;load();return()=>{mountedRef.current=false;loadSequenceRef.current+=1;};},[load]);
  useEffect(()=>{const incoming=Array.isArray(params.q)?params.q[0]:params.q;const incomingTab=Array.isArray(params.tab)?params.tab[0]:params.tab;const validTabs=['For You','Communities','Topics','Posts','People'];if(incomingTab&&validTabs.includes(incomingTab))setTab(incomingTab);if(incoming&&incoming!==q&&!initialSearchApplied){setQ(incoming);setTab('Posts');setInitialSearchApplied(true);search(incoming)}},[params.q,params.tab,q,initialSearchApplied]);
 
  const search=async(nextValue)=>{
   const value=(nextValue??q).replace(/[,()%_*\\]/g,' ').trim(); if(!value){load();return;} if(tab==='For You')setTab('Posts');
+  if(!mountedRef.current)return; const sequence=++loadSequenceRef.current;
   setLoading(true);setError('');
-  const [p,c,po]=await Promise.all([
+  try{ const [p,c,po]=await Promise.all([
    supabase.from('profiles').select('id,username,display_name,bio,avatar_url,is_private').neq('id',user?.id||'').or('username.ilike.%'+value+'%,display_name.ilike.%'+value+'%,bio.ilike.%'+value+'%').limit(20),
    supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').or('name.ilike.%'+value+'%,description.ilike.%'+value+'%,slug.ilike.%'+value+'%').limit(20),
    supabase.from('posts').select('id,author_id,content,created_at,profiles:author_id(id,username,display_name,avatar_url),post_media(id,storage_path,media_type,width,height,thumbnail_path,sort_order)').ilike('content','%'+value+'%').order('created_at',{ascending:false}).limit(20)
   ]);
-  if(p.error||c.error||po.error)setError((p.error||c.error||po.error).message);
-  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); let requested=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id,status').eq('follower_id',user.id).in('status',['accepted','pending']).in('following_id',ids);(f.data||[]).forEach(x=>{if(x.status==='accepted')followed.add(x.following_id);else requested.add(x.following_id);});} setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id),requested:requested.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);setLoading(false);
+  if(p.error||c.error||po.error)throw (p.error||c.error||po.error);
+  const ids=(p.data||[]).map(x=>x.id); let followed=new Set(); let requested=new Set(); if(user&&ids.length){const f=await supabase.from('follows').select('following_id,status').eq('follower_id',user.id).in('status',['accepted','pending']).in('following_id',ids);if(f.error)throw f.error;(f.data||[]).forEach(x=>{if(x.status==='accepted')followed.add(x.following_id);else requested.add(x.following_id);});} if(sequence!==loadSequenceRef.current||!mountedRef.current)return; setPeople((p.data||[]).map(x=>({...x,followed:followed.has(x.id),requested:requested.has(x.id)})));setCommunities(c.data||[]);setPosts(po.data||[]);
+  }catch(err){if(sequence===loadSequenceRef.current&&mountedRef.current)setError(err?.message||'Unable to search Explore. Please try again.');}
+  finally{if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false);}
  };
  const follow=async person=>{
   if(!user)return;
