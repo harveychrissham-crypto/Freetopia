@@ -30,7 +30,7 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'chevron-down') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.36,height:size*.36,borderRightWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],left:size*.3,top:size*.2}}/></View>;
 
-  if (name === 'write') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.5,height:stroke,backgroundColor:color,transform:[{rotate:'-45deg'}],left:size*.23,top:size*.5}}/><View style={{position:'absolute',width:size*.12,height:size*.12,backgroundColor:color,transform:[{rotate:'-45deg'}],left:size*.69,top:size*.18}}/></View>;
+  if (name === 'write') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.50,height:size*.16,left:size*.22,top:size*.40,backgroundColor:color,borderRadius:size*.04,transform:[{rotate:'-45deg'}]}}/><View style={{position:'absolute',width:size*.16,height:size*.16,left:size*.66,top:size*.18,backgroundColor:color,borderRadius:size*.02,transform:[{rotate:'-45deg'}]}}/><View style={{position:'absolute',width:0,height:0,left:size*.19,top:size*.70,borderTopWidth:size*.08,borderBottomWidth:size*.08,borderRightWidth:size*.14,borderTopColor:'transparent',borderBottomColor:'transparent',borderRightColor:color,transform:[{rotate:'-45deg'}]}}/></View>;
 
   if (name === 'search') return (
     <View style={[s.box, { width: size, height: size }]}>
