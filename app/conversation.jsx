@@ -558,10 +558,16 @@ export default function Conversation(){
  const handle=info?.other?.profiles?.username;
  const avatar=info?.other?.profiles?.avatar_url;
  const initials=(name||'?').slice(0,1).toUpperCase();
- const recipientId=info?.other?.profiles?.id||info?.other?.user_id||null;
+ const recipientId=info?.kind==='direct'
+  ? (info?.other?.user_id || info?.other?.profiles?.id || null)
+  : null;
  const openRecipientProfile=()=>{
   if(info?.kind==='group'){setChatInfoOpen(true);return;}
-  if(recipientId)router.push({pathname:'/profile',params:{id:String(recipientId)}});
+  if(!recipientId || recipientId===user?.id){
+   setError('Could not identify the recipient profile.');
+   return;
+  }
+  router.push({pathname:'/profile',params:{id:String(recipientId)}});
  };
 
  const accept=async()=>{
