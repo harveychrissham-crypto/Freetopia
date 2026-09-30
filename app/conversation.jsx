@@ -75,13 +75,19 @@ export default function Conversation(){
   draftLocalUpdatedAtRef.current=new Date(updatedAt).getTime();
   draftTimerRef.current=setTimeout(async()=>{
    if(!mountedRef.current||conversationId!==id||currentUserId!==user?.id)return;
-   if(!content.trim()){
-    const{error:e}=await supabase.from('message_drafts').delete().eq('user_id',currentUserId).eq('conversation_id',conversationId);
-    if(!e&&mountedRef.current&&conversationId===id&&currentUserId===user?.id){draftDirtyRef.current=false;setDraftSaved(true);}
-    return;
+   try{
+    if(!content.trim()){
+     const{error:e}=await supabase.from('message_drafts').delete().eq('user_id',currentUserId).eq('conversation_id',conversationId);
+     if(e)throw e;
+     if(mountedRef.current&&conversationId===id&&currentUserId===user?.id){draftDirtyRef.current=false;setDraftSaved(true);}
+     return;
+    }
+    const{error:e}=await supabase.from('message_drafts').upsert({user_id:currentUserId,conversation_id:conversationId,content,updated_at:updatedAt},{onConflict:'user_id,conversation_id'});
+    if(e)throw e;
+    if(mountedRef.current&&conversationId===id&&currentUserId===user?.id){draftDirtyRef.current=false;setDraftSaved(true);}
+   }catch(e){
+    if(mountedRef.current&&conversationId===id&&currentUserId===user?.id)setDraftSaved(false);
    }
-   const{error:e}=await supabase.from('message_drafts').upsert({user_id:currentUserId,conversation_id:conversationId,content,updated_at:updatedAt},{onConflict:'user_id,conversation_id'});
-   if(!e&&mountedRef.current&&conversationId===id&&currentUserId===user?.id){draftDirtyRef.current=false;setDraftSaved(true);}
   },450);
  },[id,user?.id]);
 
@@ -131,23 +137,28 @@ export default function Conversation(){
   if(!id||!user?.id)return;
   const sequence=++draftLoadSequenceRef.current;
   const conversationId=id;
-  const{data}=await supabase.from('message_drafts').select('content,updated_at').eq('user_id',user.id).eq('conversation_id',conversationId).maybeSingle();
-  if(sequence!==draftLoadSequenceRef.current||!mountedRef.current||conversationId!==id)return;
-  if(data){
-   const remoteTime=new Date(data.updated_at||0).getTime();
-   draftLocalUpdatedAtRef.current=remoteTime||0;
-   draftDirtyRef.current=false;
-   applyingRemoteDraftRef.current=true;
-   setText(data.content||'');
-   setDraftSaved(!!data.content);
-   requestAnimationFrame(()=>{
-    if(sequence===draftLoadSequenceRef.current&&mountedRef.current&&conversationId===id)applyingRemoteDraftRef.current=false;
-   });
-  }else{
-   draftLocalUpdatedAtRef.current=0;
-   draftDirtyRef.current=false;
-   setText('');
-   setDraftSaved(false);
+  try{
+   const{data,error:e}=await supabase.from('message_drafts').select('content,updated_at').eq('user_id',user.id).eq('conversation_id',conversationId).maybeSingle();
+   if(e)throw e;
+   if(sequence!==draftLoadSequenceRef.current||!mountedRef.current||conversationId!==id)return;
+   if(data){
+    const remoteTime=new Date(data.updated_at||0).getTime();
+    draftLocalUpdatedAtRef.current=remoteTime||0;
+    draftDirtyRef.current=false;
+    applyingRemoteDraftRef.current=true;
+    setText(data.content||'');
+    setDraftSaved(!!data.content);
+    requestAnimationFrame(()=>{
+     if(sequence===draftLoadSequenceRef.current&&mountedRef.current&&conversationId===id)applyingRemoteDraftRef.current=false;
+    });
+   }else{
+    draftLocalUpdatedAtRef.current=0;
+    draftDirtyRef.current=false;
+    setText('');
+    setDraftSaved(false);
+   }
+  }catch{
+   if(sequence===draftLoadSequenceRef.current&&mountedRef.current&&conversationId===id)setDraftSaved(false);
   }
  },[id,user?.id]);
  const load=useCallback(async()=>{
