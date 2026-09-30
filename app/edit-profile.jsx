@@ -11,6 +11,7 @@ import AppIcon from '../components/AppIcon';
 const C={bg:'#060B12',panel:'#0A121C',panel2:'#0E1824',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',blue:'#4B78A8',violet:'#4A3F78',pink:'#7A496F',green:'#4D705D'};
 
 export default function EditProfile(){
+  const mountedRef=useRef(true);
   const router=useRouter();
   const {user,profile,refreshProfile}=useAuth();
   const {width}=useWindowDimensions();
@@ -73,6 +74,7 @@ export default function EditProfile(){
   const save=async()=>{
     if(!user||saving)return;
     setSaving(true);setError('');
+    try{
     const {error:e}=await supabase.from('profiles').update({
       username:username.trim()||null,
       display_name:name.trim()||null,
