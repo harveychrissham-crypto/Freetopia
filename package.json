@@ -29,9 +29,7 @@
     "react-native-url-polyfill": "^2.0.0",
     "expo-audio": "~57.0.5",
     "expo-document-picker": "~57.0.2",
-    "expo-splash-screen": "~57.0.9",
-    "expo-file-system": "~57.0.7",
-    "expo-intent-launcher": "~13.0.8"
+    "expo-splash-screen": "~57.0.9"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
