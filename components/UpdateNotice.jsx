@@ -50,7 +50,7 @@ export default function UpdateNotice({ onPress }) {
         <Text style={s.title}>Freetopia has been updated</Text>
         <Text style={s.message}>You’re now using version {version}. A new Freetopia build is ready. Tap Download update to download and install the latest Android APK.</Text>
         <View style={s.actions}>
-          <Pressable onPress={onPress || (() => Linking.openURL(updateUrl))} style={({pressed})=>[s.primary,pressed&&s.pressed]}><Text style={s.primaryText}>Download update</Text></Pressable>
+          <Pressable disabled={downloading} onPress={installUpdate} style={({pressed})=>[s.primary,pressed&&s.pressed,downloading&&s.disabled]}><Text style={s.primaryText}>{downloading ? 'Downloading…' : 'Download & install'}</Text></Pressable>
           <Pressable onPress={dismiss} style={({pressed})=>[s.dismiss,pressed&&s.pressed]}><Text style={s.dismissText}>Dismiss</Text></Pressable>
         </View>
       </View>
