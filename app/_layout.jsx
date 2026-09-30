@@ -11,6 +11,7 @@ function RootContent() {
       <StatusBar style={isLight ? 'dark' : 'light'} />
       <AppErrorBoundary>
         <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+      </AppErrorBoundary>
     </AuthProvider>
   );
 }
