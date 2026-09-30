@@ -18,6 +18,7 @@ export default function Profile() {
   const { id:routeId } = useLocalSearchParams();
   const profileId = Array.isArray(routeId) ? routeId[0] : routeId;
   const isOwn = !profileId || profileId === user?.id;
+  const explicitOtherProfile = !!profileId && profileId !== user?.id;
   const desktop = Platform.OS === 'web' && width >= 1000;
   const { colors, accent, textScale } = useAppearance();
   const [counts, setCounts] = useState({ posts:0, following:0, followers:0 });
@@ -90,6 +91,7 @@ export default function Profile() {
   useFocusEffect(useCallback(()=>{mountedRef.current=true;load();return()=>{mountedRef.current=false;loadSequenceRef.current+=1;};},[load]));
 
   const displayedProfile = isOwn ? profile : viewProfile;
+  const profileRouteError = explicitOtherProfile && !displayedProfile && !loading ? 'This profile could not be loaded.' : '';
   const name = displayedProfile?.display_name || displayedProfile?.username || (isOwn ? user?.email?.split('@')[0] : 'Freetopia member');
   const handle = displayedProfile?.username ? '@'+displayedProfile.username : '@freetopia_member';
   const initials = name.charAt(0).toUpperCase();
@@ -173,7 +175,7 @@ export default function Profile() {
         <View style={s.mobileTop}><Pressable onPress={()=>router.back()}><AppIcon name="arrow-left" size={20} color={C.text}/></Pressable><Text style={[s.mobileTitle,{color:colors.text,fontSize:20*textScale}]}>{isOwn?'Profile':'Profile'}</Text>{isOwn?<Pressable onPress={()=>router.push('/settings')}><AppIcon name="settings" size={18} color={C.text}/></Pressable>:<View style={{width:20}}/>}</View>
         {profileHeader}
         <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-        {error ? <ErrorBox message={error}/> : null}
+        {error || profileRouteError ? <ErrorBox message={error || profileRouteError}/> : null}
         {loading ? <Loading/> : <ProfilePosts posts={visiblePosts} activeTab={activeTab} profile={displayedProfile} name={name} onPost={(id)=>router.push({pathname:'/post',params:{id}})} />}
         {isOwn&&<Pressable onPress={signOut} style={s.signOut}><Text style={s.signOutText}>Sign out</Text></Pressable>}
       </ScrollView>
