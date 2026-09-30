@@ -567,7 +567,16 @@ export default function Conversation(){
    setError('Could not identify the recipient profile.');
    return;
   }
-  router.push({pathname:'/profile',params:{id:String(recipientId)}});
+  const recipientProfile=info?.other?.profiles||{};
+  router.push({
+   pathname:'/profile',
+   params:{
+    id:String(recipientId),
+    username:recipientProfile.username||'',
+    displayName:recipientProfile.display_name||'',
+    avatarUrl:recipientProfile.avatar_url||''
+   }
+  });
  };
 
  const accept=async()=>{
