@@ -59,7 +59,8 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   if (name === 'nav-home') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.44,left:size*.24,top:size*.40,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.08}} />
-      <View style={{position:'absolute',width:size*.58,height:size*.58,left:size*.21,top:size*.06,borderLeftWidth:stroke,borderTopWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],borderRadius:size*.07}} />
+      <View style={{position:'absolute',width:size*.42,height:stroke,left:size*.16,top:size*.30,backgroundColor:color,borderRadius:stroke,transform:[{rotate:'-45deg'}]}} />
+      <View style={{position:'absolute',width:size*.42,height:stroke,left:size*.42,top:size*.30,backgroundColor:color,borderRadius:stroke,transform:[{rotate:'45deg'}]}} />
       <View style={{position:'absolute',width:size*.13,height:size*.23,left:size*.435,top:size*.57,borderWidth:stroke,borderBottomWidth:0,borderColor:color,borderTopLeftRadius:size*.04,borderTopRightRadius:size*.04}} />
     </View>
   );
@@ -97,7 +98,8 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   if (name === 'home') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.44,left:size*.24,top:size*.38,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.08}} />
-      <View style={{position:'absolute',width:size*.56,height:size*.56,left:size*.22,top:size*.08,borderLeftWidth:stroke,borderTopWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}],borderRadius:size*.08}} />
+      <View style={{position:'absolute',width:size*.40,height:stroke,left:size*.17,top:size*.30,backgroundColor:color,borderRadius:stroke,transform:[{rotate:'-45deg'}]}} />
+      <View style={{position:'absolute',width:size*.40,height:stroke,left:size*.43,top:size*.30,backgroundColor:color,borderRadius:stroke,transform:[{rotate:'45deg'}]}} />
       <View style={{position:'absolute',width:size*.13,height:size*.24,left:size*.435,top:size*.58,borderWidth:stroke,borderBottomWidth:0,borderColor:color,borderTopLeftRadius:size*.04,borderTopRightRadius:size*.04}} />
     </View>
   );
