@@ -291,8 +291,8 @@ function RightRail({ profile, name, handle, onEdit, privateProfile }) {
     <View style={s.railCard}>
       <Text style={s.railTitle}>Quick Actions</Text>
       <Pressable onPress={onEdit} style={s.quickRow}><AppIcon name="profile" size={16} color={C.muted}/><Text style={s.quickText}>Edit Profile</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
-      <Pressable style={s.quickRow}><AppIcon name="archive" size={16} color={C.muted}/><Text style={s.quickText}>Data & Storage</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
-      <Pressable style={s.quickRow}><AppIcon name="info" size={16} color={C.muted}/><Text style={s.quickText}>Help & Support</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
+      <Pressable onPress={() => {}} style={s.quickRow}><AppIcon name="archive" size={16} color={C.muted}/><Text style={s.quickText}>Data & Storage</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
+      <Pressable onPress={() => {}} style={s.quickRow}><AppIcon name="info" size={16} color={C.muted}/><Text style={s.quickText}>Help & Support</Text><AppIcon name="chevron-right" size={15} color={C.muted}/></Pressable>
     </View>
     <View style={s.promo}><Image source={require('../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Your journey matters.</Text><Text style={s.promoBody}>Keep building your world.</Text></View>
   </View>;
