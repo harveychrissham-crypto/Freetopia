@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   label: {
     marginTop: 3,
     color: '#7F8FA2',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
   },
   labelActive: {
