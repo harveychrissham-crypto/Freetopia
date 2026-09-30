@@ -111,9 +111,9 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'compass') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.76,height:size*.76,left:size*.12,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
-      <View style={{position:'absolute',width:size*.22,height:size*.42,left:size*.39,top:size*.27,borderWidth:stroke,borderColor:color,transform:[{rotate:'42deg'}],borderRadius:size*.04}} />
-      <View style={{position:'absolute',width:size*.08,height:size*.08,left:size*.46,top:size*.46,borderRadius:size,backgroundColor:color}} />
+      <View style={{position:'absolute',width:size*.74,height:size*.74,left:size*.13,top:size*.13,borderWidth:stroke,borderColor:color,borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.30,height:size*.44,left:size*.35,top:size*.28,backgroundColor:color,transform:[{rotate:'45deg'}],borderRadius:size*.03}} />
+      <View style={{position:'absolute',width:size*.14,height:size*.14,left:size*.43,top:size*.43,backgroundColor:'#060B12',transform:[{rotate:'45deg'}]}} />
     </View>
   );
 
@@ -156,8 +156,10 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   );
 
   if (name === 'more') return (
-    <View style={[s.box,{width:size,height:size,flexDirection:'row',gap:size*.12}]}>
-      {[0,1,2].map(i=><View key={i} style={{width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color}} />)}
+    <View style={[s.box,{width:size,height:size}]}>
+      <View style={{position:'absolute',width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color,left:size*.44,top:size*.16}} />
+      <View style={{position:'absolute',width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color,left:size*.44,top:size*.44}} />
+      <View style={{position:'absolute',width:size*.12,height:size*.12,borderRadius:size,backgroundColor:color,left:size*.44,top:size*.72}} />
     </View>
   );
 
