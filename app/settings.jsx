@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
+import { useAppearance } from '../providers/AppearanceProvider';
 import AppIcon from '../components/AppIcon';
 
 const C = {
@@ -42,20 +42,7 @@ export default function Settings() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState('');
   const [privacyBusy, setPrivacyBusy] = useState(false);
-  const [appearance, setAppearance] = useState({ theme: 'dark', accent: 'blue', textSize: 'default', density: 'comfortable', animations: 'on' });
-
-  useEffect(() => {
-    AsyncStorage.getItem('freetopia.appearance').then((raw) => {
-      if (!raw) return;
-      try { setAppearance((current) => ({ ...current, ...JSON.parse(raw) })); } catch {}
-    });
-  }, []);
-
-  const saveAppearance = (patch) => {
-    const next = { ...appearance, ...patch };
-    setAppearance(next);
-    AsyncStorage.setItem('freetopia.appearance', JSON.stringify(next)).catch(() => {});
-  };
+  const { appearance, updateAppearance: saveAppearance, colors: appearanceColors, accent } = useAppearance();
   const privateProfile = privateOverride ?? !!profile?.is_private;
   const name = profile?.display_name || user?.email?.split('@')[0] || 'Freetopia member';
   const handle = profile?.username ? '@' + profile.username : '@freetopia_member';
