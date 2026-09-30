@@ -15,8 +15,14 @@ export default function Profile() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { user, profile, signOut } = useAuth();
-  const { id:routeId } = useLocalSearchParams();
+  const { id:routeId, username:routeUsername, displayName:routeDisplayName, avatarUrl:routeAvatarUrl } = useLocalSearchParams();
   const profileId = Array.isArray(routeId) ? routeId[0] : routeId;
+  const fallbackProfile = profileId && profileId !== user?.id ? {
+    id: profileId,
+    username: Array.isArray(routeUsername) ? routeUsername[0] : routeUsername,
+    display_name: Array.isArray(routeDisplayName) ? routeDisplayName[0] : routeDisplayName,
+    avatar_url: Array.isArray(routeAvatarUrl) ? routeAvatarUrl[0] : routeAvatarUrl
+  } : null;
   const isOwn = !profileId || profileId === user?.id;
   const explicitOtherProfile = !!profileId && profileId !== user?.id;
   const desktop = Platform.OS === 'web' && width >= 1000;
@@ -41,11 +47,11 @@ export default function Profile() {
         ? { data: profile, error: null }
         : await supabase.from('profiles').select('id,username,display_name,bio,avatar_url,cover_url,website,location,is_private,created_at').eq('id',targetId).maybeSingle();
 
-      if(profileResult.error) throw profileResult.error;
-      if(!profileResult.data && !isOwn) throw new Error('Profile not found');
+      if(profileResult.error && !fallbackProfile) throw profileResult.error;
+      if(!profileResult.data && !isOwn && !fallbackProfile) throw new Error('Profile not found');
 
       if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
-      setViewProfile(profileResult.data || null);
+      setViewProfile(profileResult.data || fallbackProfile || null);
 
       const [following, followers, ownPostCount, ownPosts, memberships, relationship] = await Promise.all([
         supabase.from('follows').select('*',{count:'exact',head:true}).eq('follower_id',targetId).eq('status','accepted'),
