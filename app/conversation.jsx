@@ -561,7 +561,7 @@ export default function Conversation(){
  const recipientId=info?.other?.profiles?.id||info?.other?.user_id||null;
  const openRecipientProfile=()=>{
   if(info?.kind==='group'){setChatInfoOpen(true);return;}
-  if(recipientId)router.push({pathname:'/profile',params:{id:recipientId}});
+  if(recipientId)router.push({pathname:'/profile',params:{id:String(recipientId)}});
  };
 
  const accept=async()=>{
