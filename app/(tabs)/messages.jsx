@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
 import { LoadingState, EmptyState } from '../../components/FeedbackState';
+import { useAppearance } from '../../providers/AppearanceProvider';
 
 const C = { bg:'#060B12', panel:'#0A121C', panel2:'#0E1824', line:'#182533', text:'#E9EEF4', muted:'#7F8D9D', blue:'#4B78A8', violet:'#4A3F78', pink:'#7A496F', white:'#F4F6F8', danger:'#A95B69' };
 
@@ -16,6 +17,7 @@ export default function Messages() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const desktop = Platform.OS === 'web' && width >= 1000;
+  const { colors, accent, textScale, densityScale } = useAppearance();
   const [tab,setTab] = useState('Messages');
   const [items,setItems] = useState([]);
   const [loading,setLoading] = useState(true);
@@ -205,11 +207,11 @@ export default function Messages() {
 
   return (
     <SafeAreaView style={s.safe}>
-      <View style={s.mobileHead}>
+      <View style={[s.mobileHead,{backgroundColor:colors.bg,borderBottomColor:colors.line}]}>
         <View style={s.brand}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.logo}/><Text style={s.brandText}>Freetopia</Text></View>
         <View style={s.headActions}><Pressable onPress={()=>router.push('/explore')}><AppIcon name="search" size={18} color={C.text}/></Pressable><Pressable onPress={()=>router.push('/new-message')}><AppIcon name="plus" size={18} color={C.text}/></Pressable></View>
       </View>
-      <View style={s.mobileTitleRow}><Text style={s.mobileTitle}>Messages</Text><Pressable onPress={()=>router.push('/new-message')}><AppIcon name="write" size={20} color={C.text}/></Pressable></View>
+      <View style={s.mobileTitleRow}><Text style={[s.mobileTitle,{color:colors.text,fontSize:26*textScale}]}>Messages</Text><Pressable onPress={()=>router.push('/new-message')}><AppIcon name="write" size={20} color={C.text}/></Pressable></View>
       <Tabs tab={tab} setTab={setTab} requestCount={requestCount}/>
       {tab==='Communities' ? <CommunityList communities={communities} router={router}/> :
         <ScrollView style={s.mobileScroll} contentContainerStyle={s.mobileList} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />} contentContainerStyle={s.mobileList}>
