@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { supabase, supabaseConfigError } from '../lib/supabase';
 import AppIcon from '../components/AppIcon';
 import { useAuth } from '../providers/AuthProvider';
@@ -29,6 +30,40 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [emailConfirmationNeeded, setEmailConfirmationNeeded] = useState(false);
   const navigationLock = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const consumeAuthUrl = async (url) => {
+      if (!url || !active) return;
+      const hash = url.includes('#') ? url.split('#')[1] : '';
+      if (!hash) return;
+
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (!accessToken || !refreshToken) return;
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+      if (sessionError && active) {
+        setError(sessionError.message || 'Email confirmation could not finish.');
+      }
+    };
+
+    Linking.getInitialURL().then(consumeAuthUrl).catch(() => {});
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      consumeAuthUrl(url).catch(() => {});
+    });
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!authLoading && session && !navigationLock.current) {
@@ -100,12 +135,16 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      const emailRedirectTo = Linking.createURL('auth/callback');
       const authRequest = mode === 'sign-in'
         ? supabase.auth.signInWithPassword({ email: cleanEmail, password })
         : supabase.auth.signUp({
             email: cleanEmail,
             password,
-            options: { data: { display_name: cleanName } },
+            options: {
+              data: { display_name: cleanName },
+              emailRedirectTo,
+            },
           });
 
       let timeoutId;
