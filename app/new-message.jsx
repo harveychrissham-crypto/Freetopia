@@ -38,7 +38,7 @@ export default function NewMessage(){
  const start=async id=>{
   if(busy)return;
   setBusy(true);setError('');
-  const{data,error:e}=await supabase.rpc('create_direct_conversation',{target_user_id:id});
+  const{data,error:e}=await supabase.rpc('create_message_request',{target_user_id:id});
   if(e){setError(e.message);setBusy(false);return}
   router.replace({pathname:'/conversation',params:{id:data}});
   setBusy(false);
