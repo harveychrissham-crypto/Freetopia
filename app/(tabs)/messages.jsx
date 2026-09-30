@@ -285,18 +285,21 @@ function Row({c,tab,router,open,accept,decline,archive}) {
         {p?.avatar_url?<Image source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatar}/>:<View style={s.avatar}><Text style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
       </Pressable>
       <View style={s.rowInfo}>
-        <Pressable
-          onPress={(event)=>{
-            event?.stopPropagation?.();
-            if(p?.id)router.push({pathname:'/profile',params:{id:p.id}});
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={`View ${n}'s profile`}
-          hitSlop={6}
-        >
-          <Text style={[s.name,unread&&s.unreadName]} numberOfLines={1}>{n}</Text>
-        </Pressable>
-        <View style={s.rowTop}>{c.lastMessage?<Text style={[s.time,unread&&s.unreadTime]}>{relative(c.lastMessage.created_at)}</Text>:null}</View>
+        <View style={s.rowTop}>
+          <Pressable
+            onPress={(event)=>{
+              event?.stopPropagation?.();
+              if(p?.id)router.push({pathname:'/profile',params:{id:p.id}});
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${n}'s profile`}
+            hitSlop={6}
+            style={{flex:1,minWidth:0}}
+          >
+            <Text style={[s.name,unread&&s.unreadName]} numberOfLines={1}>{n}</Text>
+          </Pressable>
+          {c.lastMessage?<Text style={[s.time,unread&&s.unreadTime]}>{relative(c.lastMessage.created_at)}</Text>:null}
+        </View>
         <View style={s.previewLine}><Text style={[s.preview,unread&&s.unreadPreview]} numberOfLines={1}>{mine?'You: ':''}{preview}</Text>{unread?<View style={s.unreadBadge}><Text style={s.unreadBadgeText}>{c.unreadCount>99?'99+':c.unreadCount}</Text></View>:null}</View>
       </View>
     </Pressable>
