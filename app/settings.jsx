@@ -97,7 +97,7 @@ export default function Settings() {
                 <Text style={s.settingsNavTitle}>Settings</Text>
                 {settingItems.map(([title, subtitle, icon]) => (
                   <Pressable key={title} onPress={() => go(title)} style={[s.navRow, active === title && s.navRowActive]}>
-                    <View style={[s.navIcon, active === title && s.navIconActive]}><Text style={s.navIconText}>{icon}</Text></View>
+                    <View style={[s.navIcon, active === title && s.navIconActive]}><AppIcon name={icon} size={16} color={active === title ? C.text : "#AFC0D3"} /></View>
                     <View style={{ flex: 1 }}>
                       <Text style={s.navTitle}>{title}</Text>
                       <Text style={s.navSubtitle}>{subtitle}</Text>
@@ -152,7 +152,7 @@ export default function Settings() {
         <View style={s.mobileList}>
           {settingItems.slice(0, 5).map(([title, subtitle, icon], index) => (
             <Pressable key={title} onPress={() => go(title)} style={[s.mobileRow, index === 4 && s.mobileRowLast]}>
-              <View style={s.mobileIcon}><Text style={s.mobileIconText}>{icon}</Text></View>
+              <View style={[s.mobileIcon, active === title && s.mobileIconActive]}><AppIcon name={icon} size={16} color={active === title ? C.text : "#D4DEEA"} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={s.mobileRowTitle}>{title}</Text>
                 <Text style={s.mobileRowSub}>{subtitle}</Text>
