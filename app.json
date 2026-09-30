@@ -24,7 +24,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./public/brand/freetopia-mark.png",
         "backgroundColor": "#060B12"
-      }
+      },
+      "permissions": [
+        "REQUEST_INSTALL_PACKAGES"
+      ]
     },
     "plugins": [
       "./plugins/withFreetopiaPortrait",
