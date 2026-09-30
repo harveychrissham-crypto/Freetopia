@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../providers/AuthProvider';
@@ -24,7 +25,7 @@ const settingItems = [
   ['Account', 'Username, email, bio, profile', 'profile'],
   ['Privacy & Security', 'Password, 2FA, active sessions', 'settings'],
   ['Notifications', 'Push, email, in-app', 'bell'],
-  ['Appearance', 'Dark mode, font size, language', 'spark'],
+  ['Appearance', 'Theme, accent, text size, layout', 'spark'],
   ['Data & Storage', 'Downloads, cache, media', 'archive'],
   ['Help & Support', 'FAQs, contact us, report a problem', 'info'],
   ['About Freetopia', 'Version, terms, privacy', 'info'],
@@ -41,6 +42,20 @@ export default function Settings() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState('');
   const [privacyBusy, setPrivacyBusy] = useState(false);
+  const [appearance, setAppearance] = useState({ theme: 'dark', accent: 'blue', textSize: 'default', density: 'comfortable', animations: 'on' });
+
+  useEffect(() => {
+    AsyncStorage.getItem('freetopia.appearance').then((raw) => {
+      if (!raw) return;
+      try { setAppearance((current) => ({ ...current, ...JSON.parse(raw) })); } catch {}
+    });
+  }, []);
+
+  const saveAppearance = (patch) => {
+    const next = { ...appearance, ...patch };
+    setAppearance(next);
+    AsyncStorage.setItem('freetopia.appearance', JSON.stringify(next)).catch(() => {});
+  };
   const privateProfile = privateOverride ?? !!profile?.is_private;
   const name = profile?.display_name || user?.email?.split('@')[0] || 'Freetopia member';
   const handle = profile?.username ? '@' + profile.username : '@freetopia_member';
@@ -202,12 +217,7 @@ export default function Settings() {
             <View style={s.settingNote}><Text style={s.lineTitle}>Email notifications</Text><Text style={s.lineSub}>Email preference controls are not connected yet.</Text></View>
           </View>
         ) : active === 'Appearance' ? (
-          <View style={s.mobileSecurity}>
-            <Text style={s.sectionTitle}>Appearance</Text>
-            <View style={s.settingNote}><Text style={s.lineTitle}>Dark mode</Text><Text style={s.lineSub}>Freetopia currently uses its dark theme.</Text></View>
-            <View style={s.settingNote}><Text style={s.lineTitle}>Font size</Text><Text style={s.lineSub}>Global font-size controls are not connected yet.</Text></View>
-            <View style={s.settingNote}><Text style={s.lineTitle}>Language</Text><Text style={s.lineSub}>English is currently the available language.</Text></View>
-          </View>
+          <AppearancePanel appearance={appearance} onChange={saveAppearance} />
         ) : active === 'Data & Storage' ? (
           <View style={s.mobileSecurity}>
             <Text style={s.sectionTitle}>Data & Storage</Text>
@@ -235,6 +245,40 @@ export default function Settings() {
         <Text style={s.version}>Freetopia · Account settings</Text>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+
+function AppearancePanel({ appearance, onChange }) {
+  const themes = [['dark','Dark'],['light','Light'],['system','System']];
+  const accents = [['blue','Freetopia Blue','#4B78A8'],['purple','Purple','#7C3AED'],['green','Green','#22C55E'],['orange','Orange','#F59E0B'],['pink','Pink','#D946EF']];
+  const sizes = [['small','Small'],['default','Default'],['large','Large'],['xl','Extra Large']];
+  const density = [['compact','Compact'],['comfortable','Comfortable'],['spacious','Spacious']];
+  const animations = [['on','On'],['reduced','Reduced'],['off','Off']];
+  const Choice = ({ value, current, label, onPress, color }) => (
+    <Pressable onPress={onPress} style={[s.appearanceChoice, current === value && s.appearanceChoiceActive]}>
+      {color ? <View style={[s.accentDot,{backgroundColor:color}]} /> : null}
+      <Text style={[s.appearanceChoiceText, current === value && s.appearanceChoiceTextActive]}>{label}</Text>
+      {current === value ? <AppIcon name="check" size={14} color={C.text}/> : null}
+    </Pressable>
+  );
+  return (
+    <View style={s.mobileSecurity}>
+      <Text style={s.sectionTitle}>Appearance</Text>
+      <Text style={s.appearanceIntro}>Personalize how Freetopia looks and feels. Your choices are saved on this device.</Text>
+      <Text style={s.appearanceLabel}>THEME</Text>
+      <View style={s.appearanceGroup}>{themes.map(([value,label]) => <Choice key={value} value={value} current={appearance.theme} label={label} onPress={() => onChange({theme:value})}/>)}</View>
+      <Text style={s.appearanceLabel}>ACCENT COLOR</Text>
+      <View style={s.appearanceGroup}>{accents.map(([value,label,color]) => <Choice key={value} value={value} current={appearance.accent} label={label} color={color} onPress={() => onChange({accent:value})}/>)}</View>
+      <Text style={s.appearanceLabel}>TEXT SIZE</Text>
+      <View style={s.appearanceGroup}>{sizes.map(([value,label]) => <Choice key={value} value={value} current={appearance.textSize} label={label} onPress={() => onChange({textSize:value})}/>)}</View>
+      <Text style={s.appearanceLabel}>LAYOUT DENSITY</Text>
+      <View style={s.appearanceGroup}>{density.map(([value,label]) => <Choice key={value} value={value} current={appearance.density} label={label} onPress={() => onChange({density:value})}/>)}</View>
+      <Text style={s.appearanceLabel}>ANIMATIONS</Text>
+      <View style={s.appearanceGroup}>{animations.map(([value,label]) => <Choice key={value} value={value} current={appearance.animations} label={label} onPress={() => onChange({animations:value})}/>)}</View>
+      <View style={s.settingNote}><Text style={s.lineTitle}>Language</Text><Text style={s.lineSub}>English is currently the available language.</Text></View>
+      <View style={s.settingNote}><Text style={s.lineTitle}>App icon</Text><Text style={s.lineSub}>Icon palette selection will be applied in a future native build.</Text></View>
+    </View>
   );
 }
 
