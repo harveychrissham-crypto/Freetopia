@@ -55,10 +55,7 @@ export default function Messages() {
       const conversationSelect='id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url))';
       // Always fetch pending requests. The badge and Requests tab must not
       // depend on the user already opening Requests.
-      const requestsPromise=supabase.from('conversation_members')
-        .select('conversation_id,user_id,request_status,is_archived,is_muted,conversations:conversation_id(id,kind,title,created_at,conversation_members(user_id,request_status,is_archived,is_muted,profiles:user_id(id,username,display_name,avatar_url)))')
-        .eq('user_id',user.id)
-        .eq('request_status','pending');
+      const requestsPromise=supabase.rpc('get_message_requests');
       const [conversationResult,inboxResult,requestsResult]=await Promise.all([
         supabase.from('conversations').select(conversationSelect).order('created_at',{ascending:false}),
         tab==='Communities'||tab==='Requests'?Promise.resolve({data:null,error:null}):supabase.rpc('get_message_inbox'),
@@ -72,20 +69,21 @@ export default function Messages() {
           return {...c,me:members.find(m=>m.user_id===user.id),other:members.find(m=>m.user_id!==user.id)};
         }).filter(c=>c.me);
 
-        // Explicitly merge pending memberships so incoming requests remain
-        // visible even if the normal conversation query is filtered by RLS.
+        // Requests come from a security-definer RPC so RLS on conversations
+        // cannot hide a pending request or the requester profile.
         if(!requestsResult.error){
           const existing=new Set(base.map(c=>c.id));
           (requestsResult.data||[]).forEach(row=>{
-            const c=row.conversations;
-            if(!c || existing.has(c.id)) return;
-            const members=c.conversation_members||[];
-            base.push({...c,me:members.find(m=>m.user_id===user.id)||{
-              user_id:user.id,
-              request_status:row.request_status,
-              is_archived:row.is_archived,
-              is_muted:row.is_muted
-            },other:members.find(m=>m.user_id!==user.id)});
+            if(!row?.conversation_id || existing.has(row.conversation_id)) return;
+            const otherProfile={id:row.requester_id,username:row.username,display_name:row.display_name,avatar_url:row.avatar_url,bio:row.bio};
+            base.push({
+              id:row.conversation_id,
+              kind:'direct',
+              title:null,
+              created_at:row.created_at,
+              me:{user_id:user.id,request_status:'pending',is_archived:false,is_muted:false},
+              other:{user_id:row.requester_id,request_status:'accepted',profiles:otherProfile}
+            });
           });
         } else {
           setError(requestsResult.error.message);
@@ -176,8 +174,16 @@ export default function Messages() {
     if(!user?.id||!c?.id||!mountedRef.current)return;
     setError('');
     try {
-      const { error:e } = await supabase.from('conversation_members').update(patch).eq('conversation_id',c.id).eq('user_id',user.id);
-      if(e)throw e;
+      if(Object.prototype.hasOwnProperty.call(patch,'request_status')){
+        const {error:e}=await supabase.rpc('respond_to_message_request',{
+          target_conversation_id:c.id,
+          accept_request:patch.request_status==='accepted'
+        });
+        if(e)throw e;
+      } else {
+        const {error:e}=await supabase.from('conversation_members').update(patch).eq('conversation_id',c.id).eq('user_id',user.id);
+        if(e)throw e;
+      }
       if(mountedRef.current)await load();
     } catch(e) {
       if(mountedRef.current)setError(e?.message||'Could not update this conversation.');
