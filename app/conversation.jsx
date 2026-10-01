@@ -767,7 +767,7 @@ export default function Conversation(){
   if(!id||!user?.id)return;
   setError('');
   try{
-   const{error:e}=await supabase.from('conversation_members').update({request_status:'accepted'}).eq('conversation_id',id).eq('user_id',user.id);
+   const{error:e}=await supabase.rpc('respond_to_message_request',{target_conversation_id:id,accept_request:true});
    if(e)throw e;
    if(mountedRef.current)await load();
   }catch(e){
@@ -779,7 +779,7 @@ export default function Conversation(){
   if(!id||!user?.id)return;
   setError('');
   try{
-   const{error:e}=await supabase.from('conversation_members').update({request_status:'declined'}).eq('conversation_id',id).eq('user_id',user.id);
+   const{error:e}=await supabase.rpc('respond_to_message_request',{target_conversation_id:id,accept_request:false});
    if(e)throw e;
    if(mountedRef.current)router.back();
   }catch(e){
