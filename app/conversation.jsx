@@ -455,22 +455,38 @@ export default function Conversation(){
   typingTimerRef.current=setTimeout(()=>broadcastTyping(false),2200);
  };
  const toggleReaction=async(m,emoji)=>{
-  if(!user?.id)return;
+  if(!user?.id||!m?.id)return;
   const current=m.message_reactions||[];
   const mine=current.some(r=>r.user_id===user.id&&r.emoji===emoji);
   const next=mine?current.filter(r=>!(r.user_id===user.id&&r.emoji===emoji)):[...current,{user_id:user.id,emoji}];
-  setMessages(items=>items.map(x=>x.id===m.id?{...x,message_reactions:next}:x));
-  setSelectedMessage(x=>x?.id===m.id?{...x,message_reactions:next}:x);
-  const result=mine
+  if(mountedRef.current){
+   setMessages(items=>items.map(x=>x.id===m.id?{...x,message_reactions:next}:x));
+   setSelectedMessage(x=>x?.id===m.id?{...x,message_reactions:next}:x);
+  }
+  try{
+   const result=mine
     ?await supabase.from('message_reactions').delete().eq('message_id',m.id).eq('user_id',user.id).eq('emoji',emoji)
     :await supabase.from('message_reactions').insert({message_id:m.id,user_id:user.id,emoji});
-  if(result.error){
+   if(result.error)throw result.error;
+  }catch(e){
+   if(mountedRef.current){
     setMessages(items=>items.map(x=>x.id===m.id?{...x,message_reactions:current}:x));
     setSelectedMessage(x=>x?.id===m.id?{...x,message_reactions:current}:x);
-    return;
+    setError(e?.message||'Could not update this reaction.');
+   }
   }
 };
- const toggleStar=async(m)=>{if(!user?.id)return;const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);if(starred){await supabase.from('message_stars').delete().eq('message_id',m.id).eq('user_id',user.id);}else{await supabase.from('message_stars').insert({message_id:m.id,user_id:user.id});}load();};
+ const toggleStar=async(m)=>{
+  if(!user?.id||!m?.id)return;
+  try{
+   const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);
+   const result=starred
+    ?await supabase.from('message_stars').delete().eq('message_id',m.id).eq('user_id',user.id)
+    :await supabase.from('message_stars').insert({message_id:m.id,user_id:user.id});
+   if(result.error)throw result.error;
+   if(mountedRef.current)await load();
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not update the starred message.');}
+};
  const pickMedia=async()=>{if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();if(!perm.granted){Alert.alert('Permission needed','Allow photo and video access to attach media.');return;}const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],quality:0.85});if(result.canceled||!result.assets?.[0])return;setAttachmentOpen(false);setMediaCaption('');setPendingMedia(result.assets[0]);};
  const sendPendingMedia=async()=>{if(!pendingMedia||!user?.id||uploading)return;const asset=pendingMedia;setUploading(true);setError('');try{const ext=(asset.fileName||asset.uri.split('/').pop()||'media').split('.').pop().toLowerCase();const path=user.id+'/'+Date.now()+'.'+ext;const res=await fetch(asset.uri);const blob=await res.blob();const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});if(up.error)throw up.error;const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:mediaCaption.trim()||null,media_url:pub,media_type:asset.type==='video'?'video':'image',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();if(ins.error)throw ins.error;if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setPendingMedia(null);setMediaCaption('');setReplyTo(null);}}catch(e){if(mountedRef.current)setError(e?.message||'Media upload failed');}finally{if(mountedRef.current)setUploading(false)}};
  const pickDocument=async()=>{if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;setAttachmentOpen(false);setUploading(true);setError('');try{const result=await DocumentPicker.getDocumentAsync({copyToCacheDirectory:true,multiple:false});if(result.canceled||!result.assets?.[0])return;const asset=result.assets[0];const name=asset.name||'Document';const ext=(name.includes('.')?name.split('.').pop():'bin').toLowerCase();const path=user.id+'/file-'+Date.now()+'.'+ext;const res=await fetch(asset.uri);const blob=await res.blob();const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});if(up.error)throw up.error;const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:name,media_url:pub,media_type:'file',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();if(ins.error)throw ins.error;if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setReplyTo(null);}}catch(e){if(mountedRef.current)setError(e?.message||'File upload failed');}finally{if(mountedRef.current)setUploading(false)}};
@@ -480,9 +496,24 @@ export default function Conversation(){
  const expiryForMessage=()=>{const seconds=info?.disappearing_seconds||0;return seconds?new Date(Date.now()+seconds*1000).toISOString():null;};
  const setDisappearing=async(seconds)=>{try{const{data,error:e}=await supabase.rpc('set_conversation_disappearing',{p_conversation_id:id,p_seconds:seconds});if(e)throw e;setInfo(current=>current?{...current,disappearing_seconds:data?.disappearing_seconds??seconds}:current);setChatInfoOpen(false);}catch(e){setError(e.message||'Unable to change disappearing messages');}};
  const disappearingLabel=(seconds)=>seconds===86400?'24 hours':seconds===604800?'7 days':seconds===2592000?'30 days':'Off';
- const toggleMute=async()=>{if(!user?.id||!info?.me)return;const next=!info.me.is_muted;const{error:e}=await supabase.from('conversation_members').update({is_muted:next}).eq('conversation_id',id).eq('user_id',user.id);if(e)setError(e.message);else setInfo(current=>current?{...current,me:{...current.me,is_muted:next}}:current);};
+ const toggleMute=async()=>{
+  if(!user?.id||!info?.me)return;
+  const next=!info.me.is_muted;
+  try{
+   const{error:e}=await supabase.from('conversation_members').update({is_muted:next}).eq('conversation_id',id).eq('user_id',user.id);
+   if(e)throw e;
+   if(mountedRef.current)setInfo(current=>current?{...current,me:{...current.me,is_muted:next}}:current);
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not update mute settings.');}
+};
  const sharedItems=messages.filter(m=>!m.deleted_at&&m.media_url&&(!m.expires_at||new Date(m.expires_at)>new Date()));
- const archiveChat=async()=>{if(!user?.id)return;const{error:e}=await supabase.from('conversation_members').update({is_archived:true}).eq('conversation_id',id).eq('user_id',user.id);if(e)setError(e.message);else router.back();};
+ const archiveChat=async()=>{
+  if(!user?.id||!id)return;
+  try{
+   const{error:e}=await supabase.from('conversation_members').update({is_archived:true}).eq('conversation_id',id).eq('user_id',user.id);
+   if(e)throw e;
+   if(mountedRef.current)router.back();
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not archive this conversation.');}
+};
  const sharedMedia=sharedItems.filter(m=>['image','video','audio'].includes(m.media_type));
  const sharedFiles=sharedItems.filter(m=>m.media_type==='file');
  const sharedLinks=sharedItems.filter(m=>/(https?:\/\/|www\.)\S+/i.test(m.content||''));
@@ -582,7 +613,22 @@ export default function Conversation(){
   finally{if(mountedRef.current)setForwardingId(null);}
  };
 
- const togglePin=async(m)=>{const existing=pinned.find(p=>p.message_id===m.id);if(existing){const{error:e}=await supabase.from('message_pins').delete().eq('message_id',m.id).eq('pinned_by',user.id);if(e)setError(e.message);else setPinned(current=>current.filter(p=>p.message_id!==m.id));}else{const{error:e}=await supabase.from('message_pins').insert({message_id:m.id,conversation_id:id,pinned_by:user.id});if(e)setError(e.message);else setPinned(current=>[{message_id:m.id,pinned_by:user.id,pinned_at:new Date().toISOString()},...current]);}setSelectedMessage(null);};
+ const togglePin=async(m)=>{
+  if(!m?.id||!user?.id)return;
+  try{
+   const existing=pinned.find(p=>p.message_id===m.id);
+   if(existing){
+    const{error:e}=await supabase.from('message_pins').delete().eq('message_id',m.id).eq('pinned_by',user.id);
+    if(e)throw e;
+    if(mountedRef.current)setPinned(current=>current.filter(p=>p.message_id!==m.id));
+   }else{
+    const{error:e}=await supabase.from('message_pins').insert({message_id:m.id,conversation_id:id,pinned_by:user.id});
+    if(e)throw e;
+    if(mountedRef.current)setPinned(current=>[{message_id:m.id,pinned_by:user.id,pinned_at:new Date().toISOString()},...current]);
+   }
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not update the pinned message.');}
+  finally{if(mountedRef.current)setSelectedMessage(null);}
+};
  const deleteForMe=async(m)=>{
   if(!m?.id||!user?.id)return;
   try{
@@ -595,8 +641,10 @@ export default function Conversation(){
   Alert.alert('Delete message','Delete this message for everyone?',[
    {text:'Cancel',style:'cancel'},
    {text:'Delete',style:'destructive',onPress:async()=>{
-    const{error:e}=await supabase.from('messages').update({deleted_at:new Date().toISOString()}).eq('id',m.id).eq('sender_id',user.id);
-    if(e)setError(e.message);
+    try{
+     const{error:e}=await supabase.from('messages').update({deleted_at:new Date().toISOString()}).eq('id',m.id).eq('sender_id',user.id);
+     if(e)throw e;
+    }catch(e){if(mountedRef.current)setError(e?.message||'Could not delete this message.');}
    }}
   ]);
  };
