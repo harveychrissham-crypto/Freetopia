@@ -209,6 +209,7 @@ export default function Conversation(){
   if(ce||!c){if(mountedRef.current){setError(ce?.message||'Conversation not found');setLoading(false);}return}
   const me=(c.conversation_members||[]).find(x=>x.user_id===user.id);
   const other=(c.conversation_members||[]).find(x=>x.user_id!==user.id);
+  if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
   setInfo({...c,me,other}); setGroupTitle(c.title||'');
   if(me?.request_status==='accepted'){
    const messagesPromise=supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);
