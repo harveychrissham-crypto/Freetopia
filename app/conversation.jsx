@@ -269,8 +269,9 @@ export default function Conversation(){
   const isActiveChannel=()=>mountedRef.current&&channelRef.current===ch;
   .on('postgres_changes',{event:'*',schema:'public',table:'message_drafts',filter:'conversation_id=eq.'+id},payload=>{
    const row=payload.new?.conversation_id?payload.new:payload.old;
-   if(!row||row.user_id!==user.id||row.conversation_id!==id)return;
+   if(!row||!isActiveChannel()||row.user_id!==user.id||row.conversation_id!==id)return;
    if(payload.eventType==='DELETE'){
+    if(!isActiveChannel())return;
     if(!draftDirtyRef.current){
      applyingRemoteDraftRef.current=true;
      draftLocalUpdatedAtRef.current=0;
@@ -281,7 +282,7 @@ export default function Conversation(){
     return;
    }
    applyRemoteDraft(row);
-  }).on('presence',{event:'sync'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(typingTimerRef.current)clearTimeout(typingTimerRef.current);if(payload.payload?.typing)typingTimerRef.current=setTimeout(()=>{if(mountedRef.current)setTyping(false)},1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
+  }).on('presence',{event:'sync'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(!isActiveChannel())return;if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(typingTimerRef.current)clearTimeout(typingTimerRef.current);if(payload.payload?.typing)typingTimerRef.current=setTimeout(()=>{if(mountedRef.current)setTyping(false)},1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    try{
     const incoming=payload.new;
     if(!incoming?.id||!isActiveChannel())return;
@@ -294,7 +295,7 @@ export default function Conversation(){
      if(deliveryError)throw deliveryError;
      if(mountedRef.current){const{error:readError}=await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});if(readError)throw readError;}
     }
-   }catch(e){if(mountedRef.current)setError(e?.message||'A new message could not be synchronized.');}
+   }catch(e){if(isActiveChannel())setError(e?.message||'A new message could not be synchronized.');}
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    try{
@@ -304,10 +305,10 @@ export default function Conversation(){
     if(messageError)throw messageError;
     if(!message||!mountedRef.current)return;
     setMessages(current=>current.map(x=>x.id===message.id?message:x));
-   }catch(e){if(mountedRef.current)setError(e?.message||'A message update could not be synchronized.');}
+   }catch(e){if(isActiveChannel())setError(e?.message||'A message update could not be synchronized.');}
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_reactions'},payload=>{
    const row=payload.new?.message_id?payload.new:payload.old;
-   if(!row?.message_id)return;
+   if(!row?.message_id||!isActiveChannel())return;
    const messageId=row.message_id;
    setMessages(items=>items.map(m=>{
      if(m.id!==messageId)return m;
@@ -368,7 +369,7 @@ export default function Conversation(){
   }).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:'conversation_id=eq.'+id},async payload=>{
    try{
     const member=payload.new||payload.old;
-    if(!member?.conversation_id||!mountedRef.current)return;
+    if(!member?.conversation_id||!isActiveChannel())return;
     const{data:members,error:membersError}=await supabase
      .from('conversation_members')
      .select('user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url)')
@@ -390,7 +391,7 @@ export default function Conversation(){
    }).subscribe(async status=>{
     if(status==='SUBSCRIBED'){
      try{await ch.track({user_id:user.id});}catch{}
-    }else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&mountedRef.current){
+    }else if((status==='CHANNEL_ERROR'||status==='TIMED_OUT')&&isActiveChannel()){
      setError('Realtime connection interrupted. Messages will retry when the connection recovers.');
     }
    });
