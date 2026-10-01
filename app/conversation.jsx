@@ -490,6 +490,7 @@ export default function Conversation(){
    if(uploadedPath)await supabase.storage.from('message-media').remove([uploadedPath]).catch(()=>{});
    if(isCurrentAction())setError(e?.message||'Voice message failed. Your recording is kept so you can try again.');
   }finally{
+   try{await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}
    if(isCurrentAction())setUploading(false);
   }
  };
