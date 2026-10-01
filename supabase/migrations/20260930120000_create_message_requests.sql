@@ -25,6 +25,7 @@ begin
   insert into public.notifications(recipient_id,actor_id,type,conversation_id) values(target_user_id,v_sender_id,'message',v_conversation_id);
   return v_conversation_id;
 end; $$;
+revoke execute on function public.create_message_request(uuid) from public;
 grant execute on function public.create_message_request(uuid) to authenticated;
 
 create or replace function public.get_message_requests()
@@ -41,6 +42,7 @@ begin
   left join public.profiles p on p.id=requester.user_id
   where c.kind='direct' order by c.created_at desc;
 end; $$;
+revoke execute on function public.get_message_requests() from public;
 grant execute on function public.get_message_requests() to authenticated;
 
 create or replace function public.respond_to_message_request(target_conversation_id uuid,accept_request boolean)
@@ -60,4 +62,5 @@ begin
   end if;
   return true;
 end; $$;
+revoke execute on function public.respond_to_message_request(uuid,boolean) from public;
 grant execute on function public.respond_to_message_request(uuid,boolean) to authenticated;
