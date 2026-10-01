@@ -333,7 +333,7 @@ export default function Conversation(){
     if(message.sender_id!==user?.id&&!message.deleted_at&&infoRef.current?.me?.request_status==='accepted'){
      const{error:deliveryError}=await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});
      if(deliveryError)throw deliveryError;
-     if(mountedRef.current){const{error:readError}=await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});if(readError)throw readError;}
+     if(isActiveChannel()){const{error:readError}=await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});if(readError)throw readError;}
     }
    }catch(e){if(isActiveChannel())setError(e?.message||'A new message could not be synchronized.');}
   })
@@ -381,7 +381,7 @@ export default function Conversation(){
       if(seenError)throw seenError;
       const seenIds=new Set((seen||[]).map(row=>row.message_id));
       const nextUnread=incoming.find(m=>!seenIds.has(m.id));
-      if(mountedRef.current)setUnreadBoundaryId(nextUnread?.id||null);
+      if(isActiveChannel())setUnreadBoundaryId(nextUnread?.id||null);
      }else if(mountedRef.current){
       setUnreadBoundaryId(null);
      }
