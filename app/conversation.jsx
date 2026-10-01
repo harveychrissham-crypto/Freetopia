@@ -396,6 +396,12 @@ export default function Conversation(){
 
  const previousMessageCountRef=useRef(0);
  useEffect(()=>{
+  // A conversation switch replaces the message list; it is not a burst of new messages.
+  previousMessageCountRef.current=0;
+  setNewMessagesCount(0);
+  setShowJumpToLatest(false);
+ },[id]);
+ useEffect(()=>{
   if(!messages.length)return;
   const previousCount=previousMessageCountRef.current;
   previousMessageCountRef.current=messages.length;
