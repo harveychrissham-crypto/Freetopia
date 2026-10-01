@@ -258,19 +258,29 @@ export default function Conversation(){
    }
    applyRemoteDraft(row);
   }).on('presence',{event:'sync'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(typingTimerRef.current)clearTimeout(typingTimerRef.current);if(payload.payload?.typing)typingTimerRef.current=setTimeout(()=>{if(mountedRef.current)setTyping(false)},1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
-   const incoming=payload.new;
-   if(!incoming?.id)return;
-   const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
-   if(!message||!mountedRef.current)return;
-   setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
-   if(message.sender_id!==user?.id&&!message.deleted_at&&infoRef.current?.me?.request_status==='accepted'){await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});if(mountedRef.current)await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});} 
+   try{
+    const incoming=payload.new;
+    if(!incoming?.id||!mountedRef.current)return;
+    const{data:message,error:messageError}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
+    if(messageError)throw messageError;
+    if(!message||!mountedRef.current)return;
+    setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
+    if(message.sender_id!==user?.id&&!message.deleted_at&&infoRef.current?.me?.request_status==='accepted'){
+     const{error:deliveryError}=await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});
+     if(deliveryError)throw deliveryError;
+     if(mountedRef.current){const{error:readError}=await supabase.from('message_reads').upsert({message_id:message.id,user_id:user.id},{onConflict:'message_id,user_id'});if(readError)throw readError;}
+    }
+   }catch(e){if(mountedRef.current)setError(e?.message||'A new message could not be synchronized.');}
   })
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
-   const incoming=payload.new;
-   if(!incoming?.id)return;
-   const{data:message}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
-   if(!message||!mountedRef.current)return;
-   setMessages(current=>current.map(x=>x.id===message.id?message:x));
+   try{
+    const incoming=payload.new;
+    if(!incoming?.id||!mountedRef.current)return;
+    const{data:message,error:messageError}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
+    if(messageError)throw messageError;
+    if(!message||!mountedRef.current)return;
+    setMessages(current=>current.map(x=>x.id===message.id?message:x));
+   }catch(e){if(mountedRef.current)setError(e?.message||'A message update could not be synchronized.');}
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_reactions'},payload=>{
    const row=payload.new?.message_id?payload.new:payload.old;
    if(!row?.message_id)return;
@@ -288,27 +298,35 @@ export default function Conversation(){
      return m;
    }))
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_reads'},async payload=>{
-   const messageId=payload.new?.message_id||payload.old?.message_id;
-   if(!messageId)return;
-   const isRelevant=messagesRef.current.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
-   if(!isRelevant)return;
-   const{count}=await supabase.from('message_reads').select('message_id',{count:'exact',head:true}).eq('message_id',messageId);
-   setMessages(current=>current.map(m=>m.id===messageId?{...m,readCount:count||0}:m));
-   if(statusMessageRef.current?.id===messageId){
-    setStatusRows(rows=>rows.map(row=>row.user_id===(payload.new?.user_id||payload.old?.user_id)?{...row,read_at:payload.new?.read_at||new Date().toISOString()}:row));
-   }
+   try{
+    const messageId=payload.new?.message_id||payload.old?.message_id;
+    if(!messageId||!mountedRef.current)return;
+    const isRelevant=messagesRef.current.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
+    if(!isRelevant)return;
+    const{count,error:countError}=await supabase.from('message_reads').select('message_id',{count:'exact',head:true}).eq('message_id',messageId);
+    if(countError)throw countError;
+    if(!mountedRef.current)return;
+    setMessages(current=>current.map(m=>m.id===messageId?{...m,readCount:count||0}:m));
+    if(statusMessageRef.current?.id===messageId){
+     setStatusRows(rows=>rows.map(row=>row.user_id===(payload.new?.user_id||payload.old?.user_id)?{...row,read_at:payload.new?.read_at||new Date().toISOString()}:row));
+    }
+   }catch(e){if(mountedRef.current)setError(e?.message||'Read status could not be synchronized.');}
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_deliveries'},async payload=>{
-   const messageId=payload.new?.message_id||payload.old?.message_id;
-   if(!messageId)return;
-   const isRelevant=messagesRef.current.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
-   if(!isRelevant)return;
-   const delivered=payload.new?.delivered_at||payload.old?.delivered_at;
-   const {count}=await supabase.from('message_deliveries').select('message_id',{count:'exact',head:true}).eq('message_id',messageId).not('delivered_at','is',null);
-   setMessages(current=>current.map(m=>m.id===messageId?{...m,deliveryCount:count||0}:m));
-   if(statusMessageRef.current?.id===messageId){
-    const uid=payload.new?.user_id||payload.old?.user_id;
-    setStatusRows(rows=>rows.map(row=>row.user_id===uid?{...row,delivered_at:delivered||row.delivered_at}:row));
-   }
+   try{
+    const messageId=payload.new?.message_id||payload.old?.message_id;
+    if(!messageId||!mountedRef.current)return;
+    const isRelevant=messagesRef.current.some(m=>m.id===messageId)||statusMessageRef.current?.id===messageId;
+    if(!isRelevant)return;
+    const delivered=payload.new?.delivered_at||payload.old?.delivered_at;
+    const{count,error:countError}=await supabase.from('message_deliveries').select('message_id',{count:'exact',head:true}).eq('message_id',messageId).not('delivered_at','is',null);
+    if(countError)throw countError;
+    if(!mountedRef.current)return;
+    setMessages(current=>current.map(m=>m.id===messageId?{...m,deliveryCount:count||0}:m));
+    if(statusMessageRef.current?.id===messageId){
+     const uid=payload.new?.user_id||payload.old?.user_id;
+     setStatusRows(rows=>rows.map(row=>row.user_id===uid?{...row,delivered_at:delivered||row.delivered_at}:row));
+    }
+   }catch(e){if(mountedRef.current)setError(e?.message||'Delivery status could not be synchronized.');}
   }).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:'conversation_id=eq.'+id},async payload=>{
    const member=payload.new||payload.old;
    if(!member?.conversation_id||!mountedRef.current)return;
