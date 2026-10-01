@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import AppIcon from '../components/AppIcon';
 import { getImageUrl } from '../lib/imageUrl';
 import {Image,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
@@ -9,6 +9,7 @@ import {useAuth} from '../providers/AuthProvider';
 
 export default function NewMessage(){
  const{user}=useAuth(),router=useRouter(),{userId}=useLocalSearchParams();
+ const mountedRef=useRef(true); const searchSeq=useRef(0); const{user}=useAuth(),router=useRouter(),{userId}=useLocalSearchParams();
  const[q,setQ]=useState(''),[people,setPeople]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[searched,setSearched]=useState(false),[groupMode,setGroupMode]=useState(false),[groupName,setGroupName]=useState(''),[selected,setSelected]=useState([]);
 
  useEffect(()=>{
@@ -24,24 +25,43 @@ export default function NewMessage(){
   loadTarget();
   return()=>{active=false};
  },[userId,user?.id]);
+ useEffect(()=>()=>{mountedRef.current=false;searchSeq.current+=1},[]);
 
  const search=async()=>{
   const v=q.replace(/[,()%_*\\]/g,' ').trim();
   if(!v){setPeople([]);setSearched(false);return}
+  const seq=++searchSeq.current;
   setError('');setSearched(true);
-  const{data,error:e}=await supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').or('username.ilike.%'+v+'%,display_name.ilike.%'+v+'%').limit(20);
-  if(e)setError(e.message);else setPeople(data||[]);
+  try{
+   const{data,error:e}=await supabase.from('profiles').select('id,username,display_name,bio,avatar_url').neq('id',user?.id||'').or('username.ilike.%'+v+'%,display_name.ilike.%'+v+'%').limit(20);
+   if(!mountedRef.current||seq!==searchSeq.current)return;
+   if(e)throw e;
+   setPeople(data||[]);
+  }catch(e){if(mountedRef.current&&seq===searchSeq.current)setError(e?.message||'Unable to search members. Please try again.');}
  };
 
  const toggle= id=>setSelected(cur=>cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]);
- const createGroup=async()=>{if(busy||!groupName.trim()||!selected.length)return;setBusy(true);setError('');const{data,error:e}=await supabase.rpc('create_group_conversation',{group_title:groupName.trim(),member_ids:selected});if(e)setError(e.message);else router.replace({pathname:'/conversation',params:{id:data}});setBusy(false);};
- const start=async id=>{
-  if(busy)return;
+ const createGroup=async()=>{
+  if(busy||!groupName.trim()||!selected.length||!mountedRef.current)return;
   setBusy(true);setError('');
-  const{data,error:e}=await supabase.rpc('create_message_request',{target_user_id:id});
-  if(e){setError(e.message);setBusy(false);return}
-  router.replace({pathname:'/conversation',params:{id:data}});
-  setBusy(false);
+  try{
+   const{data,error:e}=await supabase.rpc('create_group_conversation',{group_title:groupName.trim(),member_ids:selected});
+   if(e)throw e;
+   if(!data)throw new Error('The group conversation could not be created.');
+   if(mountedRef.current)router.replace({pathname:'/conversation',params:{id:data}});
+  }catch(e){if(mountedRef.current)setError(e?.message||'Unable to create the group. Please try again.');}
+  finally{if(mountedRef.current)setBusy(false);}
+ };
+ const start=async id=>{
+  if(busy||!id||!mountedRef.current)return;
+  setBusy(true);setError('');
+  try{
+   const{data,error:e}=await supabase.rpc('create_message_request',{target_user_id:id});
+   if(e)throw e;
+   if(!data)throw new Error('The conversation could not be created.');
+   if(mountedRef.current)router.replace({pathname:'/conversation',params:{id:data}});
+  }catch(e){if(mountedRef.current)setError(e?.message||'Unable to start the conversation. Please try again.');}
+  finally{if(mountedRef.current)setBusy(false);}
  };
 
  return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
