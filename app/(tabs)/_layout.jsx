@@ -28,7 +28,7 @@ function BottomNav() {
     try {
       const [inboxResult, requestResult, notificationResult] = await Promise.all([
         supabase.rpc('get_message_inbox'),
-        supabase.from('conversation_members').select('conversation_id').eq('user_id', user.id).eq('request_status', 'pending'),
+        supabase.rpc('get_message_requests'),
         supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('recipient_id', user.id).is('read_at', null),
       ]);
       const inboxUnread = (inboxResult.error ? [] : inboxResult.data || []).reduce((sum, row) => sum + Number(row.unread_count || 0), 0);
