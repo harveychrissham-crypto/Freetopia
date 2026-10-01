@@ -800,15 +800,15 @@ export default function Conversation(){
 };
  const openForwardMany=async()=>{
   if(!selectedMessages.length||!user?.id)return;
-  setForwardMessage(null);setSelectedIds([]);setForwardMessage(selectedMessages);setForwardLoading(true);setError('');
+  const actionChannel=channelRef.current;\n  const actionConversationId=id;\n  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;\n  setForwardMessage(null);setSelectedIds([]);setForwardMessage(selectedMessages);setForwardLoading(true);setError('');
   try{
    const targets=await loadForwardTargets();
-   if(mountedRef.current)setForwardTargets(targets);
+   if(isCurrentAction())setForwardTargets(targets);
   }catch(e){
-   if(mountedRef.current){setError(e?.message||'Could not load conversations to forward to.');setForwardMessage(null);setForwardTargets([]);}
-  }finally{if(mountedRef.current)setForwardLoading(false);}
+   if(isCurrentAction()){setError(e?.message||'Could not load conversations to forward to.');setForwardMessage(null);setForwardTargets([]);}
+  }finally{if(isCurrentAction())setForwardLoading(false);}
  };
- const openForward=async(m)=>{
+ const openForward=async(m)=>{\n  const actionChannel=channelRef.current;\n  const actionConversationId=id;\n  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   if(!m?.id||!user?.id)return;
   setSelectedMessage(null);setForwardMessage(m);setForwardLoading(true);setError('');
   try{
@@ -818,31 +818,31 @@ export default function Conversation(){
    if(mountedRef.current){setError(e?.message||'Could not load conversations to forward to.');setForwardMessage(null);setForwardTargets([]);}
   }finally{if(mountedRef.current)setForwardLoading(false);}
  };
- const togglePin=async(m)=>{
+ const togglePin=async(m)=>{\n  const actionChannel=channelRef.current;\n  const actionConversationId=id;\n  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   if(!m?.id||!user?.id)return;
   try{
    const existing=pinned.find(p=>p.message_id===m.id);
    if(existing){
     const{error:e}=await supabase.from('message_pins').delete().eq('message_id',m.id).eq('pinned_by',user.id);
     if(e)throw e;
-    if(mountedRef.current)setPinned(current=>current.filter(p=>p.message_id!==m.id));
+    if(isCurrentAction())setPinned(current=>current.filter(p=>p.message_id!==m.id));
    }else{
     const{error:e}=await supabase.from('message_pins').insert({message_id:m.id,conversation_id:id,pinned_by:user.id});
     if(e)throw e;
     if(mountedRef.current)setPinned(current=>[{message_id:m.id,pinned_by:user.id,pinned_at:new Date().toISOString()},...current]);
    }
-  }catch(e){if(mountedRef.current)setError(e?.message||'Could not update the pinned message.');}
-  finally{if(mountedRef.current)setSelectedMessage(null);}
+  }catch(e){if(isCurrentAction())setError(e?.message||'Could not update the pinned message.');}
+  finally{if(isCurrentAction())setSelectedMessage(null);}
 };
- const deleteForMe=async(m)=>{
+ const deleteForMe=async(m)=>{\n  const actionChannel=channelRef.current;\n  const actionConversationId=id;\n  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   if(!m?.id||!user?.id)return;
   try{
    const{error:e}=await supabase.from('message_hidden_for_users').upsert({message_id:m.id,user_id:user.id},{onConflict:'message_id,user_id'});
    if(e)throw e;
-   if(mountedRef.current){setMessages(current=>current.filter(x=>x.id!==m.id));setSelectedMessage(null);}
-  }catch(e){if(mountedRef.current)setError(e?.message||'Could not delete this message for you.');}
+   if(isCurrentAction()){setMessages(current=>current.filter(x=>x.id!==m.id));setSelectedMessage(null);}
+  }catch(e){if(isCurrentAction())setError(e?.message||'Could not delete this message for you.');}
  };
- const deleteMessage=(m)=>{
+ const deleteMessage=(m)=>{\n  const actionChannel=channelRef.current;\n  const actionConversationId=id;\n  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   Alert.alert('Delete message','Delete this message for everyone?',[
    {text:'Cancel',style:'cancel'},
    {text:'Delete',style:'destructive',onPress:async()=>{
