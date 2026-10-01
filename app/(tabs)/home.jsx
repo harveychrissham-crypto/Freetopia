@@ -17,7 +17,8 @@ export default function Home() {
  const router=useRouter(),{width}=useWindowDimensions(),{user,profile}=useAuth(),desktop=Platform.OS==='web'&&width>=1000;
  const { colors, accent, textScale, densityScale } = useAppearance();
  const[activeTab,setActiveTab]=useState('For You'),[posts,setPosts]=useState([]),[communities,setCommunities]=useState([]),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[unreadNotifications,setUnreadNotifications]=useState(0);
- const loadSeq=useRef(0); const postsLoadedRef=useRef(false); const mountedRef=useRef(true);\n useEffect(()=>()=>{mountedRef.current=false;loadSeq.current+=1},[]);
+ const loadSeq=useRef(0); const postsLoadedRef=useRef(false); const mountedRef=useRef(true);
+ useEffect(()=>()=>{mountedRef.current=false;loadSeq.current+=1},[]);
  const load=useCallback(async(pull=false)=>{
   if(!mountedRef.current)return;
   const seq=++loadSeq.current;
