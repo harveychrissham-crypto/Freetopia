@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
@@ -17,30 +17,48 @@ export default function Home() {
  const router=useRouter(),{width}=useWindowDimensions(),{user,profile}=useAuth(),desktop=Platform.OS==='web'&&width>=1000;
  const { colors, accent, textScale, densityScale } = useAppearance();
  const[activeTab,setActiveTab]=useState('For You'),[posts,setPosts]=useState([]),[communities,setCommunities]=useState([]),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[unreadNotifications,setUnreadNotifications]=useState(0);
- const loadSeq=useRef(0); const postsLoadedRef=useRef(false);
+ const loadSeq=useRef(0); const postsLoadedRef=useRef(false); const mountedRef=useRef(true);\n useEffect(()=>()=>{mountedRef.current=false;loadSeq.current+=1},[]);
  const load=useCallback(async(pull=false)=>{
+  if(!mountedRef.current)return;
   const seq=++loadSeq.current;
   pull?setRefreshing(true):setLoading(!postsLoadedRef.current);setError('');
-  const unreadPromise=user?.id?supabase.from('notifications').select('id',{count:'exact',head:true}).eq('recipient_id',user.id).is('read_at',null):Promise.resolve({count:0,error:null});
-  const communitiesPromise=supabase.from('communities').select('id,name,slug,description,is_private').order('created_at',{ascending:false}).limit(5);
-  let authorIds=null;
-  if(activeTab==='Following'&&user?.id){const{data,error:e}=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted');if(e){setError(e.message);authorIds=[user.id]}else authorIds=[user.id,...(data||[]).map(r=>r.following_id)]}
-  let query=supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,location_name,feeling,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name),post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,duration_seconds,sort_order,processing_status,playback_url,thumbnail_path),post_polls(question,post_poll_options(id,option_text,sort_order)),post_poll_votes(user_id,option_id),post_tags(user_id,profiles:user_id(id,username,display_name))').order('created_at',{ascending:false}).limit(10);
-  if(activeTab==='Following'&&authorIds)query=query.in('author_id',authorIds);
-  if(activeTab==='Communities')query=query.not('community_id','is',null);
-  const[{data,error:postError},{data:communityData,error:communityError},unreadResult]=await Promise.all([query,communitiesPromise,unreadPromise]);
-  if(seq!==loadSeq.current)return;
-  if(postError)setError(postError.message);if(unreadResult?.error)setError(unreadResult.error.message);
-  setUnreadNotifications(unreadResult?.count||0);
-  setPosts((data||[]).map(post=>({...post,reactionCount:post.post_reactions?.filter(r=>r.reaction_type==='like').length||0,liked:post.post_reactions?.some(r=>r.user_id===user?.id&&r.reaction_type==='like')||false})));
-  setCommunities(communityData||[]);postsLoadedRef.current=true;setLoading(false);setRefreshing(false);
+  try{
+   const unreadPromise=user?.id?supabase.from('notifications').select('id',{count:'exact',head:true}).eq('recipient_id',user.id).is('read_at',null):Promise.resolve({count:0,error:null});
+   const communitiesPromise=supabase.from('communities').select('id,name,slug,description,is_private').order('created_at',{ascending:false}).limit(5);
+   let authorIds=null;
+   if(activeTab==='Following'&&user?.id){
+    const{data,error:e}=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted');
+    if(e){if(mountedRef.current&&seq===loadSeq.current)setError(e.message);authorIds=[user.id]}else authorIds=[user.id,...(data||[]).map(r=>r.following_id)];
+   }
+   let query=supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,location_name,feeling,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name),post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,duration_seconds,sort_order,processing_status,playback_url,thumbnail_path),post_polls(question,post_poll_options(id,option_text,sort_order)),post_poll_votes(user_id,option_id),post_tags(user_id,profiles:user_id(id,username,display_name))').order('created_at',{ascending:false}).limit(10);
+   if(activeTab==='Following'&&authorIds)query=query.in('author_id',authorIds);
+   if(activeTab==='Communities')query=query.not('community_id','is',null);
+   const[{data,error:postError},{data:communityData,error:communityError},unreadResult]=await Promise.all([query,communitiesPromise,unreadPromise]);
+   if(seq!==loadSeq.current||!mountedRef.current)return;
+   if(postError)setError(postError.message);
+   if(communityError)setError(postError?.message||communityError.message);
+   if(unreadResult?.error)setError(unreadResult.error.message);
+   setUnreadNotifications(unreadResult?.count||0);
+   setPosts((data||[]).map(post=>({...post,reactionCount:post.post_reactions?.filter(r=>r.reaction_type==='like').length||0,liked:post.post_reactions?.some(r=>r.user_id===user?.id&&r.reaction_type==='like')||false})));
+   setCommunities(communityData||[]);
+   postsLoadedRef.current=true;
+  }catch(e){
+   if(seq===loadSeq.current&&mountedRef.current)setError(e?.message||'Unable to load the feed. Please try again.');
+  }finally{
+   if(seq===loadSeq.current&&mountedRef.current){setLoading(false);setRefreshing(false);}
+  }
  },[activeTab,user?.id]);
  useFocusEffect(useCallback(()=>{load()},[load]));
  const toggleLike=async(postId,liked)=>{
-  if(!user)return;
+  if(!user?.id)return;
   setPosts(cur=>cur.map(p=>p.id===postId?{...p,liked:!liked,reactionCount:Math.max(0,p.reactionCount+(liked?-1:1))}:p));
-  const request=liked?supabase.from('post_reactions').delete().eq('post_id',postId).eq('user_id',user.id).eq('reaction_type','like'):supabase.from('post_reactions').insert({post_id:postId,user_id:user.id,reaction_type:'like'});
-  const{error:e}=await request;if(e)setPosts(cur=>cur.map(p=>p.id===postId?{...p,liked,reactionCount:Math.max(0,p.reactionCount+(liked?1:-1))}:p));
+  try{
+   const request=liked?supabase.from('post_reactions').delete().eq('post_id',postId).eq('user_id',user.id).eq('reaction_type','like'):supabase.from('post_reactions').insert({post_id:postId,user_id:user.id,reaction_type:'like'});
+   const{error:e}=await request;
+   if(e)throw e;
+  }catch(e){
+   if(mountedRef.current){setPosts(cur=>cur.map(p=>p.id===postId?{...p,liked,reactionCount:Math.max(0,p.reactionCount+(liked?1:-1))}:p));setError(e?.message||'Unable to update this reaction.');}
+  }
  };
  const votePoll=async(postId,optionId)=>{
   if(!user?.id)return;
@@ -51,10 +69,11 @@ export default function Home() {
    const votes=previousVotes.filter(v=>v.user_id!==user.id);
    return {...p,post_poll_votes:[...votes,{user_id:user.id,option_id:optionId}]};
   }));
-  const{error:e}=await supabase.from('post_poll_votes').upsert({post_id:postId,option_id:optionId,user_id:user.id},{onConflict:'post_id,user_id'});
-  if(e){
-   setPosts(cur=>cur.map(p=>p.id===postId?{...p,post_poll_votes:previousVotes||p.post_poll_votes}:p));
-   setError(e.message);
+  try{
+   const{error:e}=await supabase.from('post_poll_votes').upsert({post_id:postId,option_id:optionId,user_id:user.id},{onConflict:'post_id,user_id'});
+   if(e)throw e;
+  }catch(e){
+   if(mountedRef.current){setPosts(cur=>cur.map(p=>p.id===postId?{...p,post_poll_votes:previousVotes||p.post_poll_votes}:p));setError(e?.message||'Unable to record your vote.');}
   }
  };
  const displayName=profile?.display_name||user?.email?.split('@')[0]||'Freetopia member',initials=displayName.charAt(0).toUpperCase();
