@@ -63,7 +63,7 @@ export default function Conversation(){
  const loadSequenceRef=useRef(0);
  const draftLoadSequenceRef=useRef(0);
  const statusLoadSequenceRef=useRef(0);
- const{id}=useLocalSearchParams(),{user}=useAuth(),{isLight}=useAppearance(),router=useRouter(),scrollRef=useRef(null),messageLayoutsRef=useRef({}),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[unreadBoundaryId,setUnreadBoundaryId]=useState(null),[showJumpToLatest,setShowJumpToLatest]=useState(false),[highlightedMessageId,setHighlightedMessageId]=useState(null),[isNearBottom,setIsNearBottom]=useState(true),[newMessagesCount,setNewMessagesCount]=useState(0),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false),[chatTheme,setChatTheme]=useState(isLight?'light':'dark'),[chatWallpaper,setChatWallpaper]=useState('minimal'),[bubbleStyle,setBubbleStyle]=useState('classic'),[previewMedia,setPreviewMedia]=useState(null),[pendingMedia,setPendingMedia]=useState(null),[mediaCaption,setMediaCaption]=useState('');
+ const{id}=useLocalSearchParams(),{user}=useAuth(),{isLight}=useAppearance(),router=useRouter(),scrollRef=useRef(null),messageLayoutsRef=useRef({}),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[unreadBoundaryId,setUnreadBoundaryId]=useState(null),[showJumpToLatest,setShowJumpToLatest]=useState(false),[highlightedMessageId,setHighlightedMessageId]=useState(null),[isNearBottom,setIsNearBottom]=useState(true),[newMessagesCount,setNewMessagesCount]=useState(0),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false),[chatTheme,setChatTheme]=useState(isLight?'light':'dark'),[chatWallpaper,setChatWallpaper]=useState('minimal'),[bubbleStyle,setBubbleStyle]=useState('classic'),[previewMedia,setPreviewMedia]=useState(null),[pendingMedia,setPendingMedia]=useState(null),[pendingVoiceUri,setPendingVoiceUri]=useState(null),[mediaCaption,setMediaCaption]=useState('');
 
  const saveDraft=useCallback((value)=>{
   if(!id||!user?.id||applyingRemoteDraftRef.current)return;
@@ -394,28 +394,34 @@ export default function Conversation(){
   if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading||sending)return;
   setError('');
   try{
+   let uri=pendingVoiceUri;
    if(recorderState.isRecording){
     await recorder.stop();
-    const uri=recorder.uri;
+    uri=recorder.uri;
     if(!uri)throw new Error('Voice recording was not created.');
-    setUploading(true);
-    const path=user.id+'/voice-'+Date.now()+'.m4a';
-    const res=await fetch(uri); const blob=await res.blob();
-    const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:'audio/mp4',upsert:false});
-    if(up.error)throw up.error;
-    const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
-    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:'audio',expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
-    if(ins.error)throw ins.error;
-    if(ins.data&&mountedRef.current)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);
-   }else{
+    if(mountedRef.current)setPendingVoiceUri(uri);
+   }else if(!uri){
     const perm=await AudioModule.requestRecordingPermissionsAsync();
     if(!perm.granted){Alert.alert('Microphone permission needed','Allow Freetopia to use your microphone for voice messages.');return;}
     await setAudioModeAsync({playsInSilentMode:true,allowsRecording:true});
     await recorder.prepareToRecordAsync();
     recorder.record();
+    return;
+   }
+   setUploading(true);
+   const path=user.id+'/voice-'+Date.now()+'.m4a';
+   const res=await fetch(uri); const blob=await res.blob();
+   const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:'audio/mp4',upsert:false});
+   if(up.error)throw up.error;
+   const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
+   const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:'audio',expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
+   if(ins.error)throw ins.error;
+   if(mountedRef.current){
+    if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);
+    setPendingVoiceUri(null);
    }
   }catch(e){
-   if(mountedRef.current)setError(e?.message||'Voice message failed');
+   if(mountedRef.current)setError(e?.message||'Voice message failed. Your recording is kept so you can try again.');
   }finally{
    if(mountedRef.current)setUploading(false);
   }
@@ -546,7 +552,7 @@ export default function Conversation(){
   }catch(e){if(mountedRef.current)setError(e?.message||'File upload failed');}
   finally{if(mountedRef.current)setUploading(false);}
  };
- const cancelVoice=async()=>{try{if(recorderState.isRecording)await recorder.stop();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}if(mountedRef.current){setUploading(false);setError('');}};
+ const cancelVoice=async()=>{try{if(recorderState.isRecording)await recorder.stop();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}if(mountedRef.current){setPendingVoiceUri(null);setUploading(false);setError('');}};
  const openAttachment=async(m)=>{if(!m?.media_url)return;try{await Linking.openURL(m.media_url)}catch{if(mountedRef.current)setError('Unable to open this file.')}};
  const formatSize=(bytes)=>{if(!bytes||bytes<1024)return bytes?bytes+' B':'';const units=['KB','MB','GB'];let n=bytes/1024;let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return n.toFixed(n>=10?0:1)+' '+units[i]};
  const expiryForMessage=()=>{const seconds=info?.disappearing_seconds||0;return seconds?new Date(Date.now()+seconds*1000).toISOString():null;};
@@ -854,7 +860,7 @@ export default function Conversation(){
      <View style={s.searchResultMain}><Text numberOfLines={1} style={s.searchResultSender}>{m.profiles?.display_name||m.profiles?.username||'Message'}</Text><Text numberOfLines={1} style={s.searchResultText}>{m.content||({image:'Photo',video:'Video',audio:'Voice message',file:'File'}[m.media_type]||'Media message')}</Text></View><Text style={s.searchResultHint}>View</Text>
     </Pressable>)}
    </View>}
-   {error&&<View style={[s.errorBanner,{backgroundColor:theme.panel,borderColor:theme.theirs}]}><Text style={[s.err,{color:theme.text}]} numberOfLines={3}>{error}</Text>{text.trim()&&info?.me?.request_status==='accepted'&&!sending?<Pressable onPress={send} style={[s.errorRetry,{borderColor:theme.accent}]}><Text style={[s.errorRetryText,{color:theme.accent}]}>Try again</Text></Pressable>:null}</View>}
+   {error&&<View style={[s.errorBanner,{backgroundColor:theme.panel,borderColor:theme.theirs}]}><Text style={[s.err,{color:theme.text}]} numberOfLines={3}>{error}</Text>{(text.trim()||pendingVoiceUri)&&info?.me?.request_status==='accepted'&&!sending&&!uploading?<Pressable onPress={pendingVoiceUri?sendVoice:send} style={[s.errorRetry,{borderColor:theme.accent}]}><Text style={[s.errorRetryText,{color:theme.accent}]}>Try again</Text></Pressable>:null}</View>}
    {pinned.length>0&&<View style={[s.pinnedBar,{backgroundColor:theme.panel,borderColor:theme.theirs}]}><Text style={s.pinnedIcon}>📌</Text><View style={s.pinnedCopy}><Text style={s.pinnedTitle}>Pinned message</Text><Text numberOfLines={1} style={s.pinnedText}>{messages.find(x=>x.id===pinned[0].message_id)?.content||'Media message'}</Text></View><Pressable onPress={()=>{const idx=messages.findIndex(x=>x.id===pinned[0].message_id);if(idx>=0)scrollRef.current?.scrollTo({y:Math.max(0,idx*75),animated:true})}}><Text style={s.action}>View</Text></Pressable></View>}{statusMessage&&<View style={s.statusOverlay}>
     <Pressable style={s.statusBackdrop} onPress={()=>setStatusMessage(null)}/>
     <View style={s.statusSheet}>
