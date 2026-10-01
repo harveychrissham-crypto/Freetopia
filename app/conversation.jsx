@@ -669,30 +669,39 @@ export default function Conversation(){
  const expiryForMessage=()=>{const seconds=info?.disappearing_seconds||0;return seconds?new Date(Date.now()+seconds*1000).toISOString():null;};
  const setDisappearing=async(seconds)=>{
   if(!id||!user?.id)return;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   try{
    const{data,error:e}=await supabase.rpc('set_conversation_disappearing',{p_conversation_id:id,p_seconds:seconds});
    if(e)throw e;
-   if(mountedRef.current){setInfo(current=>current?{...current,disappearing_seconds:data?.disappearing_seconds??seconds}:current);setChatInfoOpen(false);}
-  }catch(e){if(mountedRef.current)setError(e?.message||'Unable to change disappearing messages');}
+   if(isCurrentAction()){setInfo(current=>current?{...current,disappearing_seconds:data?.disappearing_seconds??seconds}:current);setChatInfoOpen(false);}
+  }catch(e){if(isCurrentAction())setError(e?.message||'Unable to change disappearing messages');}
 };
  const disappearingLabel=(seconds)=>seconds===86400?'24 hours':seconds===604800?'7 days':seconds===2592000?'30 days':'Off';
  const toggleMute=async()=>{
   if(!user?.id||!info?.me)return;
   const next=!info.me.is_muted;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   try{
    const{error:e}=await supabase.from('conversation_members').update({is_muted:next}).eq('conversation_id',id).eq('user_id',user.id);
    if(e)throw e;
-   if(mountedRef.current)setInfo(current=>current?{...current,me:{...current.me,is_muted:next}}:current);
-  }catch(e){if(mountedRef.current)setError(e?.message||'Could not update mute settings.');}
+   if(isCurrentAction())setInfo(current=>current?{...current,me:{...current.me,is_muted:next}}:current);
+  }catch(e){if(isCurrentAction())setError(e?.message||'Could not update mute settings.');}
 };
  const sharedItems=messages.filter(m=>!m.deleted_at&&m.media_url&&(!m.expires_at||new Date(m.expires_at)>new Date()));
  const archiveChat=async()=>{
   if(!user?.id||!id)return;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   try{
    const{error:e}=await supabase.from('conversation_members').update({is_archived:true}).eq('conversation_id',id).eq('user_id',user.id);
    if(e)throw e;
-   if(mountedRef.current)router.back();
-  }catch(e){if(mountedRef.current)setError(e?.message||'Could not archive this conversation.');}
+   if(isCurrentAction())router.back();
+  }catch(e){if(isCurrentAction())setError(e?.message||'Could not archive this conversation.');}
 };
  const sharedMedia=sharedItems.filter(m=>['image','video','audio'].includes(m.media_type));
  const sharedFiles=sharedItems.filter(m=>m.media_type==='file');
