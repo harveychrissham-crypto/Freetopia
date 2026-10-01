@@ -433,6 +433,9 @@ export default function Conversation(){
 
  const sendVoice=async()=>{
   if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading||sending)return;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   setError('');
   try{
    let uri=pendingVoiceUri;
@@ -440,7 +443,7 @@ export default function Conversation(){
     await recorder.stop();
     uri=recorder.uri;
     if(!uri)throw new Error('Voice recording was not created.');
-    if(mountedRef.current)setPendingVoiceUri(uri);
+    if(isCurrentAction())setPendingVoiceUri(uri);
    }else if(!uri){
     const perm=await AudioModule.requestRecordingPermissionsAsync();
     if(!perm.granted){Alert.alert('Microphone permission needed','Allow Freetopia to use your microphone for voice messages.');return;}
@@ -457,14 +460,14 @@ export default function Conversation(){
    const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:'audio',expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
    if(ins.error)throw ins.error;
-   if(mountedRef.current){
+   if(isCurrentAction()){
     if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);
     setPendingVoiceUri(null);
    }
   }catch(e){
-   if(mountedRef.current)setError(e?.message||'Voice message failed. Your recording is kept so you can try again.');
+   if(isCurrentAction())setError(e?.message||'Voice message failed. Your recording is kept so you can try again.');
   }finally{
-   if(mountedRef.current)setUploading(false);
+   if(isCurrentAction())setUploading(false);
   }
  };
 
@@ -568,6 +571,9 @@ export default function Conversation(){
 };
  const sendPendingMedia=async()=>{
   if(!pendingMedia||!user?.id||uploading)return;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   const asset=pendingMedia;let uploadedPath=null;setUploading(true);setError('');
   try{
    const ext=(asset.fileName||asset.uri.split('/').pop()||'media').split('.').pop().toLowerCase();
@@ -579,16 +585,19 @@ export default function Conversation(){
    const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:mediaCaption.trim()||null,media_url:pub,media_type:asset.type==='video'?'video':'image',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
    if(ins.error)throw ins.error;
-   if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setPendingMedia(null);setMediaCaption('');setReplyTo(null);}
+   if(isCurrentAction()){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setPendingMedia(null);setMediaCaption('');setReplyTo(null);}
   }catch(e){
    if(uploadedPath)await supabase.storage.from('message-media').remove([uploadedPath]).catch(()=>{});
-   if(mountedRef.current)setError(e?.message||'Media upload failed');
+   if(isCurrentAction())setError(e?.message||'Media upload failed');
   }
-  finally{if(mountedRef.current)setUploading(false);}
+  finally{if(isCurrentAction())setUploading(false);}
  };
  const pickDocument=async()=>{
   if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;
-  if(mountedRef.current){setAttachmentOpen(false);setUploading(true);setError('');}
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
+  if(isCurrentAction()){setAttachmentOpen(false);setUploading(true);setError('');}
   let uploadedPath=null;
   try{
    const result=await DocumentPicker.getDocumentAsync({copyToCacheDirectory:true,multiple:false});
@@ -602,12 +611,12 @@ export default function Conversation(){
    const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:name,media_url:pub,media_type:'file',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
    if(ins.error)throw ins.error;
-   if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setReplyTo(null);}
+   if(isCurrentAction()){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setReplyTo(null);}
   }catch(e){
    if(uploadedPath)await supabase.storage.from('message-media').remove([uploadedPath]).catch(()=>{});
-   if(mountedRef.current)setError(e?.message||'File upload failed');
+   if(isCurrentAction())setError(e?.message||'File upload failed');
   }
-  finally{if(mountedRef.current)setUploading(false);}
+  finally{if(isCurrentAction())setUploading(false);}
  };
  const cancelVoice=async()=>{try{if(recorderState.isRecording)await recorder.stop();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}if(mountedRef.current){setPendingVoiceUri(null);setUploading(false);setError('');}};
  const openAttachment=async(m)=>{if(!m?.media_url)return;try{await Linking.openURL(m.media_url)}catch{if(mountedRef.current)setError('Unable to open this file.')}};
