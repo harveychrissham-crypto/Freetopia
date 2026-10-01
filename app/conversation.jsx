@@ -222,9 +222,9 @@ export default function Conversation(){
           }
         }
       }catch(e){
-        if(sequence===loadSequenceRef.current&&mountedRef.current&&!error)setError(e?.message||'Some chat read receipts could not be synchronized.');
+        if(sequence===loadSequenceRef.current&&mountedRef.current)setError(e?.message||'Some chat read receipts could not be synchronized.');
       }
-    })();;
+    })();
    }
   }
   if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false)
