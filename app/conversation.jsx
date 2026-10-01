@@ -256,7 +256,7 @@ export default function Conversation(){
           const seen=new Set((reads||[]).map(x=>x.message_id));
           const missing=unread.filter(x=>!seen.has(x.id));
           if(sequence===loadSequenceRef.current&&mountedRef.current)setUnreadBoundaryId(missing.length?missing[0].id:null);
-          if(missing.length){
+          if(missing.length&&sequence===loadSequenceRef.current&&mountedRef.current){
             const rows=missing.map(x=>({message_id:x.id,user_id:user.id}));
             const {error:markError}=await supabase.from('message_reads').upsert(rows,{onConflict:'message_id,user_id'});
             if(markError)throw markError;
