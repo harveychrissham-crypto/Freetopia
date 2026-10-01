@@ -265,7 +265,8 @@ export default function Conversation(){
   loadDraft();
 
   if(!id)return;
-  const ch=supabase.channel('conversation-'+id,{config:{broadcast:{self:false},presence:{key:user.id}}}); channelRef.current=ch
+  const ch=supabase.channel('conversation-'+id,{config:{broadcast:{self:false},presence:{key:user.id}}}); channelRef.current=ch;
+  const isActiveChannel=()=>mountedRef.current&&channelRef.current===ch;
   .on('postgres_changes',{event:'*',schema:'public',table:'message_drafts',filter:'conversation_id=eq.'+id},payload=>{
    const row=payload.new?.conversation_id?payload.new:payload.old;
    if(!row||row.user_id!==user.id||row.conversation_id!==id)return;
@@ -283,10 +284,10 @@ export default function Conversation(){
   }).on('presence',{event:'sync'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{if(!mountedRef.current)return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(typingTimerRef.current)clearTimeout(typingTimerRef.current);if(payload.payload?.typing)typingTimerRef.current=setTimeout(()=>{if(mountedRef.current)setTyping(false)},1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    try{
     const incoming=payload.new;
-    if(!incoming?.id||!mountedRef.current)return;
+    if(!incoming?.id||!isActiveChannel())return;
     const{data:message,error:messageError}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
     if(messageError)throw messageError;
-    if(!message||!mountedRef.current)return;
+    if(!message||!isActiveChannel())return;
     setMessages(current=>current.some(x=>x.id===message.id)?current:[...current,message].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)));
     if(message.sender_id!==user?.id&&!message.deleted_at&&infoRef.current?.me?.request_status==='accepted'){
      const{error:deliveryError}=await supabase.from('message_deliveries').upsert({message_id:message.id,user_id:user.id,delivered_at:new Date().toISOString()},{onConflict:'message_id,user_id'});
@@ -298,7 +299,7 @@ export default function Conversation(){
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    try{
     const incoming=payload.new;
-    if(!incoming?.id||!mountedRef.current)return;
+    if(!incoming?.id||!isActiveChannel())return;
     const{data:message,error:messageError}=await supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('id',incoming.id).maybeSingle();
     if(messageError)throw messageError;
     if(!message||!mountedRef.current)return;
@@ -328,7 +329,7 @@ export default function Conversation(){
     if(!isRelevant)return;
     const{count,error:countError}=await supabase.from('message_reads').select('message_id',{count:'exact',head:true}).eq('message_id',messageId);
     if(countError)throw countError;
-    if(!mountedRef.current)return;
+    if(!isActiveChannel())return;
     setMessages(current=>current.map(m=>m.id===messageId?{...m,readCount:count||0}:m));
     // When this user's read receipt lands, recompute the divider from actual read rows.
     // This prevents a stale NEW MESSAGES marker from surviving a realtime read.
@@ -357,7 +358,7 @@ export default function Conversation(){
     const delivered=payload.new?.delivered_at||payload.old?.delivered_at;
     const{count,error:countError}=await supabase.from('message_deliveries').select('message_id',{count:'exact',head:true}).eq('message_id',messageId).not('delivered_at','is',null);
     if(countError)throw countError;
-    if(!mountedRef.current)return;
+    if(!isActiveChannel())return;
     setMessages(current=>current.map(m=>m.id===messageId?{...m,deliveryCount:count||0}:m));
     if(statusMessageRef.current?.id===messageId){
      const uid=payload.new?.user_id||payload.old?.user_id;
