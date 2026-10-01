@@ -918,30 +918,36 @@ export default function Conversation(){
  };
 
  const accept=async()=>{
-  if(!id||!user?.id)return;
-  setError('');
-  try{
-   const{error:e}=await supabase.rpc('respond_to_message_request',{target_conversation_id:id,accept_request:true});
-   if(e)throw e;
-   if(mountedRef.current)await load();
-  }catch(e){
-   if(mountedRef.current)setError(e?.message||'Could not accept this message request. Please try again.');
-  }
- };
+   if(!id||!user?.id)return;
+   const actionChannel=channelRef.current;
+   const actionConversationId=id;
+   const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
+   setError('');
+   try{
+    const{error:e}=await supabase.rpc('respond_to_message_request',{target_conversation_id:id,accept_request:true});
+    if(e)throw e;
+    if(isCurrentAction())await load();
+   }catch(e){
+    if(isCurrentAction())setError(e?.message||'Could not accept this message request. Please try again.');
+   }
+  };
 
- const decline=async()=>{
-  if(!id||!user?.id)return;
-  setError('');
-  try{
-   const{error:e}=await supabase.rpc('respond_to_message_request',{target_conversation_id:id,accept_request:false});
-   if(e)throw e;
-   if(mountedRef.current)router.back();
-  }catch(e){
-   if(mountedRef.current)setError(e?.message||'Could not decline this message request. Please try again.');
-  }
- };
+  const decline=async()=>{
+   if(!id||!user?.id)return;
+   const actionChannel=channelRef.current;
+   const actionConversationId=id;
+   const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
+   setError('');
+   try{
+    const{error:e}=await supabase.rpc('respond_to_message_request',{target_conversation_id:id,accept_request:false});
+    if(e)throw e;
+    if(isCurrentAction())router.back();
+   }catch(e){
+    if(isCurrentAction())setError(e?.message||'Could not decline this message request. Please try again.');
+   }
+  };
 
- const theme=CHAT_THEMES[chatTheme]||CHAT_THEMES.dark;
+  const theme=CHAT_THEMES[chatTheme]||CHAT_THEMES.dark;
  const wallpaper=CHAT_WALLPAPERS[chatWallpaper]||CHAT_WALLPAPERS.minimal;
  const bubble=BUBBLE_STYLES[bubbleStyle]||BUBBLE_STYLES.classic;
  const themeStyles={safe:{backgroundColor:theme.bg},head:{backgroundColor:theme.panel,borderBottomColor:theme.theirs},scroll:{backgroundColor:theme.bg},mine:{backgroundColor:theme.mine},theirs:{backgroundColor:theme.theirs},composer:{backgroundColor:theme.panel,borderTopColor:theme.theirs},input:{backgroundColor:theme.bg,borderColor:theme.theirs,color:theme.text},send:{backgroundColor:theme.accent},bt:{color:theme.text}};
