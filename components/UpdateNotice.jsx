@@ -33,37 +33,29 @@ export default function UpdateNotice() {
 
   return (
     <View style={s.card}>
-      <View style={s.iconWrap}><AppIcon name="spark" size={18} color={C.text}/></View>
+      <View style={s.iconWrap}><AppIcon name="spark" size={16} color={C.text}/></View>
       <View style={s.body}>
-        <Text style={s.title}>New Freetopia build available</Text>
-        <Text style={s.message}>You’re on version {version}. Download the latest Android build when you’re ready.</Text>
-        <View style={s.actions}>
-          <Pressable onPress={installUpdate} style={({pressed})=>[s.primary,pressed&&s.pressed]}>
-            <Text style={s.primaryText}>Download</Text>
-          </Pressable>
-          <Pressable onPress={dismiss} style={({pressed})=>[s.dismiss,pressed&&s.pressed]}>
-            <Text style={s.dismissText}>Dismiss</Text>
-          </Pressable>
-        </View>
+        <Text style={s.title} numberOfLines={1}>New Freetopia build available</Text>
+        <Text style={s.message} numberOfLines={1}>Version {version} is installed. A newer Android build is ready.</Text>
       </View>
-      <Pressable onPress={dismiss} accessibilityLabel="Dismiss update notification" style={({pressed})=>[s.close,pressed&&s.pressed]}>
-        <AppIcon name="close" size={15} color={C.muted}/>
+      <Pressable onPress={installUpdate} style={({pressed})=>[s.primary,pressed&&s.pressed]}>
+        <Text style={s.primaryText}>Download</Text>
+      </Pressable>
+      <Pressable onPress={dismiss} accessibilityLabel="Dismiss update notification" style={({pressed})=>[s.close,pressed&&s.pressed]} hitSlop={6}>
+        <AppIcon name="close" size={14} color={C.muted}/>
       </Pressable>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  card:{marginHorizontal:16,marginTop:10,marginBottom:4,minHeight:82,paddingHorizontal:12,paddingVertical:10,borderRadius:15,borderWidth:1,borderColor:C.line,backgroundColor:C.panel,flexDirection:'row',alignItems:'center'},
-  iconWrap:{width:32,height:32,borderRadius:10,backgroundColor:C.blue,alignItems:'center',justifyContent:'center',marginRight:10},
-  body:{flex:1,paddingRight:28,minWidth:0},
-  title:{color:C.text,fontSize:14,fontWeight:'800',marginBottom:3},
-  message:{color:C.muted,fontSize:11.5,lineHeight:16},
-  actions:{flexDirection:'row',alignItems:'center',gap:5,marginTop:7},
-  primary:{paddingHorizontal:10,paddingVertical:6,borderRadius:8,backgroundColor:'#173452'},
-  primaryText:{color:C.text,fontSize:11.5,fontWeight:'800'},
-  dismiss:{paddingHorizontal:7,paddingVertical:6},
-  dismissText:{color:C.muted,fontSize:11.5,fontWeight:'700'},
-  close:{position:'absolute',right:7,top:7,width:24,height:24,alignItems:'center',justifyContent:'center'},
+  card:{marginHorizontal:16,marginTop:8,marginBottom:4,minHeight:54,paddingLeft:10,paddingRight:34,paddingVertical:7,borderRadius:13,borderWidth:1,borderColor:C.line,backgroundColor:C.panel,flexDirection:'row',alignItems:'center'},
+  iconWrap:{width:28,height:28,borderRadius:9,backgroundColor:C.blue,alignItems:'center',justifyContent:'center',marginRight:9},
+  body:{flex:1,minWidth:0,marginRight:8},
+  title:{color:C.text,fontSize:12.5,fontWeight:'800',marginBottom:1},
+  message:{color:C.muted,fontSize:10.5,lineHeight:14},
+  primary:{paddingHorizontal:9,paddingVertical:6,borderRadius:8,backgroundColor:'#173452'},
+  primaryText:{color:C.text,fontSize:10.5,fontWeight:'800'},
+  close:{position:'absolute',right:6,top:6,width:22,height:22,alignItems:'center',justifyContent:'center'},
   pressed:{opacity:0.7},
 });
