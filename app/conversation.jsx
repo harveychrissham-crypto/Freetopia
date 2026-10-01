@@ -781,6 +781,41 @@ export default function Conversation(){
    if(isCurrentAction()){const ids=new Set(selectedIds);setMessages(current=>current.filter(m=>!ids.has(m.id)));clearSelection();}
   }catch(e){if(isCurrentAction())setError(e?.message||'Could not delete the selected messages for you.');}
  };
+ const forwardTo=async(target)=>{
+  if(!target?.id||!user?.id||!forwardMessage||forwardingId)return;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
+  setForwardingId(target.id);
+  setError('');
+  try{
+   const sourceMessages=Array.isArray(forwardMessage)?forwardMessage:[forwardMessage];
+   const rows=sourceMessages.filter(m=>m?.id).map(m=>({
+    conversation_id:target.id,
+    sender_id:user.id,
+    content:m.content||null,
+    media_url:m.media_url||null,
+    media_type:m.media_type||null,
+    reply_to_id:null,
+    expires_at:m.expires_at||null
+   }));
+   if(!rows.length)throw new Error('There are no messages available to forward.');
+   const{error:e}=await supabase.from('messages').insert(rows);
+   if(e)throw e;
+   if(isCurrentAction()){
+    setForwardMessage(null);
+    setForwardTargets([]);
+    setForwardingId(null);
+    setSelectedIds([]);
+    setSelectedMessage(null);
+   }
+  }catch(e){
+   if(isCurrentAction()){
+    setError(e?.message||'Could not forward the message. Please try again.');
+    setForwardingId(null);
+   }
+  }
+ };
  const loadForwardTargets=async()=>{
   if(!user?.id)return [];
   const{data:members,error:e}=await supabase.from('conversation_members').select('conversation_id,conversations:conversation_id(id,kind,title,disappearing_seconds),request_status').eq('user_id',user.id).eq('request_status','accepted');
