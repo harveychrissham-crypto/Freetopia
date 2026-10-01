@@ -129,7 +129,7 @@ export default function Messages() {
       if(sequence===loadSequence.current)loadInFlight.current=false;
       if(mountedRef.current&&sequence===loadSequence.current&&reloadPending.current){
         reloadPending.current=false;
-        setTimeout(()=>{if(mountedRef.current)load();},0);
+        setTimeout(()=>{if(mountedRef.current&&sequence===loadSequence.current)load();},0);
       }
     }
   },[user?.id,tab]);
