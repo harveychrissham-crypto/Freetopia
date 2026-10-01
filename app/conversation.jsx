@@ -519,8 +519,13 @@ export default function Conversation(){
  };
  const handleTypingInput=value=>{
   if(typingTimerRef.current)clearTimeout(typingTimerRef.current);
+  const typingChannel=channelRef.current;
+  const typingConversationId=id;
+  if(!typingChannel||!typingConversationId)return;
   broadcastTyping(true);
-  typingTimerRef.current=setTimeout(()=>broadcastTyping(false),2200);
+  typingTimerRef.current=setTimeout(()=>{
+   if(mountedRef.current&&channelRef.current===typingChannel&&id===typingConversationId)broadcastTyping(false);
+  },2200);
  };
  const toggleReaction=async(m,emoji)=>{
   if(!user?.id||!m?.id)return;
