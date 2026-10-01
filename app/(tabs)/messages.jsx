@@ -291,7 +291,7 @@ function Row({c,tab,router,open,accept,decline,archive,colors}) {
         style={({pressed})=>[s.avatarButton,pressed&&s.pressed]}
       >
         {p?.avatar_url
-          ? <Image pointerEvents="none" source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={[s.avatar,{backgroundColor:colors.panel2,borderColor:colors.line]}/>
+          ? <Image pointerEvents="none" source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={[s.avatar,{backgroundColor:colors.panel2,borderColor:colors.line}]}/>
           : <View pointerEvents="none" style={s.avatarFallback}><Text pointerEvents="none" style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
       </Pressable>
       <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open conversation with ${n}`} style={({pressed})=>[s.rowInfo,pressed&&s.rowPressed]}>
