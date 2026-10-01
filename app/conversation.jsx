@@ -713,15 +713,18 @@ export default function Conversation(){
  const openMessageStatus=async(m)=>{
   if(!m?.id||m.sender_id!==user.id)return;
   const sequence=++statusLoadSequenceRef.current;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId&&sequence===statusLoadSequenceRef.current;
   const messageId=m.id;
   setStatusMessage(m);setStatusRows([]);setStatusLoading(true);
   try{
    const{data:deliveries,error:de}=await supabase.from('message_deliveries').select('user_id,delivered_at').eq('message_id',messageId);
    if(de)throw de;
-   if(sequence!==statusLoadSequenceRef.current||!mountedRef.current)return;
+   if(!isCurrentAction())return;
    const{data:reads,error:re}=await supabase.from('message_reads').select('user_id,read_at').eq('message_id',messageId);
    if(re)throw re;
-   if(sequence!==statusLoadSequenceRef.current||!mountedRef.current)return;
+   if(!isCurrentAction())return;
    const ids=[...new Set([...(deliveries||[]).map(x=>x.user_id),...(reads||[]).map(x=>x.user_id)])];
    let profiles=[];
    if(ids.length){
@@ -729,16 +732,16 @@ export default function Conversation(){
     if(pe)throw pe;
     profiles=p||[];
    }
-   if(sequence!==statusLoadSequenceRef.current||!mountedRef.current)return;
+   if(!isCurrentAction())return;
    const rows=ids.map(uid=>{
     const d=(deliveries||[]).find(x=>x.user_id===uid), r=(reads||[]).find(x=>x.user_id===uid), p=profiles.find(x=>x.id===uid);
     return{user_id:uid,delivered_at:d?.delivered_at||null,read_at:r?.read_at||null,profile:p};
    }).sort((a,b)=>Number(!!b.read_at)-Number(!!a.read_at)||Number(!!b.delivered_at)-Number(!!a.delivered_at));
    setStatusRows(rows);
   }catch(e){
-   if(sequence===statusLoadSequenceRef.current&&mountedRef.current){setError(e.message||'Unable to load message status');setStatusMessage(null);}
+   if(isCurrentAction()){setError(e.message||'Unable to load message status');setStatusMessage(null);}
   }finally{
-   if(sequence===statusLoadSequenceRef.current&&mountedRef.current)setStatusLoading(false);
+   if(isCurrentAction())setStatusLoading(false);
   }
  };
  const jumpToMessage=messageId=>{
