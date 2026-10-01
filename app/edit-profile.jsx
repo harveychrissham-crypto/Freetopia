@@ -46,8 +46,8 @@ export default function EditProfile(){
       const {error:updateError}=await supabase.from('profiles').update({avatar_url:urlData.publicUrl}).eq('id',user.id);
       if(updateError)throw updateError;
       await refreshProfile();
-    }catch(e){setError(e?.message||'Unable to upload profile photo.');Alert.alert('Profile photo',e?.message||'Unable to upload profile photo.');}
-    finally{setUploading(false);}
+    }catch(e){if(mountedRef.current){setError(e?.message||'Unable to upload profile photo.');Alert.alert('Profile photo',e?.message||'Unable to upload profile photo.');}}
+    finally{if(mountedRef.current)setUploading(false);}
   };
 
   const uploadCover=async()=>{
@@ -68,8 +68,8 @@ export default function EditProfile(){
       const {error:updateError}=await supabase.from('profiles').update({cover_url:urlData.publicUrl}).eq('id',user.id);
       if(updateError)throw updateError;
       await refreshProfile();
-    }catch(e){setError(e?.message||'Unable to upload cover photo.');Alert.alert('Cover photo',e?.message||'Unable to upload cover photo.');}
-    finally{setUploadingCover(false);}
+    }catch(e){if(mountedRef.current){setError(e?.message||'Unable to upload cover photo.');Alert.alert('Cover photo',e?.message||'Unable to upload cover photo.');}}
+    finally{if(mountedRef.current)setUploadingCover(false);}
   };
 
   const save=async()=>{
