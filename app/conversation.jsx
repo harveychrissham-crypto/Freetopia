@@ -336,7 +336,8 @@ export default function Conversation(){
     .from('conversation_members')
     .select('user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url)')
     .eq('conversation_id',id);
-   if(membersError||!mountedRef.current)return;
+   if(membersError)throw membersError;
+   if(!mountedRef.current)return;
    const nextMembers=members||[];
    const nextMe=nextMembers.find(x=>x.user_id===user.id);
    const nextOther=nextMembers.find(x=>x.user_id!==user.id);
@@ -533,7 +534,7 @@ export default function Conversation(){
   }catch(e){if(mountedRef.current)setError(e?.message||'File upload failed');}
   finally{if(mountedRef.current)setUploading(false);}
  };
- const cancelVoice=async()=>{try{if(recorderState.isRecording)await recorder.stop();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}setUploading(false);setError('');};
+ const cancelVoice=async()=>{try{if(recorderState.isRecording)await recorder.stop();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}if(mountedRef.current){setUploading(false);setError('');}};
  const openAttachment=async(m)=>{if(m?.media_url){try{await Linking.openURL(m.media_url)}catch{setError('Unable to open this file.')}}};
  const formatSize=(bytes)=>{if(!bytes||bytes<1024)return bytes?bytes+' B':'';const units=['KB','MB','GB'];let n=bytes/1024;let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return n.toFixed(n>=10?0:1)+' '+units[i]};
  const expiryForMessage=()=>{const seconds=info?.disappearing_seconds||0;return seconds?new Date(Date.now()+seconds*1000).toISOString():null;};
