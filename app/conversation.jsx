@@ -535,7 +535,7 @@ export default function Conversation(){
   finally{if(mountedRef.current)setUploading(false);}
  };
  const cancelVoice=async()=>{try{if(recorderState.isRecording)await recorder.stop();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}if(mountedRef.current){setUploading(false);setError('');}};
- const openAttachment=async(m)=>{if(m?.media_url){try{await Linking.openURL(m.media_url)}catch{setError('Unable to open this file.')}}};
+ const openAttachment=async(m)=>{if(!m?.media_url)return;try{await Linking.openURL(m.media_url)}catch{if(mountedRef.current)setError('Unable to open this file.')}};
  const formatSize=(bytes)=>{if(!bytes||bytes<1024)return bytes?bytes+' B':'';const units=['KB','MB','GB'];let n=bytes/1024;let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return n.toFixed(n>=10?0:1)+' '+units[i]};
  const expiryForMessage=()=>{const seconds=info?.disappearing_seconds||0;return seconds?new Date(Date.now()+seconds*1000).toISOString():null;};
  const setDisappearing=async(seconds)=>{
