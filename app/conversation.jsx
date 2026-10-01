@@ -106,42 +106,6 @@ export default function Conversation(){
  },[id,user?.id]);
 
  useEffect(()=>{
-  // Reset transient composer state immediately when switching conversations.
-  // Draft text is loaded separately, so the previous chat cannot flash into the new chat.
-  draftLoadSequenceRef.current++;
-  draftLocalUpdatedAtRef.current=0;
-  draftDirtyRef.current=false;
-  applyingRemoteDraftRef.current=false;
-  setText('');
-  setEditingId(null);
-  setReplyTo(null);
-  setSelectedMessage(null);
-  setPendingMedia(null);
-  setPendingVoiceUri(null);
-  setMediaCaption('');
-  setAttachmentOpen(false);
-  setError('');
-  setDraftSaved(false);
-  let active=true;
-  (async()=>{
-   if(!id)return;
-   try{
-    const raw=await AsyncStorage.getItem('freetopia-chat-style-'+id);
-    if(!active||!raw)return;
-    const saved=JSON.parse(raw);
-    if(saved.theme&&CHAT_THEMES[saved.theme])setChatTheme(saved.theme);
-    if(saved.wallpaper&&CHAT_WALLPAPERS[saved.wallpaper])setChatWallpaper(saved.wallpaper);
-    if(saved.bubble&&BUBBLE_STYLES[saved.bubble])setBubbleStyle(saved.bubble);
-   }catch{}
-  })();
-  return()=>{active=false};
- },[id]);
- useEffect(()=>{
-  if(!id)return;
-  AsyncStorage.setItem('freetopia-chat-style-'+id,JSON.stringify({theme:chatTheme,wallpaper:chatWallpaper,bubble:bubbleStyle})).catch(()=>{});
- },[id,chatTheme,chatWallpaper,bubbleStyle]);
-
- useEffect(()=>{
   draftLoadSequenceRef.current++;
   draftLocalUpdatedAtRef.current=0;
   draftDirtyRef.current=false;
