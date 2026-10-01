@@ -471,17 +471,20 @@ export default function Conversation(){
  const send=async()=>{
   const v=text.trim();
   if(!v||!info?.me||info.me.request_status!=='accepted'||sending)return;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   setSending(true);setError('');
   try{
    if(editingId){
     const{error:e}=await supabase.from('messages').update({content:v,edited_at:new Date().toISOString()}).eq('id',editingId).eq('sender_id',user.id);
     if(e)throw e;
-    if(mountedRef.current){setText('');setEditingId(null);}
+    if(isCurrentAction()){setText('');setEditingId(null);}
    }else{
     const{data:inserted,error:e}=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:v,reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
     if(e)throw e;
-    if(inserted&&mountedRef.current)setMessages(current=>current.some(x=>x.id===inserted.id)?current:[...current,inserted]);
-    if(mountedRef.current){
+    if(inserted&&isCurrentAction())setMessages(current=>current.some(x=>x.id===inserted.id)?current:[...current,inserted]);
+    if(isCurrentAction()){
      setText('');setReplyTo(null);draftDirtyRef.current=false;
      if(typingTimerRef.current)clearTimeout(typingTimerRef.current);
      broadcastTyping(false);
@@ -491,12 +494,12 @@ export default function Conversation(){
     }
    }
   }catch(e){
-   if(mountedRef.current){
+   if(isCurrentAction()){
     if(!editingId&&v)saveDraft(v);
     setError(e?.message||'Message could not be sent. Please try again.');
    }
   }finally{
-   if(mountedRef.current)setSending(false);
+   if(isCurrentAction())setSending(false);
   }
  };
 
