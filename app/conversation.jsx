@@ -444,7 +444,10 @@ export default function Conversation(){
     }
    }
   }catch(e){
-   if(mountedRef.current)setError(e?.message||'Message could not be sent. Please try again.');
+   if(mountedRef.current){
+    if(!editingId&&v)saveDraft(v);
+    setError(e?.message||'Message could not be sent. Please try again.');
+   }
   }finally{
    if(mountedRef.current)setSending(false);
   }
@@ -851,7 +854,7 @@ export default function Conversation(){
      <View style={s.searchResultMain}><Text numberOfLines={1} style={s.searchResultSender}>{m.profiles?.display_name||m.profiles?.username||'Message'}</Text><Text numberOfLines={1} style={s.searchResultText}>{m.content||({image:'Photo',video:'Video',audio:'Voice message',file:'File'}[m.media_type]||'Media message')}</Text></View><Text style={s.searchResultHint}>View</Text>
     </Pressable>)}
    </View>}
-   {error&&<Text style={[s.err,{backgroundColor:theme.panel,borderColor:theme.theirs,color:theme.text}]}>{error}</Text>}
+   {error&&<View style={[s.errorBanner,{backgroundColor:theme.panel,borderColor:theme.theirs}]}><Text style={[s.err,{color:theme.text}]} numberOfLines={3}>{error}</Text>{text.trim()&&info?.me?.request_status==='accepted'&&!sending?<Pressable onPress={send} style={[s.errorRetry,{borderColor:theme.accent}]}><Text style={[s.errorRetryText,{color:theme.accent}]}>Try again</Text></Pressable>:null}</View>}
    {pinned.length>0&&<View style={[s.pinnedBar,{backgroundColor:theme.panel,borderColor:theme.theirs}]}><Text style={s.pinnedIcon}>📌</Text><View style={s.pinnedCopy}><Text style={s.pinnedTitle}>Pinned message</Text><Text numberOfLines={1} style={s.pinnedText}>{messages.find(x=>x.id===pinned[0].message_id)?.content||'Media message'}</Text></View><Pressable onPress={()=>{const idx=messages.findIndex(x=>x.id===pinned[0].message_id);if(idx>=0)scrollRef.current?.scrollTo({y:Math.max(0,idx*75),animated:true})}}><Text style={s.action}>View</Text></Pressable></View>}{statusMessage&&<View style={s.statusOverlay}>
     <Pressable style={s.statusBackdrop} onPress={()=>setStatusMessage(null)}/>
     <View style={s.statusSheet}>
