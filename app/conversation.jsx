@@ -533,8 +533,28 @@ export default function Conversation(){
   setTimeout(()=>setHighlightedMessageId(current=>current===messageId?null:current),1800);
  };
  const selectedMessages=messages.filter(m=>selectedIds.includes(m.id));
- const bulkStar=async()=>{if(!user?.id||!selectedMessages.length)return;for(const m of selectedMessages){const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);if(!starred)await supabase.from('message_stars').insert({message_id:m.id,user_id:user.id});}clearSelection();load();};
- const bulkDeleteForMe=async()=>{if(!user?.id||!selectedMessages.length)return;const rows=selectedMessages.map(m=>({message_id:m.id,user_id:user.id}));const{error:e}=await supabase.from('message_hidden_for_users').upsert(rows,{onConflict:'message_id,user_id'});if(e)setError(e.message);else{const ids=new Set(selectedIds);setMessages(current=>current.filter(m=>!ids.has(m.id)));clearSelection();}};
+ const bulkStar=async()=>{
+  if(!user?.id||!selectedMessages.length)return;
+  try{
+   for(const m of selectedMessages){
+    const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);
+    if(!starred){
+     const{error:e}=await supabase.from('message_stars').insert({message_id:m.id,user_id:user.id});
+     if(e)throw e;
+    }
+   }
+   if(mountedRef.current){clearSelection();await load();}
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not star the selected messages.');}
+ };
+ const bulkDeleteForMe=async()=>{
+  if(!user?.id||!selectedMessages.length)return;
+  try{
+   const rows=selectedMessages.map(m=>({message_id:m.id,user_id:user.id}));
+   const{error:e}=await supabase.from('message_hidden_for_users').upsert(rows,{onConflict:'message_id,user_id'});
+   if(e)throw e;
+   if(mountedRef.current){const ids=new Set(selectedIds);setMessages(current=>current.filter(m=>!ids.has(m.id)));clearSelection();}
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not delete the selected messages for you.');}
+ };
  const openForwardMany=async()=>{if(!selectedMessages.length)return;setForwardMessage(null);setSelectedIds([]);setForwardMessage(selectedMessages);setForwardLoading(true);setError('');const{data:members,error:e}=await supabase.from('conversation_members').select('conversation_id,conversations:conversation_id(id,kind,title,disappearing_seconds),request_status').eq('user_id',user.id).eq('request_status','accepted');if(e){setError(e.message);setForwardMessage(null);setForwardLoading(false);return;}const rows=(members||[]).map(x=>x.conversations).filter(Boolean).filter(x=>x.id!==id);const directIds=rows.filter(x=>x.kind!=='group').map(x=>x.id);let directProfiles=[];if(directIds.length){const{data:dm}=await supabase.from('conversation_members').select('conversation_id,user_id,profiles:user_id(id,username,display_name,avatar_url)').in('conversation_id',directIds).neq('user_id',user.id).eq('request_status','accepted');directProfiles=dm||[];}setForwardTargets(rows.map(target=>{const member=directProfiles.find(x=>x.conversation_id===target.id);return member?{...target,other:member.profiles}:target;}));setForwardLoading(false);};
  const openForward=async(m)=>{
   setSelectedMessage(null);setForwardMessage(m);setForwardLoading(true);setError('');
@@ -553,14 +573,24 @@ export default function Conversation(){
  const forwardTo=async(target)=>{
   if(!forwardMessage||forwardingId)return;
   setForwardingId(target.id);setError('');
-  const batch=Array.isArray(forwardMessage)?forwardMessage:[forwardMessage];
-  const{error:e}=await supabase.from('messages').insert(batch.map(item=>({conversation_id:target.id,sender_id:user.id,content:item.content||null,media_url:item.media_url||null,media_type:item.media_type||null,reply_to_id:null,expires_at:target.disappearing_seconds?new Date(Date.now()+target.disappearing_seconds*1000).toISOString():null})));
-  if(e)setError(e.message);else setForwardMessage(null);
-  setForwardingId(null);
+  try{
+   const batch=Array.isArray(forwardMessage)?forwardMessage:[forwardMessage];
+   const{error:e}=await supabase.from('messages').insert(batch.map(item=>({conversation_id:target.id,sender_id:user.id,content:item.content||null,media_url:item.media_url||null,media_type:item.media_type||null,reply_to_id:null,expires_at:target.disappearing_seconds?new Date(Date.now()+target.disappearing_seconds*1000).toISOString():null})));
+   if(e)throw e;
+   if(mountedRef.current)setForwardMessage(null);
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not forward this message.');}
+  finally{if(mountedRef.current)setForwardingId(null);}
  };
 
  const togglePin=async(m)=>{const existing=pinned.find(p=>p.message_id===m.id);if(existing){const{error:e}=await supabase.from('message_pins').delete().eq('message_id',m.id).eq('pinned_by',user.id);if(e)setError(e.message);else setPinned(current=>current.filter(p=>p.message_id!==m.id));}else{const{error:e}=await supabase.from('message_pins').insert({message_id:m.id,conversation_id:id,pinned_by:user.id});if(e)setError(e.message);else setPinned(current=>[{message_id:m.id,pinned_by:user.id,pinned_at:new Date().toISOString()},...current]);}setSelectedMessage(null);};
- const deleteForMe=async(m)=>{const{error:e}=await supabase.from('message_hidden_for_users').insert({message_id:m.id,user_id:user.id});if(e)setError(e.message);else{setMessages(current=>current.filter(x=>x.id!==m.id));setSelectedMessage(null);}};
+ const deleteForMe=async(m)=>{
+  if(!m?.id||!user?.id)return;
+  try{
+   const{error:e}=await supabase.from('message_hidden_for_users').upsert({message_id:m.id,user_id:user.id},{onConflict:'message_id,user_id'});
+   if(e)throw e;
+   if(mountedRef.current){setMessages(current=>current.filter(x=>x.id!==m.id));setSelectedMessage(null);}
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not delete this message for you.');}
+ };
  const deleteMessage=(m)=>{
   Alert.alert('Delete message','Delete this message for everyone?',[
    {text:'Cancel',style:'cancel'},
