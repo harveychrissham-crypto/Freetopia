@@ -230,16 +230,19 @@ export default function Conversation(){
         const readMap=new Map(); readsOwn.forEach(x=>readMap.set(x.message_id,(readMap.get(x.message_id)||0)+1));
         if(sequence===loadSequenceRef.current&&mountedRef.current)setMessages(current=>current.map(x=>x.sender_id===user.id?{...x,deliveryCount:deliveryMap.get(x.id)||0,readCount:readMap.get(x.id)||0,recipientCount:recipients.length}:x));
         const unread=(m||[]).filter(x=>x.sender_id!==user.id&&!x.deleted_at);
-        if(sequence===loadSequenceRef.current&&mountedRef.current)setUnreadBoundaryId(unread.length?unread[0].id:null);
         if(unread.length){
           const {data:reads,error:readError}=await supabase.from('message_reads').select('message_id').eq('user_id',user.id).in('message_id',unread.map(x=>x.id));
           if(readError)throw readError;
           const seen=new Set((reads||[]).map(x=>x.message_id));
-          const missing=unread.filter(x=>!seen.has(x.id)).map(x=>({message_id:x.id,user_id:user.id}));
+          const missing=unread.filter(x=>!seen.has(x.id));
+          if(sequence===loadSequenceRef.current&&mountedRef.current)setUnreadBoundaryId(missing.length?missing[0].id:null);
           if(missing.length){
-            const {error:markError}=await supabase.from('message_reads').upsert(missing,{onConflict:'message_id,user_id'});
+            const rows=missing.map(x=>({message_id:x.id,user_id:user.id}));
+            const {error:markError}=await supabase.from('message_reads').upsert(rows,{onConflict:'message_id,user_id'});
             if(markError)throw markError;
           }
+        }else if(sequence===loadSequenceRef.current&&mountedRef.current){
+          setUnreadBoundaryId(null);
         }
       }catch(e){
         if(sequence===loadSequenceRef.current&&mountedRef.current)setError(e?.message||'Some chat read receipts could not be synchronized.');
