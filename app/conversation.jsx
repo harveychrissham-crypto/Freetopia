@@ -518,10 +518,12 @@ export default function Conversation(){
  };
  const toggleReaction=async(m,emoji)=>{
   if(!user?.id||!m?.id)return;
+  const actionChannel=channelRef.current;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel;
   const current=m.message_reactions||[];
   const mine=current.some(r=>r.user_id===user.id&&r.emoji===emoji);
   const next=mine?current.filter(r=>!(r.user_id===user.id&&r.emoji===emoji)):[...current,{user_id:user.id,emoji}];
-  if(mountedRef.current){
+  if(isCurrentAction()){
    setMessages(items=>items.map(x=>x.id===m.id?{...x,message_reactions:next}:x));
    setSelectedMessage(x=>x?.id===m.id?{...x,message_reactions:next}:x);
   }
@@ -531,7 +533,7 @@ export default function Conversation(){
     :await supabase.from('message_reactions').insert({message_id:m.id,user_id:user.id,emoji});
    if(result.error)throw result.error;
   }catch(e){
-   if(mountedRef.current){
+   if(isCurrentAction()){
     setMessages(items=>items.map(x=>x.id===m.id?{...x,message_reactions:current}:x));
     setSelectedMessage(x=>x?.id===m.id?{...x,message_reactions:current}:x);
     setError(e?.message||'Could not update this reaction.');
@@ -540,14 +542,16 @@ export default function Conversation(){
 };
  const toggleStar=async(m)=>{
   if(!user?.id||!m?.id)return;
+  const actionChannel=channelRef.current;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel;
   try{
    const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);
    const result=starred
     ?await supabase.from('message_stars').delete().eq('message_id',m.id).eq('user_id',user.id)
     :await supabase.from('message_stars').insert({message_id:m.id,user_id:user.id});
    if(result.error)throw result.error;
-   if(mountedRef.current)await load();
-  }catch(e){if(mountedRef.current)setError(e?.message||'Could not update the starred message.');}
+   if(isCurrentAction())await load();
+  }catch(e){if(isCurrentAction())setError(e?.message||'Could not update the starred message.');}
 };
  const pickMedia=async()=>{
   if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;
