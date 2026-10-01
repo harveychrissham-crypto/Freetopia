@@ -201,20 +201,20 @@ export default function Messages() {
   const archiveCount = items.filter(c=>c.me?.request_status==='accepted' && c.me?.is_archived).length;
 
   if (desktop) return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={[s.safe,{backgroundColor:colors.bg}]}>
       <View style={s.desktopShell}>
-        <Sidebar profile={profile} router={router} requestCount={requestCount} unreadTotal={unreadTotal} />
+        <Sidebar profile={profile} router={router} requestCount={requestCount} unreadTotal={unreadTotal} colors={colors} />
         <View style={s.desktopMain}>
-          <Topbar query={query} setQuery={setQuery} router={router} profile={profile} unreadTotal={unreadTotal} />
+          <Topbar query={query} setQuery={setQuery} router={router} profile={profile} unreadTotal={unreadTotal} colors={colors} />
           <View style={s.desktopBody}>
             <View style={s.inbox}>
               <View style={s.inboxHead}>
                 <View><Text style={s.kicker}>CONNECT</Text><Text style={s.title}>Messages</Text></View>
                 <Pressable onPress={()=>router.push('/new-message')} style={s.new}><AppIcon name="plus" size={14} color={C.white}/><Text style={s.newText}>New</Text></Pressable>
               </View>
-              <Tabs tab={tab} setTab={setTab} requestCount={requestCount} />
-              {error ? <Error text={error}/> : null}
-              {loading ? <Loading/> : tab==='Communities' ? <CommunityList communities={communities} router={router} query={query}/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} router={router} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
+              <Tabs tab={tab} setTab={setTab} requestCount={requestCount} colors={colors} />
+              {error ? <Error text={error} colors={colors}/> : null}
+              {loading ? <Loading/> : tab==='Communities' ? <CommunityList communities={communities} router={router} query={query} colors={colors}/> : rows.length ? rows.map(c=><Row key={c.id} c={c} tab={tab} router={router} colors={colors} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>) : <Empty tab={tab}/>}
             </View>
             <ConversationPreview />
             <QuickRail requestCount={requestCount} archiveCount={archiveCount} router={router} onArchive={()=>setTab('Archived')} />
@@ -232,24 +232,24 @@ export default function Messages() {
             <Text style={[s.mobileTitle,{color:colors.text,fontSize:26*textScale}]}>Messages</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="New message" onPress={()=>router.push('/new-message')} style={s.composeButton} hitSlop={8}>
-            <AppIcon name="write" size={19} color={C.text}/>
+            <AppIcon name="write" size={19} color={colors.text}/>
           </Pressable>
         </View>
         <Tabs tab={tab} setTab={setTab} requestCount={requestCount}/>
       </View>
-      <View style={s.mobileListArea}>
-        {tab==='Communities' ? <CommunityList communities={communities} router={router}/> :
+      <View style={[s.mobileListArea,{backgroundColor:colors.bg}]} >
+        {tab==='Communities' ? <CommunityList communities={communities} router={router} colors={colors}/> :
           <FlatList
             data={loading ? [] : rows}
             keyExtractor={(item)=>item.id}
-            style={s.mobileList}
+            style={[s.mobileList,{backgroundColor:colors.bg}]}
             contentContainerStyle={s.mobileListContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />}
             ListHeaderComponent={error ? <Error text={error}/> : null}
             ListEmptyComponent={loading ? <Loading/> : <Empty tab={tab}/>}
-            renderItem={({item:c})=><Row c={c} tab={tab} router={router} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>}
+            renderItem={({item:c})=><Row c={c} tab={tab} router={router} colors={colors} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>}
           />
         }
       </View>
@@ -257,7 +257,7 @@ export default function Messages() {
   );
 }
 
-function Sidebar({profile,router,requestCount,unreadTotal}) {
+function Sidebar({profile,router,requestCount,unreadTotal,colors}) {
   const items=[['home','Home','/home'],['compass','Explore','/explore'],['users','Communities','/communities'],['message','Messages','/messages'],['bell','Notifications','/notifications'],['plus','Create','/create'],['profile','Profile','/profile']];
   const messageBadgeCount=unreadTotal+requestCount;
   return <View style={s.sidebar}>
@@ -266,13 +266,13 @@ function Sidebar({profile,router,requestCount,unreadTotal}) {
     <View style={s.proCard}><View style={{flexDirection:'row',alignItems:'center',gap:7}}><AppIcon name="spark" size={14} color={C.text}/><Text style={s.proTitle}>Freetopia Pro</Text></View><Text style={s.proBody}>Unlock more features, customize your experience, and get closer to your community.</Text><View style={s.proButton}><Text style={s.proButtonText}>Coming soon</Text></View></View>
   </View>;
 }
-function Topbar({query,setQuery,router,profile,unreadTotal}) {
+function Topbar({query,setQuery,router,profile,unreadTotal,colors}) {
   return <View style={s.topbar}><TextInput value={query} onChangeText={setQuery} placeholder="Search Freetopia..." placeholderTextColor="#667991" style={s.search}/><View style={s.topIcons}><Pressable accessibilityLabel="Notifications" onPress={()=>router.push('/notifications')} style={s.topIconButton}><AppIcon name="bell" size={18} color={C.text}/></Pressable><Pressable accessibilityLabel="Messages" onPress={()=>router.push('/messages')} style={s.topIconButton}><AppIcon name="message" size={18} color={C.text}/>{unreadTotal>0?<View style={s.topUnreadDot}><Text style={s.topUnreadText}>{unreadTotal>99?'99+':unreadTotal}</Text></View>:null}</Pressable><Pressable onPress={()=>router.push('/profile')}>{profile?.avatar_url?<Image source={{uri:getImageUrl(profile.avatar_url,{width:800,height:800,quality:100})}} style={s.topAvatar}/>:<View style={s.topAvatar}><Text style={s.topAvatarText}>{(profile?.display_name||profile?.username||'F')[0].toUpperCase()}</Text></View>}</Pressable></View></View>;
 }
-function Tabs({tab,setTab,requestCount}) {
-  return <View style={s.tabs}>{['Messages','Requests','Communities','Archived'].map(x=><Pressable key={x} onPress={()=>setTab(x)} accessibilityRole="tab" accessibilityState={{selected:tab===x}} accessibilityLabel={x==='Requests'&&requestCount>0?'Requests, '+requestCount+' pending':x} style={[s.tab,tab===x&&s.tabSelected]}><Text style={[s.tabText,tab===x&&s.tabSelectedText]}>{x}</Text>{x==='Requests'&&requestCount>0?<View style={s.count}><Text style={s.countText}>{requestCount}</Text></View>:null}</Pressable>)}</View>;
+function Tabs({tab,setTab,requestCount,colors}) {
+  return <View style={[s.tabs,{backgroundColor:colors.bg}]}>{['Messages','Requests','Communities','Archived'].map(x=><Pressable key={x} onPress={()=>setTab(x)} accessibilityRole="tab" accessibilityState={{selected:tab===x}} accessibilityLabel={x==='Requests'&&requestCount>0?'Requests, '+requestCount+' pending':x} style={[s.tab,{backgroundColor:tab===x?colors.panel2:'transparent',borderColor:tab===x?colors.line:'transparent'},tab===x&&s.tabSelected]}><Text style={[s.tabText,{color:tab===x?colors.text:colors.muted},tab===x&&s.tabSelectedText]}>{x}</Text>{x==='Requests'&&requestCount>0?<View style={s.count}><Text style={s.countText}>{requestCount}</Text></View>:null}</Pressable>)}</View>;
 }
-function Row({c,tab,router,open,accept,decline,archive}) {
+function Row({c,tab,router,open,accept,decline,archive,colors}) {
   const p=c.other?.profiles;
   const n=p?.display_name||p?.username||c.title||'Conversation';
   const preview=c.lastMessage?.content || (tab==='Requests'?'Can we connect?':'Start a conversation');
@@ -281,7 +281,7 @@ function Row({c,tab,router,open,accept,decline,archive}) {
   const openProfile=()=>{
     if(p?.id)router.push({pathname:'/profile',params:{id:p.id}});
   };
-  return <View style={s.row}>
+  return <View style={[s.row,{backgroundColor:colors.panel,borderTopColor:colors.line}]}>
     <View style={s.rowMain}>
       <Pressable
         onPress={openProfile}
@@ -291,15 +291,15 @@ function Row({c,tab,router,open,accept,decline,archive}) {
         style={({pressed})=>[s.avatarButton,pressed&&s.pressed]}
       >
         {p?.avatar_url
-          ? <Image pointerEvents="none" source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={s.avatar}/>
+          ? <Image pointerEvents="none" source={{uri:getImageUrl(p.avatar_url,{width:800,height:800,quality:100})}} style={[s.avatar,{backgroundColor:colors.panel2,borderColor:colors.line]}/>
           : <View pointerEvents="none" style={s.avatarFallback}><Text pointerEvents="none" style={s.avatarText}>{n[0]?.toUpperCase()}</Text></View>}
       </Pressable>
       <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`Open conversation with ${n}`} style={({pressed})=>[s.rowInfo,pressed&&s.rowPressed]}>
         <View style={s.rowTop}>
-          <Text style={[s.name,unread&&s.unreadName]} numberOfLines={1}>{n}</Text>
-          {c.lastMessage?<Text style={[s.time,unread&&s.unreadTime]}>{relative(c.lastMessage.created_at)}</Text>:null}
+          <Text style={[s.name,{color:colors.text},unread&&s.unreadName]} numberOfLines={1}>{n}</Text>
+          {c.lastMessage?<Text style={[s.time,{color:colors.muted},unread&&s.unreadTime]}>{relative(c.lastMessage.created_at)}</Text>:null}
         </View>
-        <View style={s.previewLine}><Text style={[s.preview,unread&&s.unreadPreview]} numberOfLines={1}>{mine?'You: ':''}{preview}</Text>{unread?<View style={s.unreadBadge}><Text style={s.unreadBadgeText}>{c.unreadCount>99?'99+':c.unreadCount}</Text></View>:null}</View>
+        <View style={s.previewLine}><Text style={[s.preview,{color:colors.muted},unread&&s.unreadPreview]} numberOfLines={1}>{mine?'You: ':''}{preview}</Text>{unread?<View style={s.unreadBadge}><Text style={s.unreadBadgeText}>{c.unreadCount>99?'99+':c.unreadCount}</Text></View>:null}</View>
       </Pressable>
     </View>
     {tab==='Requests' ? <View style={s.requestActions}><Pressable onPress={accept} style={({pressed})=>[s.accept,pressed&&s.pressed]}><Text style={s.acceptText}>Accept</Text></Pressable><Pressable onPress={decline} style={({pressed})=>[s.decline,pressed&&s.pressed]}><Text style={s.declineText}>Decline</Text></Pressable></View> : <Pressable accessibilityLabel={tab==='Archived'?'Unarchive conversation':'Archive conversation'} onPress={archive} style={({pressed})=>[s.archive,pressed&&s.pressed]}><AppIcon name="archive" size={14} color="#93A7BC"/></Pressable>}
@@ -309,20 +309,20 @@ function ConversationPreview(){return <View style={s.previewPanel}><Text style={
 function QuickRail({requestCount,archiveCount,router,onArchive}){return <View style={s.quickRail}><View style={s.quickCard}><Text style={s.quickTitle}>Quick Access</Text><View style={s.quickGrid}><Quick icon="users" label="My Communities" onPress={()=>router.push('/communities')}/><Quick icon="archive" label="Archive" value={archiveCount} onPress={onArchive}/></View></View><View style={s.quickCard}><Text style={s.quickTitle}>Inbox</Text><QuickLine label="Hidden Requests" value={requestCount} onPress={()=>router.push({pathname:'/messages',params:{tab:'Requests'}})}/><QuickLine label="Archived chats" value={archiveCount} onPress={onArchive}/><Pressable onPress={()=>router.push('/new-message')} style={s.railNew}><Text style={s.railNewText}>Start a new conversation</Text><AppIcon name="arrow-right" size={12} color={C.white}/></Pressable></View><View style={s.railPromo}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.promoLogo}/><Text style={s.promoTitle}>Freetopia</Text><Text style={s.promoBody}>One conversation at a time.</Text></View></View>}
 function Quick({icon,label,value,onPress}){return <Pressable onPress={onPress} disabled={!onPress} style={s.quick}><AppIcon name={icon} size={17} color="#9FB8D5"/><Text style={s.quickLabel}>{label}</Text>{value>0?<Text style={s.quickValue}>{value}</Text>:null}</Pressable>}
 function QuickLine({label,value,onPress}){return <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress?'button':undefined} style={({pressed})=>[s.quickLine,pressed&&s.quickLinePressed]}><Text style={s.quickLineLabel}>{label}</Text><Text style={s.quickLineValue}>{value}</Text></Pressable>}
-function CommunityList({communities,router,query=''}) {
+function CommunityList({communities,router,query='',colors}) {
   const visible=(communities||[]).filter(c=>!query.trim()||`${c.name||''} ${c.description||''}`.toLowerCase().includes(query.trim().toLowerCase()));
-  if (!visible.length) return <View style={s.communityBox}><AppIcon name="users" size={26} color={C.violet}/><Text style={s.emptyTitle}>{query.trim()?'No matching communities':'No communities yet'}</Text><Text style={s.emptyBody}>{query.trim()?'Try a different search.':'Real communities will appear here as they are created.'}</Text></View>;
+  if (!visible.length) return <View style={[s.communityBox,{backgroundColor:colors.panel,borderColor:colors.line}]}><AppIcon name="users" size={26} color={C.violet}/><Text style={s.emptyTitle}>{query.trim()?'No matching communities':'No communities yet'}</Text><Text style={s.emptyBody}>{query.trim()?'Try a different search.':'Real communities will appear here as they are created.'}</Text></View>;
   return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.communityList}>
-    <Pressable onPress={()=>router.push('/create-community')} style={s.createCommunity}><AppIcon name="plus" size={14} color={C.text}/><Text style={s.createCommunityText}>Create Community</Text></Pressable>
-    {visible.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={s.communityRow}>
-      {c.avatar_url?<Image source={{uri:getImageUrl(c.avatar_url,{width:800,height:800,quality:100})}} style={s.communityAvatar}/>:<View style={s.communityAvatar}><Text style={s.communityAvatarText}>{c.name?.[0]?.toUpperCase()}</Text></View>}
-      <View style={{flex:1}}><Text style={s.communityName}>{c.name}</Text><Text style={s.communityMembers}>{c.is_private?'Private community':'Public community'}</Text></View>
+    <Pressable onPress={()=>router.push('/create-community')} style={[s.createCommunity,{backgroundColor:colors.panel2,borderColor:colors.line}]}><AppIcon name="plus" size={14} color={C.text}/><Text style={[s.createCommunityText,{color:colors.text}]}>Create Community</Text></Pressable>
+    {visible.map(c=><Pressable key={c.id} onPress={()=>router.push({pathname:'/community',params:{id:c.id}})} style={[s.communityRow,{borderBottomColor:colors.line}]}>
+      {c.avatar_url?<Image source={{uri:getImageUrl(c.avatar_url,{width:800,height:800,quality:100})}} style={s.communityAvatar}/>:<View style={[s.communityAvatar,{backgroundColor:colors.panel2}]}><Text style={s.communityAvatarText}>{c.name?.[0]?.toUpperCase()}</Text></View>}
+      <View style={{flex:1}}><Text style={[s.communityName,{color:colors.text}]}>{c.name}</Text><Text style={[s.communityMembers,{color:colors.muted}]}>{c.is_private?'Private community':'Public community'}</Text></View>
       <Text style={s.joined}>View</Text>
     </Pressable>)}
   </ScrollView>;
 }
 function Empty({tab}){return <EmptyState icon={tab==='Archived'?'archive':'message'} title={tab==='Requests'?'No message requests.':tab==='Archived'?'No archived conversations.':'No conversations yet.'} body={tab==='Requests'?'New requests from people you do not follow will appear here.':'Start a real conversation from someone’s profile or the New button.'}/>}
-function Error({text}){return <View style={s.error}><Text style={s.errorTitle}>Couldn't load messages</Text><Text style={s.errorText}>{text}</Text></View>}
+function Error({text,colors}){return <View style={[s.error,{backgroundColor:colors.panel2,borderColor:colors.line}]}><Text style={s.errorTitle}>Couldn't load messages</Text><Text style={s.errorText}>{text}</Text></View>}
 function Loading(){return <LoadingState label="Loading conversations…" rows={4}/>}
 function Badge({n}){return <View style={s.badge}><Text style={s.badgeText}>{n>99?'99+':n}</Text></View>}
 function relative(v){const m=Math.max(0,Math.floor((Date.now()-new Date(v).getTime())/60000));if(m<1)return 'now';if(m<60)return m+'m';const h=Math.floor(m/60);if(h<24)return h+'h';return Math.floor(h/24)+'d'}
