@@ -258,7 +258,7 @@ export default function Messages() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />}
-            ListHeaderComponent={error ? <Error text={error}/> : null}
+            ListHeaderComponent={error ? <Error text={error} colors={colors}/> : null}
             ListEmptyComponent={loading ? <Loading/> : <Empty tab={tab}/>}
             renderItem={({item:c})=><Row c={c} tab={tab} router={router} colors={colors} open={()=>router.push({pathname:'/conversation',params:{id:c.id}})} accept={()=>change(c,{request_status:'accepted'})} decline={()=>change(c,{request_status:'declined'})} archive={()=>change(c,{is_archived:!c.me.is_archived})}/>}
           />
