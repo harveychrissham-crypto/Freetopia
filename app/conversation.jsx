@@ -349,7 +349,7 @@ export default function Conversation(){
     if(statusMessageRef.current?.id===messageId){
      setStatusRows(rows=>rows.map(row=>row.user_id===(payload.new?.user_id||payload.old?.user_id)?{...row,read_at:payload.new?.read_at||new Date().toISOString()}:row));
     }
-   }catch(e){if(mountedRef.current)setError(e?.message||'Read status could not be synchronized.');}
+   }catch(e){if(isActiveChannel())setError(e?.message||'Read status could not be synchronized.');}
   }).on('postgres_changes',{event:'*',schema:'public',table:'message_deliveries'},async payload=>{
    try{
     const messageId=payload.new?.message_id||payload.old?.message_id;
@@ -365,7 +365,7 @@ export default function Conversation(){
      const uid=payload.new?.user_id||payload.old?.user_id;
      setStatusRows(rows=>rows.map(row=>row.user_id===uid?{...row,delivered_at:delivered||row.delivered_at}:row));
     }
-   }catch(e){if(mountedRef.current)setError(e?.message||'Delivery status could not be synchronized.');}
+   }catch(e){if(isActiveChannel())setError(e?.message||'Delivery status could not be synchronized.');}
   }).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:'conversation_id=eq.'+id},async payload=>{
    try{
     const member=payload.new||payload.old;
