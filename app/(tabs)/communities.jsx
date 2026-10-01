@@ -28,8 +28,9 @@ export default function Communities(){
   if(e)throw e;
   const recent=p.data||[]; const postStats={};
   recent.forEach(x=>{if(!postStats[x.community_id])postStats[x.community_id]={count:0,last:x.created_at};postStats[x.community_id].count+=1;if(new Date(x.created_at)>new Date(postStats[x.community_id].last))postStats[x.community_id].last=x.created_at;});
+  if(sequence!==loadSequenceRef.current||!mountedRef.current)return;
   setItems((c.data||[]).map(x=>({...x,postCount:postStats[x.id]?.count||0,lastPostAt:postStats[x.id]?.last||null})));
-  if(sequence!==loadSequenceRef.current||!mountedRef.current)return; setPosts(recent); const memberships=(m.data||[]); setMembership(Object.fromEntries(memberships.map(x=>[x.community_id,x]))); setMine(new Set(memberships.filter(x=>x.status==='active').map(x=>x.community_id)));
+  setPosts(recent); const memberships=(m.data||[]); setMembership(Object.fromEntries(memberships.map(x=>[x.community_id,x]))); setMine(new Set(memberships.filter(x=>x.status==='active').map(x=>x.community_id)));
   }catch(err){if(sequence===loadSequenceRef.current&&mountedRef.current)setError(err?.message||'Unable to load communities. Please try again.');}
   finally{if(sequence===loadSequenceRef.current&&mountedRef.current)setLoading(false);}
  },[user?.id]);
@@ -45,11 +46,19 @@ export default function Communities(){
  const withMembership=filtered.map(c=>({...c,memberStatus:membership[c.id]?.status||null})); const featured=withMembership.slice(0,4); const popular=withMembership.slice(0,6);
  const join=async c=>{
   if(!user){router.push('/auth');return;}
-  if(membership[c.id]?.status==='active')return router.push({pathname:'/community',params:{id:c.id}}); if(membership[c.id]?.status==='pending')return router.push({pathname:'/community',params:{id:c.id}});
-  const {error:e}=await supabase.from('community_members').insert({community_id:c.id,user_id:user.id,role:'member',status:c.is_private?'pending':'active'});
-  if(e){setError(e.message);return;}
-  setMembership(x=>({...x,[c.id]:{community_id:c.id,status:c.is_private?'pending':'active',role:'member'}})); if(!c.is_private)setMine(x=>new Set([...x,c.id]));
-  router.push({pathname:'/community',params:{id:c.id}});
+  if(membership[c.id]?.status==='active')return router.push({pathname:'/community',params:{id:c.id}});
+  if(membership[c.id]?.status==='pending')return router.push({pathname:'/community',params:{id:c.id}});
+  try{
+   const status=c.is_private?'pending':'active';
+   const {error:e}=await supabase.from('community_members').insert({community_id:c.id,user_id:user.id,role:'member',status});
+   if(e)throw e;
+   if(!mountedRef.current)return;
+   setMembership(x=>({...x,[c.id]:{community_id:c.id,status,role:'member'}}));
+   if(status==='active')setMine(x=>new Set([...x,c.id]));
+   router.push({pathname:'/community',params:{id:c.id}});
+  }catch(e){
+   if(mountedRef.current)setError(e?.message||'Unable to join this community.');
+  }
  };
 
  return <SafeAreaView style={s.safe}>{desktop?<Desktop {...{router,user,profile,query,setQuery,tab,setTab,loading,error,filtered,featured,popular,mine,join,load,posts}}/>:<Mobile {...{router,user,profile,query,setQuery,tab,setTab,loading,error,filtered,featured,popular,mine,join,load,posts}}/>}</SafeAreaView>;
