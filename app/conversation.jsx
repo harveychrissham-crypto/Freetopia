@@ -398,12 +398,12 @@ export default function Conversation(){
    return()=>{
     mountedRef.current=false;
     statusLoadSequenceRef.current+=1;
-    channelRef.current=null;
     if(typingTimerRef.current){
      clearTimeout(typingTimerRef.current);
      typingTimerRef.current=null;
     }
-    broadcastTyping(false);
+    ch.send({type:'broadcast',event:'typing',payload:{user_id:user.id,typing:false}}).catch(()=>{});
+    channelRef.current=null;
     setTyping(false);
     setOnlineUsers([]);
     supabase.removeChannel(ch);
