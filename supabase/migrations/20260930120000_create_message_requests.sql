@@ -56,10 +56,8 @@ begin
   where conversation_id=target_conversation_id and user_id=v_user_id and request_status='pending';
   get diagnostics v_updated=row_count;
   if v_updated=0 then raise exception 'Message request is no longer pending'; end if;
-  if accept_request then
-    update public.notifications set read_at=coalesce(read_at,now())
-    where recipient_id=v_user_id and conversation_id=target_conversation_id and type='message' and read_at is null;
-  end if;
+  update public.notifications set read_at=coalesce(read_at,now())
+  where recipient_id=v_user_id and conversation_id=target_conversation_id and type='message' and read_at is null;
   return true;
 end; $$;
 revoke execute on function public.respond_to_message_request(uuid,boolean) from public;
