@@ -33,10 +33,12 @@ export default function Messages() {
   const reloadPending = useRef(false);
   const mountedRef = useRef(true);
   const itemsLengthRef = useRef(0);
+  const tabRef = useRef(tab);
   useEffect(()=>{
     if(requestedTab==='Requests'||requestedTab==='Archived'||requestedTab==='Communities')setTab(requestedTab);
   },[requestedTab]);
   itemsLengthRef.current = items.length;
+  tabRef.current = tab;
 
   const load = useCallback(async (pull=false) => {
     if (!user?.id || !mountedRef.current) return;
@@ -174,6 +176,7 @@ export default function Messages() {
 
   const change = async (c,patch) => {
     if(!user?.id||!c?.id||!mountedRef.current)return;
+    const actionTab=tab;
     setError('');
     try {
       if(Object.prototype.hasOwnProperty.call(patch,'request_status')){
@@ -186,9 +189,9 @@ export default function Messages() {
         const {error:e}=await supabase.from('conversation_members').update(patch).eq('conversation_id',c.id).eq('user_id',user.id);
         if(e)throw e;
       }
-      if(mountedRef.current)await load();
+      if(mountedRef.current&&tabRef.current===actionTab)await load();
     } catch(e) {
-      if(mountedRef.current)setError(e?.message||'Could not update this conversation.');
+      if(mountedRef.current&&tabRef.current===actionTab)setError(e?.message||'Could not update this conversation.');
     }
   };
 
