@@ -267,7 +267,7 @@ export default function Conversation(){
   if(!id)return;
   const ch=supabase.channel('conversation-'+id,{config:{broadcast:{self:false},presence:{key:user.id}}}); channelRef.current=ch;
   const isActiveChannel=()=>mountedRef.current&&channelRef.current===ch;
-  .on('postgres_changes',{event:'*',schema:'public',table:'message_drafts',filter:'conversation_id=eq.'+id},payload=>{
+  ch.on('postgres_changes',{event:'*',schema:'public',table:'message_drafts',filter:'conversation_id=eq.'+id},payload=>{
    const row=payload.new?.conversation_id?payload.new:payload.old;
    if(!row||!isActiveChannel()||row.user_id!==user.id||row.conversation_id!==id)return;
    if(payload.eventType==='DELETE'){
@@ -282,7 +282,7 @@ export default function Conversation(){
     return;
    }
    applyRemoteDraft(row);
-  }).on('presence',{event:'sync'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(!isActiveChannel())return;if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(typingTimerRef.current)clearTimeout(typingTimerRef.current);if(payload.payload?.typing)const timerChannel=ch;typingTimerRef.current=setTimeout(()=>{if(mountedRef.current&&channelRef.current===timerChannel)setTyping(false)},1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
+  }).on('presence',{event:'sync'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'join'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('presence',{event:'leave'},()=>{if(!isActiveChannel())return;const state=ch.presenceState();const ids=Object.values(state).flatMap(presences=>presences.map(p=>p.user_id)).filter(Boolean);setOnlineUsers([...new Set(ids)]);}).on('broadcast',{event:'typing'},payload=>{if(!isActiveChannel())return;if(payload.payload?.user_id!==user.id){setTyping(!!payload.payload?.typing);if(typingTimerRef.current)clearTimeout(typingTimerRef.current);if(payload.payload?.typing){const timerChannel=ch;typingTimerRef.current=setTimeout(()=>{if(mountedRef.current&&channelRef.current===timerChannel)setTyping(false)},1800);}}).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'conversation_id=eq.'+id},async payload=>{
    try{
     const incoming=payload.new;
     if(!incoming?.id||!isActiveChannel())return;
