@@ -63,6 +63,7 @@ export default function Conversation(){
  const loadSequenceRef=useRef(0);
  const draftLoadSequenceRef=useRef(0);
  const statusLoadSequenceRef=useRef(0);
+ const chatStyleHydratedIdRef=useRef(null);
  const{id}=useLocalSearchParams(),{user}=useAuth(),{isLight}=useAppearance(),router=useRouter(),scrollRef=useRef(null),messageLayoutsRef=useRef({}),draftTimerRef=useRef(null),draftLocalUpdatedAtRef=useRef(0),draftDirtyRef=useRef(false),applyingRemoteDraftRef=useRef(false),channelRef=useRef(null),recorder=useAudioRecorder(RecordingPresets.LOW_QUALITY),recorderState=useAudioRecorderState(recorder),[info,setInfo]=useState(null),[messages,setMessages]=useState([]),[unreadBoundaryId,setUnreadBoundaryId]=useState(null),[showJumpToLatest,setShowJumpToLatest]=useState(false),[highlightedMessageId,setHighlightedMessageId]=useState(null),[isNearBottom,setIsNearBottom]=useState(true),[newMessagesCount,setNewMessagesCount]=useState(0),[text,setText]=useState(''),[editingId,setEditingId]=useState(null),[replyTo,setReplyTo]=useState(null),[selectedMessage,setSelectedMessage]=useState(null),[loading,setLoading]=useState(true),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[typing,setTyping]=useState(false),[groupPanel,setGroupPanel]=useState(false),[groupTitle,setGroupTitle]=useState(''),[error,setError]=useState(''),[searchOpen,setSearchOpen]=useState(false),[search,setSearch]=useState(''),[searchIndex,setSearchIndex]=useState(0),[pinned,setPinned]=useState([]),[forwardMessage,setForwardMessage]=useState(null),[onlineUsers,setOnlineUsers]=useState([]),[forwardTargets,setForwardTargets]=useState([]),[forwardLoading,setForwardLoading]=useState(false),[forwardingId,setForwardingId]=useState(null),[attachmentOpen,setAttachmentOpen]=useState(false),[selectedIds,setSelectedIds]=useState([]),[chatInfoOpen,setChatInfoOpen]=useState(false),[sharedTab,setSharedTab]=useState('media'),[draftSaved,setDraftSaved]=useState(false),[statusMessage,setStatusMessage]=useState(null),[statusRows,setStatusRows]=useState([]),[statusLoading,setStatusLoading]=useState(false),[chatTheme,setChatTheme]=useState(isLight?'light':'dark'),[chatWallpaper,setChatWallpaper]=useState('minimal'),[bubbleStyle,setBubbleStyle]=useState('classic'),[previewMedia,setPreviewMedia]=useState(null),[pendingMedia,setPendingMedia]=useState(null),[pendingVoiceUri,setPendingVoiceUri]=useState(null),[mediaCaption,setMediaCaption]=useState('');
 
  const saveDraft=useCallback((value)=>{
@@ -137,6 +138,45 @@ export default function Conversation(){
  },[id]);
  useEffect(()=>{
   if(!id)return;
+  AsyncStorage.setItem('freetopia-chat-style-'+id,JSON.stringify({theme:chatTheme,wallpaper:chatWallpaper,bubble:bubbleStyle})).catch(()=>{});
+ },[id,chatTheme,chatWallpaper,bubbleStyle]);
+
+ useEffect(()=>{
+  draftLoadSequenceRef.current++;
+  draftLocalUpdatedAtRef.current=0;
+  draftDirtyRef.current=false;
+  applyingRemoteDraftRef.current=false;
+  chatStyleHydratedIdRef.current=null;
+  setText('');
+  setEditingId(null);
+  setReplyTo(null);
+  setSelectedMessage(null);
+  setPendingMedia(null);
+  setPendingVoiceUri(null);
+  setMediaCaption('');
+  setAttachmentOpen(false);
+  setError('');
+  setDraftSaved(false);
+  let active=true;
+  (async()=>{
+   if(!id)return;
+   try{
+    const raw=await AsyncStorage.getItem('freetopia-chat-style-'+id);
+    if(!active)return;
+    if(!raw){chatStyleHydratedIdRef.current=id;return;}
+    const saved=JSON.parse(raw);
+    if(saved.theme&&CHAT_THEMES[saved.theme])setChatTheme(saved.theme);
+    if(saved.wallpaper&&CHAT_WALLPAPERS[saved.wallpaper])setChatWallpaper(saved.wallpaper);
+    if(saved.bubble&&BUBBLE_STYLES[saved.bubble])setBubbleStyle(saved.bubble);
+    chatStyleHydratedIdRef.current=id;
+   }catch{
+    if(active)chatStyleHydratedIdRef.current=id;
+   }
+  })();
+  return()=>{active=false};
+ },[id]);
+ useEffect(()=>{
+  if(!id||chatStyleHydratedIdRef.current!==id)return;
   AsyncStorage.setItem('freetopia-chat-style-'+id,JSON.stringify({theme:chatTheme,wallpaper:chatWallpaper,bubble:bubbleStyle})).catch(()=>{});
  },[id,chatTheme,chatWallpaper,bubbleStyle]);
 
