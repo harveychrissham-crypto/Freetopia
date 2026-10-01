@@ -475,14 +475,13 @@ export default function Conversation(){
    setUploading(true);
    const path=user.id+'/voice-'+Date.now()+'.m4a';
    let uploadedPath=null;
-   try{
-    const res=await fetch(uri); const blob=await res.blob();
-    const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:'audio/mp4',upsert:false});
-    if(up.error)throw up.error;
-    uploadedPath=path;
-    const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
-    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:'audio',expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
-    if(ins.error)throw ins.error;
+   const res=await fetch(uri); const blob=await res.blob();
+   const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:'audio/mp4',upsert:false});
+   if(up.error)throw up.error;
+   uploadedPath=path;
+   const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
+   const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:null,media_url:pub,media_type:'audio',expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
+   if(ins.error)throw ins.error;
    if(isCurrentAction()){
     if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);
     setPendingVoiceUri(null);
