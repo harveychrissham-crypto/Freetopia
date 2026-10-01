@@ -453,6 +453,7 @@ export default function Conversation(){
 
  const sendVoice=async()=>{
   if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading||sending)return;
+  let resetAudioMode=false;
   const actionChannel=channelRef.current;
   const actionConversationId=id;
   const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
@@ -460,6 +461,7 @@ export default function Conversation(){
   try{
    let uri=pendingVoiceUri;
    if(recorderState.isRecording){
+    resetAudioMode=true;
     await recorder.stop();
     uri=recorder.uri;
     if(!uri)throw new Error('Voice recording was not created.');
@@ -490,7 +492,9 @@ export default function Conversation(){
    if(uploadedPath)await supabase.storage.from('message-media').remove([uploadedPath]).catch(()=>{});
    if(isCurrentAction())setError(e?.message||'Voice message failed. Your recording is kept so you can try again.');
   }finally{
-   try{await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}
+   if(resetAudioMode){
+    try{await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}
+   }
    if(isCurrentAction())setUploading(false);
   }
  };
