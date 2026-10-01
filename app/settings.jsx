@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +33,8 @@ const settingItems = [
 
 export default function Settings() {
   const router = useRouter();
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   const { width } = useWindowDimensions();
   const { user, profile, refreshProfile, signOut } = useAuth();
   const desktop = Platform.OS === 'web' && width >= 1000;
@@ -49,36 +51,49 @@ export default function Settings() {
   const initials = useMemo(() => name.charAt(0).toUpperCase(), [name]);
 
   const updatePrivacy = async () => {
-    if (!user?.id || privacyBusy) return;
+    if (!user?.id || privacyBusy || !mountedRef.current) return;
     const next = !privateProfile;
     setPrivateOverride(next);
     setPrivacyBusy(true);
-    const { error } = await supabase.from('profiles').update({ is_private: next }).eq('id', user.id);
-    if (error) {
-      setPasswordMessage(error.message);
-    } else {
+    setPasswordMessage('');
+    try {
+      const { error } = await supabase.from('profiles').update({ is_private: next }).eq('id', user.id);
+      if (error) throw error;
       await refreshProfile();
+    } catch (e) {
+      if (mountedRef.current) {
+        setPrivateOverride(null);
+        setPasswordMessage(e?.message || 'Unable to update privacy settings.');
+      }
+      return;
+    } finally {
+      if (mountedRef.current) {
+        setPrivateOverride(null);
+        setPrivacyBusy(false);
+      }
     }
-    setPrivateOverride(null);
-    setPrivacyBusy(false);
   };
 
   const updatePassword = async () => {
-    if (!password || passwordBusy) return;
+    if (!password || passwordBusy || !mountedRef.current) return;
     if (password.length < 6) {
       setPasswordMessage('Password must be at least 6 characters.');
       return;
     }
     setPasswordBusy(true);
     setPasswordMessage('');
-    const { error } = await supabase.auth.updateUser({ password });
-    setPasswordBusy(false);
-    if (error) {
-      setPasswordMessage(error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      if (mountedRef.current) {
+        setPassword('');
+        setPasswordMessage('Password updated successfully.');
+      }
+    } catch (e) {
+      if (mountedRef.current) setPasswordMessage(e?.message || 'Unable to update password.');
+    } finally {
+      if (mountedRef.current) setPasswordBusy(false);
     }
-    setPassword('');
-    setPasswordMessage('Password updated successfully.');
   };
 
   const go = (item) => {
@@ -215,8 +230,8 @@ export default function Settings() {
         ) : active === 'Help & Support' ? (
           <View style={s.mobileSecurity}>
             <Text style={s.sectionTitle}>Help & Support</Text>
-            <Pressable onPress={() => Linking.openURL('mailto:harveysham36@gmail.com?subject=Freetopia%20Support')} style={s.actionRow}><View style={{flex:1}}><Text style={s.lineTitle}>Contact us</Text><Text style={s.lineSub}>Email the Freetopia support address.</Text></View><AppIcon name="arrow-right" size={15} color={C.muted}/></Pressable>
-            <Pressable onPress={() => Linking.openURL('mailto:harveysham36@gmail.com?subject=Freetopia%20Bug%20Report')} style={s.actionRow}><View style={{flex:1}}><Text style={s.lineTitle}>Report a problem</Text><Text style={s.lineSub}>Send a bug report by email.</Text></View><AppIcon name="arrow-right" size={15} color={C.muted}/></Pressable>
+            <Pressable onPress={async () => { try { await Linking.openURL('mailto:harveysham36@gmail.com?subject=Freetopia%20Support'); } catch (e) { if (mountedRef.current) setPasswordMessage('Unable to open your email app.'); } }} style={s.actionRow}><View style={{flex:1}}><Text style={s.lineTitle}>Contact us</Text><Text style={s.lineSub}>Email the Freetopia support address.</Text></View><AppIcon name="arrow-right" size={15} color={C.muted}/></Pressable>
+            <Pressable onPress={async () => { try { await Linking.openURL('mailto:harveysham36@gmail.com?subject=Freetopia%20Bug%20Report'); } catch (e) { if (mountedRef.current) setPasswordMessage('Unable to open your email app.'); } }} style={s.actionRow}><View style={{flex:1}}><Text style={s.lineTitle}>Report a problem</Text><Text style={s.lineSub}>Send a bug report by email.</Text></View><AppIcon name="arrow-right" size={15} color={C.muted}/></Pressable>
             <View style={s.settingNote}><Text style={s.lineTitle}>FAQs</Text><Text style={s.lineSub}>The in-app FAQ page has not been connected yet.</Text></View>
           </View>
         ) : active === 'About Freetopia' ? (
