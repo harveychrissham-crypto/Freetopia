@@ -1,4 +1,4 @@
-import { useCallback,useRef,useState } from 'react';
+import { useCallback,useEffect,useRef,useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Image, Pressable,RefreshControl,ScrollView,StyleSheet,Text,View } from 'react-native';
 import { useLocalSearchParams,useRouter } from 'expo-router';
@@ -11,35 +11,54 @@ import AppIcon from '../components/AppIcon';
 const C={bg:'#060B12',panel:'#0A121C',line:'#182533',text:'#E9EEF4',muted:'#7F8D9D',accent:'#4B78A8',danger:'#A95B69'};
 
 export default function Community(){
- const loadedRef=useRef(false); const params=useLocalSearchParams(),id=Array.isArray(params.id)?params.id[0]:params.id;const r=useRouter();const {user}=useAuth();const [community,setCommunity]=useState(null);const [member,setMember]=useState(null);const [members,setMembers]=useState(0);const [posts,setPosts]=useState([]);const [loading,setLoading]=useState(true);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+ const loadedRef=useRef(false); const mountedRef=useRef(true); const loadSeq=useRef(0); const params=useLocalSearchParams(),id=Array.isArray(params.id)?params.id[0]:params.id;const r=useRouter();const {user}=useAuth();const [community,setCommunity]=useState(null);const [member,setMember]=useState(null);const [members,setMembers]=useState(0);const [posts,setPosts]=useState([]);const [loading,setLoading]=useState(true);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+ useEffect(()=>()=>{mountedRef.current=false;loadSeq.current+=1},[]);
  const load=useCallback(async(pull=false)=>{
-  if(!id)return;
+  if(!id||!mountedRef.current)return;
+  const seq=++loadSeq.current;
   setLoading(!pull&&!loadedRef.current);setError('');
+  try{
   const [c,m,mc,p]=await Promise.all([
    supabase.from('communities').select('id,name,slug,description,is_private,creator_id').eq('id',id).single(),
    supabase.from('community_members').select('role,status').eq('community_id',id).eq('user_id',user?.id||'').maybeSingle(),
    supabase.from('community_members').select('*',{count:'exact',head:true}).eq('community_id',id).eq('status','active'),
    supabase.from('posts').select('id,content,created_at,author_id,profiles:author_id(id,display_name,username,avatar_url),post_media(id,storage_path,media_type,width,height,sort_order,thumbnail_path)').eq('community_id',id).order('created_at',{ascending:false}).limit(30)
   ]);
-  if(c.error)setError(c.error.message);else{setCommunity(c.data);setMember(m.data);setMembers(mc.count||0);setPosts(p.data||[])}
-  setLoading(false);loadedRef.current=true;
+  if(seq!==loadSeq.current||!mountedRef.current)return;
+  if(c.error)throw c.error;
+  if(m.error)throw m.error;
+  if(mc.error)throw mc.error;
+  if(p.error)throw p.error;
+  setCommunity(c.data);setMember(m.data);setMembers(mc.count||0);setPosts(p.data||[]);loadedRef.current=true;
+  }catch(e){if(seq===loadSeq.current&&mountedRef.current)setError(e?.message||'Unable to load this community. Please try again.');}
+  finally{if(seq===loadSeq.current&&mountedRef.current)setLoading(false)}
  },[id,user?.id]);
  useFocusEffect(useCallback(()=>{load();},[load]));
  if(loading)return <SafeAreaView style={s.safe}><View style={s.center}><Text style={s.loadingText}>Loading community…</Text></View></SafeAreaView>;
  if(!community)return <SafeAreaView style={s.safe}><View style={s.center}><Text style={s.emptyTitle}>Community not found</Text><Pressable onPress={()=>r.back()}><Text style={s.back}>← Go back</Text></Pressable></View></SafeAreaView>;
 
  const join=async()=>{
-  if(!user||busy)return;setBusy(true);setError('');
-  const status=community.is_private?'pending':'active';
-  const {error:e}=await supabase.from('community_members').upsert({community_id:id,user_id:user.id,status,role:'member'});
-  if(e)setError(e.message);else{setMember({status,role:'member'});if(status==='active')setMembers(v=>v+1);}
-  setBusy(false);
+  if(!user||busy||!mountedRef.current)return;
+  setBusy(true);setError('');
+  try{
+   const status=community.is_private?'pending':'active';
+   const {error:e}=await supabase.from('community_members').upsert({community_id:id,user_id:user.id,status,role:'member'});
+   if(e)throw e;
+   if(!mountedRef.current)return;
+   setMember({status,role:'member'});if(status==='active')setMembers(v=>v+1);
+  }catch(e){if(mountedRef.current)setError(e?.message||'Unable to join this community. Please try again.');}
+  finally{if(mountedRef.current)setBusy(false);}
  };
  const leave=async()=>{
-  if(!user||busy||community.creator_id===user.id)return;setBusy(true);setError('');
-  const {error:e}=await supabase.from('community_members').delete().eq('community_id',id).eq('user_id',user.id);
-  if(e)setError(e.message);else{setMember(null);setMembers(v=>Math.max(0,v-1));}
-  setBusy(false);
+  if(!user||busy||community.creator_id===user.id||!mountedRef.current)return;
+  setBusy(true);setError('');
+  try{
+   const {error:e}=await supabase.from('community_members').delete().eq('community_id',id).eq('user_id',user.id);
+   if(e)throw e;
+   if(!mountedRef.current)return;
+   setMember(null);setMembers(v=>Math.max(0,v-1));
+  }catch(e){if(mountedRef.current)setError(e?.message||'Unable to leave this community. Please try again.');}
+  finally{if(mountedRef.current)setBusy(false);}
  };
  const isActive=member?.status==='active';
  const visiblePosts=community.is_private&&!isActive?[]:posts;
