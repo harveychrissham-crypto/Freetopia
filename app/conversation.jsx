@@ -489,14 +489,62 @@ export default function Conversation(){
    if(mountedRef.current)await load();
   }catch(e){if(mountedRef.current)setError(e?.message||'Could not update the starred message.');}
 };
- const pickMedia=async()=>{if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();if(!perm.granted){Alert.alert('Permission needed','Allow photo and video access to attach media.');return;}const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],quality:0.85});if(result.canceled||!result.assets?.[0])return;setAttachmentOpen(false);setMediaCaption('');setPendingMedia(result.assets[0]);};
- const sendPendingMedia=async()=>{if(!pendingMedia||!user?.id||uploading)return;const asset=pendingMedia;setUploading(true);setError('');try{const ext=(asset.fileName||asset.uri.split('/').pop()||'media').split('.').pop().toLowerCase();const path=user.id+'/'+Date.now()+'.'+ext;const res=await fetch(asset.uri);const blob=await res.blob();const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});if(up.error)throw up.error;const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:mediaCaption.trim()||null,media_url:pub,media_type:asset.type==='video'?'video':'image',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();if(ins.error)throw ins.error;if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setPendingMedia(null);setMediaCaption('');setReplyTo(null);}}catch(e){if(mountedRef.current)setError(e?.message||'Media upload failed');}finally{if(mountedRef.current)setUploading(false)}};
- const pickDocument=async()=>{if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;setAttachmentOpen(false);setUploading(true);setError('');try{const result=await DocumentPicker.getDocumentAsync({copyToCacheDirectory:true,multiple:false});if(result.canceled||!result.assets?.[0])return;const asset=result.assets[0];const name=asset.name||'Document';const ext=(name.includes('.')?name.split('.').pop():'bin').toLowerCase();const path=user.id+'/file-'+Date.now()+'.'+ext;const res=await fetch(asset.uri);const blob=await res.blob();const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});if(up.error)throw up.error;const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:name,media_url:pub,media_type:'file',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();if(ins.error)throw ins.error;if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setReplyTo(null);}}catch(e){if(mountedRef.current)setError(e?.message||'File upload failed');}finally{if(mountedRef.current)setUploading(false)}};
+ const pickMedia=async()=>{
+  if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;
+  try{
+   const perm=await ImagePicker.requestMediaLibraryPermissionsAsync();
+   if(!perm.granted){Alert.alert('Permission needed','Allow photo and video access to attach media.');return;}
+   const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images','videos'],quality:0.85});
+   if(result.canceled||!result.assets?.[0])return;
+   if(mountedRef.current){setAttachmentOpen(false);setMediaCaption('');setPendingMedia(result.assets[0]);}
+  }catch(e){if(mountedRef.current)setError(e?.message||'Could not open the media picker.');}
+};
+ const sendPendingMedia=async()=>{
+  if(!pendingMedia||!user?.id||uploading)return;
+  const asset=pendingMedia;setUploading(true);setError('');
+  try{
+   const ext=(asset.fileName||asset.uri.split('/').pop()||'media').split('.').pop().toLowerCase();
+   const path=user.id+'/'+Date.now()+'.'+ext;
+   const res=await fetch(asset.uri);const blob=await res.blob();
+   const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});
+   if(up.error)throw up.error;
+   const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
+   const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:mediaCaption.trim()||null,media_url:pub,media_type:asset.type==='video'?'video':'image',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
+   if(ins.error)throw ins.error;
+   if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setPendingMedia(null);setMediaCaption('');setReplyTo(null);}
+  }catch(e){if(mountedRef.current)setError(e?.message||'Media upload failed');}
+  finally{if(mountedRef.current)setUploading(false);}
+ };
+ const pickDocument=async()=>{
+  if(!user?.id||!info?.me||info.me.request_status!=='accepted'||uploading)return;
+  if(mountedRef.current){setAttachmentOpen(false);setUploading(true);setError('');}
+  try{
+   const result=await DocumentPicker.getDocumentAsync({copyToCacheDirectory:true,multiple:false});
+   if(result.canceled||!result.assets?.[0])return;
+   const asset=result.assets[0];const name=asset.name||'Document';const ext=(name.includes('.')?name.split('.').pop():'bin').toLowerCase();
+   const path=user.id+'/file-'+Date.now()+'.'+ext;
+   const res=await fetch(asset.uri);const blob=await res.blob();
+   const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});
+   if(up.error)throw up.error;
+   const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
+   const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:name,media_url:pub,media_type:'file',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
+   if(ins.error)throw ins.error;
+   if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setReplyTo(null);}
+  }catch(e){if(mountedRef.current)setError(e?.message||'File upload failed');}
+  finally{if(mountedRef.current)setUploading(false);}
+ };
  const cancelVoice=async()=>{try{if(recorderState.isRecording)await recorder.stop();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}setUploading(false);setError('');};
  const openAttachment=async(m)=>{if(m?.media_url){try{await Linking.openURL(m.media_url)}catch{setError('Unable to open this file.')}}};
  const formatSize=(bytes)=>{if(!bytes||bytes<1024)return bytes?bytes+' B':'';const units=['KB','MB','GB'];let n=bytes/1024;let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return n.toFixed(n>=10?0:1)+' '+units[i]};
  const expiryForMessage=()=>{const seconds=info?.disappearing_seconds||0;return seconds?new Date(Date.now()+seconds*1000).toISOString():null;};
- const setDisappearing=async(seconds)=>{try{const{data,error:e}=await supabase.rpc('set_conversation_disappearing',{p_conversation_id:id,p_seconds:seconds});if(e)throw e;setInfo(current=>current?{...current,disappearing_seconds:data?.disappearing_seconds??seconds}:current);setChatInfoOpen(false);}catch(e){setError(e.message||'Unable to change disappearing messages');}};
+ const setDisappearing=async(seconds)=>{
+  if(!id||!user?.id)return;
+  try{
+   const{data,error:e}=await supabase.rpc('set_conversation_disappearing',{p_conversation_id:id,p_seconds:seconds});
+   if(e)throw e;
+   if(mountedRef.current){setInfo(current=>current?{...current,disappearing_seconds:data?.disappearing_seconds??seconds}:current);setChatInfoOpen(false);}
+  }catch(e){if(mountedRef.current)setError(e?.message||'Unable to change disappearing messages');}
+};
  const disappearingLabel=(seconds)=>seconds===86400?'24 hours':seconds===604800?'7 days':seconds===2592000?'30 days':'Off';
  const toggleMute=async()=>{
   if(!user?.id||!info?.me)return;
