@@ -58,6 +58,7 @@ export default function Conversation(){
  const typingTimerRef=useRef(null);
  const infoRef=useRef(null);
  const statusMessageRef=useRef(null);
+ const currentInfoRef=useRef(null);
  const messagesRef=useRef([]);
  const loadSequenceRef=useRef(0);
  const draftLoadSequenceRef=useRef(0);
@@ -123,7 +124,7 @@ export default function Conversation(){
   AsyncStorage.setItem('freetopia-chat-style-'+id,JSON.stringify({theme:chatTheme,wallpaper:chatWallpaper,bubble:bubbleStyle})).catch(()=>{});
  },[id,chatTheme,chatWallpaper,bubbleStyle]);
 
- useEffect(()=>{infoRef.current=info;},[info]);
+ useEffect(()=>{infoRef.current=info;currentInfoRef.current=info;},[info]);
  useEffect(()=>{statusMessageRef.current=statusMessage;},[statusMessage]);
  useEffect(()=>{messagesRef.current=messages;},[messages]);
  useEffect(()=>{
@@ -343,9 +344,12 @@ export default function Conversation(){
     const nextMembers=members||[];
     const nextMe=nextMembers.find(x=>x.user_id===user.id);
     const nextOther=nextMembers.find(x=>x.user_id!==user.id);
+    const wasPending=currentInfoRef.current?.me?.request_status==='pending';
+    const isNowAccepted=nextMe?.request_status==='accepted';
     setInfo(current=>current?{...current,conversation_members:nextMembers,me:nextMe||current.me,other:nextOther}:current);
     const recipientCount=nextMembers.filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
     setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
+    if(wasPending&&isNowAccepted)load();
    }catch(e){
     if(mountedRef.current)setError(e?.message||'Conversation members could not be synchronized.');
    }
