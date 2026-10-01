@@ -330,6 +330,20 @@ export default function Conversation(){
     if(countError)throw countError;
     if(!mountedRef.current)return;
     setMessages(current=>current.map(m=>m.id===messageId?{...m,readCount:count||0}:m));
+    // When this user's read receipt lands, recompute the divider from actual read rows.
+    // This prevents a stale NEW MESSAGES marker from surviving a realtime read.
+    if(payload.new?.user_id===user.id){
+     const incoming=messagesRef.current.filter(m=>m.sender_id!==user.id&&!m.deleted_at);
+     if(incoming.length){
+      const{data:seen,error:seenError}=await supabase.from('message_reads').select('message_id').eq('user_id',user.id).in('message_id',incoming.map(m=>m.id));
+      if(seenError)throw seenError;
+      const seenIds=new Set((seen||[]).map(row=>row.message_id));
+      const nextUnread=incoming.find(m=>!seenIds.has(m.id));
+      if(mountedRef.current)setUnreadBoundaryId(nextUnread?.id||null);
+     }else if(mountedRef.current){
+      setUnreadBoundaryId(null);
+     }
+    }
     if(statusMessageRef.current?.id===messageId){
      setStatusRows(rows=>rows.map(row=>row.user_id===(payload.new?.user_id||payload.old?.user_id)?{...row,read_at:payload.new?.read_at||new Date().toISOString()}:row));
     }
