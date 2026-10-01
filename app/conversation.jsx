@@ -105,6 +105,22 @@ export default function Conversation(){
  },[id,user?.id]);
 
  useEffect(()=>{
+  // Reset transient composer state immediately when switching conversations.
+  // Draft text is loaded separately, so the previous chat cannot flash into the new chat.
+  draftLoadSequenceRef.current++;
+  draftLocalUpdatedAtRef.current=0;
+  draftDirtyRef.current=false;
+  applyingRemoteDraftRef.current=false;
+  setText('');
+  setEditingId(null);
+  setReplyTo(null);
+  setSelectedMessage(null);
+  setPendingMedia(null);
+  setPendingVoiceUri(null);
+  setMediaCaption('');
+  setAttachmentOpen(false);
+  setError('');
+  setDraftSaved(false);
   let active=true;
   (async()=>{
    if(!id)return;
