@@ -122,6 +122,8 @@ export default function Messages() {
     } catch(e) {
       if(sequence===loadSequence.current&&mountedRef.current) {
         setError(e?.message||'Unable to load messages. Please try again.');
+        setLoading(false);
+        setRefreshing(false);
       }
     } finally {
       if(sequence===loadSequence.current)loadInFlight.current=false;
