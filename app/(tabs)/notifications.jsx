@@ -51,24 +51,25 @@ export default function Notifications(){
   if(!user?.id)return;
   const channel=supabase.channel('notifications-'+user.id)
    .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},async payload=>{
-    const id=payload.new?.id;
-    if(!id)return;
-    let {data:item}=await supabase
-     .from('notifications')
-     .select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url),comment:comment_id(id,parent_id)')
-     .eq('id',id)
-     .eq('recipient_id',user.id)
-     .maybeSingle();
-    if(!item||!mountedRef.current)return;
-    if(item.type==='follow_request'){
-     const actor=Array.isArray(item.actor)?item.actor[0]:item.actor;
-     if(actor?.id){
-      const{data:follow}=await supabase.from('follows').select('follower_id,status').eq('following_id',user.id).eq('follower_id',actor.id).maybeSingle();
-      if(!mountedRef.current)return;
-      item={...item,requestStatus:follow?.status||null};
+    try{
+     const id=payload.new?.id;
+     if(!id||!mountedRef.current)return;
+     let {data:item,error:itemError}=await supabase.from('notifications').select('id,type,post_id,comment_id,conversation_id,community_id,read_at,created_at,actor:actor_id(id,username,display_name,avatar_url),comment:comment_id(id,parent_id)').eq('id',id).eq('recipient_id',user.id).maybeSingle();
+     if(itemError)throw itemError;
+     if(!item||!mountedRef.current)return;
+     if(item.type==='follow_request'){
+      const actor=Array.isArray(item.actor)?item.actor[0]:item.actor;
+      if(actor?.id){
+       const{data:follow,error:followError}=await supabase.from('follows').select('follower_id,status').eq('following_id',user.id).eq('follower_id',actor.id).maybeSingle();
+       if(followError)throw followError;
+       if(!mountedRef.current)return;
+       item={...item,requestStatus:follow?.status||null};
+      }
      }
+     setItems(current=>current.some(x=>x.id===item.id)?current:[item,...current].slice(0,50));
+    }catch(e){
+     if(mountedRef.current)setError(e?.message||'Unable to receive the new notification.');
     }
-    setItems(current=>current.some(x=>x.id===item.id)?current:[item,...current].slice(0,50));
    })
 .on('postgres_changes',{event:'UPDATE',schema:'public',table:'notifications',filter:'recipient_id=eq.'+user.id},payload=>{
     if(!mountedRef.current)return;
@@ -96,12 +97,17 @@ export default function Notifications(){
  const markAll=async()=>{
   if(!user?.id||!mountedRef.current)return;
   const now=new Date().toISOString();
+  const previousUnreadIds=items.filter(x=>!x.read_at).map(x=>x.id);
   setItems(current=>current.map(item=>({...item,read_at:item.read_at||now})));
-  const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('recipient_id',user.id).is('read_at',null);
-  if(!mountedRef.current)return;
-  if(e){
-   setItems(current=>current.map(item=>item.read_at===now?{...item,read_at:null}:item));
-   setError(e.message);
+  try{
+   const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('recipient_id',user.id).is('read_at',null);
+   if(!mountedRef.current)return;
+   if(e)throw e;
+  }catch(e){
+   if(mountedRef.current){
+    setItems(current=>current.map(item=>previousUnreadIds.includes(item.id)?{...item,read_at:null}:item));
+    setError(e?.message||'Unable to mark notifications as read.');
+   }
   }
  };
  const respond=async(item,accept)=>{
@@ -111,13 +117,17 @@ export default function Notifications(){
   const query=accept
    ?supabase.from('follows').update({status:'accepted'}).eq('follower_id',actor.id).eq('following_id',user.id)
    :supabase.from('follows').delete().eq('follower_id',actor.id).eq('following_id',user.id);
-  const {error:e}=await query;
-  if(!mountedRef.current)return;
-  if(e){setError(e.message);return;}
-  const now=new Date().toISOString();
-  setItems(current=>current.map(x=>x.id===item.id?{...x,read_at:x.read_at||now,requestStatus:accept?'accepted':'declined'}:x));
-  const {error:notificationError}=await supabase.from('notifications').update({read_at:now}).eq('id',item.id).eq('recipient_id',user.id);
-  if(notificationError&&mountedRef.current)setError(notificationError.message);
+  try{
+   const {error:e}=await query;
+   if(e)throw e;
+   if(!mountedRef.current)return;
+   const now=new Date().toISOString();
+   setItems(current=>current.map(x=>x.id===item.id?{...x,read_at:x.read_at||now,requestStatus:accept?'accepted':'declined'}:x));
+   const {error:notificationError}=await supabase.from('notifications').update({read_at:now}).eq('id',item.id).eq('recipient_id',user.id);
+   if(notificationError&&mountedRef.current)setError(notificationError.message);
+  }catch(e){
+   if(mountedRef.current)setError(e?.message||'Unable to respond to this follow request.');
+  }
  };
  const grouped=groupNotifications(items); const unread=items.filter(x=>!x.read_at).length;
  return <SafeAreaView style={s.safe}>{!isDesktop&&<View style={s.mobileHeader}><Pressable accessibilityRole="button" accessibilityLabel="Go to Home" onPress={()=>r.replace('/(tabs)/home')} style={s.brandButton}><Image source={require('../../public/brand/freetopia-mark.png')} style={s.brandLogo}/><Text style={s.brand}>Freetopia</Text></Pressable><View style={s.headerActions}><Pressable accessibilityRole="button" accessibilityLabel="Search" onPress={()=>r.push('/(tabs)/explore')} style={s.headerButton}><AppIcon name="search" size={19} color="#C7D7E8"/></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Messages" onPress={()=>r.push('/(tabs)/messages')} style={s.headerButton}><AppIcon name="message" size={19} color="#C7D7E8"/></Pressable></View></View>}<ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)}/>} contentContainerStyle={s.content}>
