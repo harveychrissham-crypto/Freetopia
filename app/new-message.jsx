@@ -8,7 +8,6 @@ import {supabase} from '../lib/supabase';
 import {useAuth} from '../providers/AuthProvider';
 
 export default function NewMessage(){
- const{user}=useAuth(),router=useRouter(),{userId}=useLocalSearchParams();
  const mountedRef=useRef(true); const searchSeq=useRef(0); const{user}=useAuth(),router=useRouter(),{userId}=useLocalSearchParams();
  const[q,setQ]=useState(''),[people,setPeople]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[searched,setSearched]=useState(false),[groupMode,setGroupMode]=useState(false),[groupName,setGroupName]=useState(''),[selected,setSelected]=useState([]);
 
