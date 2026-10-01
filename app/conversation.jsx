@@ -330,20 +330,24 @@ export default function Conversation(){
     }
    }catch(e){if(mountedRef.current)setError(e?.message||'Delivery status could not be synchronized.');}
   }).on('postgres_changes',{event:'*',schema:'public',table:'conversation_members',filter:'conversation_id=eq.'+id},async payload=>{
-   const member=payload.new||payload.old;
-   if(!member?.conversation_id||!mountedRef.current)return;
-   const{data:members,error:membersError}=await supabase
-    .from('conversation_members')
-    .select('user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url)')
-    .eq('conversation_id',id);
-   if(membersError)throw membersError;
-   if(!mountedRef.current)return;
-   const nextMembers=members||[];
-   const nextMe=nextMembers.find(x=>x.user_id===user.id);
-   const nextOther=nextMembers.find(x=>x.user_id!==user.id);
-   setInfo(current=>current?{...current,conversation_members:nextMembers,me:nextMe||current.me,other:nextOther}:current);
-   const recipientCount=nextMembers.filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
-   setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
+   try{
+    const member=payload.new||payload.old;
+    if(!member?.conversation_id||!mountedRef.current)return;
+    const{data:members,error:membersError}=await supabase
+     .from('conversation_members')
+     .select('user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url)')
+     .eq('conversation_id',id);
+    if(membersError)throw membersError;
+    if(!mountedRef.current)return;
+    const nextMembers=members||[];
+    const nextMe=nextMembers.find(x=>x.user_id===user.id);
+    const nextOther=nextMembers.find(x=>x.user_id!==user.id);
+    setInfo(current=>current?{...current,conversation_members:nextMembers,me:nextMe||current.me,other:nextOther}:current);
+    const recipientCount=nextMembers.filter(x=>x.user_id!==user.id&&x.request_status==='accepted').length;
+    setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
+   }catch(e){
+    if(mountedRef.current)setError(e?.message||'Conversation members could not be synchronized.');
+   }
    }).subscribe(async status=>{
     if(status==='SUBSCRIBED'){
      try{await ch.track({user_id:user.id});}catch{}
