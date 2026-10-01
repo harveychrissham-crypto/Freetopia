@@ -755,6 +755,9 @@ export default function Conversation(){
  const selectedMessages=messages.filter(m=>selectedIds.includes(m.id));
  const bulkStar=async()=>{
   if(!user?.id||!selectedMessages.length)return;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   try{
    for(const m of selectedMessages){
     const starred=(m.message_stars||[]).some(r=>r.user_id===user.id);
@@ -763,17 +766,20 @@ export default function Conversation(){
      if(e)throw e;
     }
    }
-   if(mountedRef.current){clearSelection();await load();}
-  }catch(e){if(mountedRef.current)setError(e?.message||'Could not star the selected messages.');}
+   if(isCurrentAction()){clearSelection();await load();}
+  }catch(e){if(isCurrentAction())setError(e?.message||'Could not star the selected messages.');}
  };
  const bulkDeleteForMe=async()=>{
   if(!user?.id||!selectedMessages.length)return;
+  const actionChannel=channelRef.current;
+  const actionConversationId=id;
+  const isCurrentAction=()=>mountedRef.current&&channelRef.current===actionChannel&&id===actionConversationId;
   try{
    const rows=selectedMessages.map(m=>({message_id:m.id,user_id:user.id}));
    const{error:e}=await supabase.from('message_hidden_for_users').upsert(rows,{onConflict:'message_id,user_id'});
    if(e)throw e;
-   if(mountedRef.current){const ids=new Set(selectedIds);setMessages(current=>current.filter(m=>!ids.has(m.id)));clearSelection();}
-  }catch(e){if(mountedRef.current)setError(e?.message||'Could not delete the selected messages for you.');}
+   if(isCurrentAction()){const ids=new Set(selectedIds);setMessages(current=>current.filter(m=>!ids.has(m.id)));clearSelection();}
+  }catch(e){if(isCurrentAction())setError(e?.message||'Could not delete the selected messages for you.');}
  };
  const loadForwardTargets=async()=>{
   if(!user?.id)return [];
