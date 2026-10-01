@@ -87,11 +87,15 @@ export default function Notifications(){
    previousReadAt=item.read_at;
    return item.read_at?item:{...item,read_at:now};
   }));
-  const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('id',id).eq('recipient_id',user.id);
-  if(!mountedRef.current)return;
-  if(e){
-   setItems(current=>current.map(item=>item.id===id?{...item,read_at:previousReadAt}:item));
-   setError(e.message);
+  try{
+   const {error:e}=await supabase.from('notifications').update({read_at:now}).eq('id',id).eq('recipient_id',user.id);
+   if(!mountedRef.current)return;
+   if(e)throw e;
+  }catch(e){
+   if(mountedRef.current){
+    setItems(current=>current.map(item=>item.id===id?{...item,read_at:previousReadAt}:item));
+    setError(e?.message||'Unable to mark notification as read.');
+   }
   }
  };
  const markAll=async()=>{
