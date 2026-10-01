@@ -520,18 +520,22 @@ export default function Conversation(){
 };
  const sendPendingMedia=async()=>{
   if(!pendingMedia||!user?.id||uploading)return;
-  const asset=pendingMedia;setUploading(true);setError('');
+  const asset=pendingMedia;let uploadedPath=null;setUploading(true);setError('');
   try{
    const ext=(asset.fileName||asset.uri.split('/').pop()||'media').split('.').pop().toLowerCase();
    const path=user.id+'/'+Date.now()+'.'+ext;
    const res=await fetch(asset.uri);const blob=await res.blob();
    const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});
    if(up.error)throw up.error;
+   uploadedPath=path;
    const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:mediaCaption.trim()||null,media_url:pub,media_type:asset.type==='video'?'video':'image',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
    if(ins.error)throw ins.error;
    if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setPendingMedia(null);setMediaCaption('');setReplyTo(null);}
-  }catch(e){if(mountedRef.current)setError(e?.message||'Media upload failed');}
+  }catch(e){
+   if(uploadedPath)await supabase.storage.from('message-media').remove([uploadedPath]).catch(()=>{});
+   if(mountedRef.current)setError(e?.message||'Media upload failed');
+  }
   finally{if(mountedRef.current)setUploading(false);}
  };
  const pickDocument=async()=>{
@@ -545,11 +549,15 @@ export default function Conversation(){
    const res=await fetch(asset.uri);const blob=await res.blob();
    const up=await supabase.storage.from('message-media').upload(path,blob,{contentType:asset.mimeType||'application/octet-stream',upsert:false});
    if(up.error)throw up.error;
+   const uploadedPath=path;
    const pub=supabase.storage.from('message-media').getPublicUrl(path).data.publicUrl;
    const ins=await supabase.from('messages').insert({conversation_id:id,sender_id:user.id,content:name,media_url:pub,media_type:'file',reply_to_id:replyTo?.id||null,expires_at:expiryForMessage()}).select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').single();
    if(ins.error)throw ins.error;
    if(mountedRef.current){if(ins.data)setMessages(current=>current.some(x=>x.id===ins.data.id)?current:[...current,ins.data]);setReplyTo(null);}
-  }catch(e){if(mountedRef.current)setError(e?.message||'File upload failed');}
+  }catch(e){
+   if(typeof uploadedPath==='string')await supabase.storage.from('message-media').remove([uploadedPath]).catch(()=>{});
+   if(mountedRef.current)setError(e?.message||'File upload failed');
+  }
   finally{if(mountedRef.current)setUploading(false);}
  };
  const cancelVoice=async()=>{try{if(recorderState.isRecording)await recorder.stop();await setAudioModeAsync({playsInSilentMode:true,allowsRecording:false});}catch{}if(mountedRef.current){setPendingVoiceUri(null);setUploading(false);setError('');}};
