@@ -382,7 +382,7 @@ export default function Conversation(){
       const seenIds=new Set((seen||[]).map(row=>row.message_id));
       const nextUnread=incoming.find(m=>!seenIds.has(m.id));
       if(isActiveChannel())setUnreadBoundaryId(nextUnread?.id||null);
-     }else if(mountedRef.current){
+     }else if(isActiveChannel()){
       setUnreadBoundaryId(null);
      }
     }
@@ -415,7 +415,7 @@ export default function Conversation(){
      .select('user_id,request_status,role,is_muted,profiles:user_id(id,username,display_name,avatar_url)')
      .eq('conversation_id',id);
     if(membersError)throw membersError;
-    if(!mountedRef.current)return;
+    if(!isActiveChannel())return;
     const nextMembers=members||[];
     const nextMe=nextMembers.find(x=>x.user_id===user.id);
     const nextOther=nextMembers.find(x=>x.user_id!==user.id);
@@ -426,7 +426,7 @@ export default function Conversation(){
     setMessages(current=>current.map(m=>m.sender_id===user.id?{...m,recipientCount}:m));
     if(wasPending&&isNowAccepted)load();
    }catch(e){
-    if(mountedRef.current)setError(e?.message||'Conversation members could not be synchronized.');
+    if(isActiveChannel())setError(e?.message||'Conversation members could not be synchronized.');
    }
    }).subscribe(async status=>{
     if(status==='SUBSCRIBED'){
