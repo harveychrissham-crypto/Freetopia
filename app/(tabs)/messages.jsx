@@ -246,7 +246,7 @@ export default function Messages() {
             <AppIcon name="write" size={19} color={colors.text}/>
           </Pressable>
         </View>
-        <Tabs tab={tab} setTab={setTab} requestCount={requestCount}/>
+        <Tabs tab={tab} setTab={setTab} requestCount={requestCount} colors={colors}/>
       </View>
       <View style={[s.mobileListArea,{backgroundColor:colors.bg}]} >
         {tab==='Communities' ? <CommunityList communities={communities} router={router} colors={colors}/> :
