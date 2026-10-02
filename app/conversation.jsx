@@ -929,7 +929,7 @@ export default function Conversation(){
    setError('Could not identify the recipient profile.');
    return;
   }
-  router.push({pathname:'/profile',params:{id:String(recipientId)}});
+  router.push({pathname:'/user-profile',params:{id:String(recipientId)}});
  };
 
  const accept=async()=>{
