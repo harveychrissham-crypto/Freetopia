@@ -213,7 +213,7 @@ export default function Conversation(){
   setInfo({...c,me,other}); setGroupTitle(c.title||'');
   if(me?.request_status==='accepted'){
    const messagesPromise=supabase.from('messages').select('id,conversation_id,sender_id,content,media_url,media_type,reply_to_id,created_at,edited_at,deleted_at,expires_at,profiles:sender_id(id,username,display_name,avatar_url),message_reactions(user_id,emoji),message_stars(user_id)').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);
-   const notificationPromise=supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('conversation_id',id).is('read_at',null);
+   const notificationPromise=Promise.resolve(supabase.from('notifications').update({read_at:new Date().toISOString()}).eq('recipient_id',user.id).eq('conversation_id',id).is('read_at',null));
    const[{data:m,error:e}]=await Promise.all([messagesPromise,notificationPromise.catch(()=>({data:null,error:null}))]);
    if(e){if(sequence===loadSequenceRef.current&&mountedRef.current)setError(e.message);}
    else if(sequence===loadSequenceRef.current&&mountedRef.current){
