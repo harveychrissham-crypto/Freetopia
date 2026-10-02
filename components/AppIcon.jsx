@@ -1,9 +1,12 @@
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
+
 
 export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
   const stroke = Math.max(1.25, size * 0.075);
   const common = { position: 'absolute', backgroundColor: color };
   const scale = size / 20; // icon scale baseline
+
+  if (name === 'like') return <Image source={{uri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAABY0lEQVR4Aa3BPW+NARgG4Os97/O8SDoYDL4XXSQkYjJ2093qTzQmYTgnYbKU1B8Qg59hkm7UGSQYxLexiRjPrUMHMYrr8q8GB3Ju4wp5oFcbJt9Vnjq2uq8x5o5a3dQ5YVo9tzbdHp69eDXkzMa6IS911vSKKXTovNehs65Dh2lF+6lzucxyz5g1HTpUqFBZV6FChw4VKms692bGXNehQqFChQodOlSoUKgw5sZM5bgKFSpU6NChQoUKFSp06BydqeypUKFDo0KFChUqVOhQKHszR4a7OnSoUKFChQoVOnSoUKHcHRc/Pr6dnz+3r7KpQ4dGhyl06NChw5St4eHyyejA4sun3fmFs/sqmzpModGhQ4cOna3h0XLbgdGhxYfPu/OLp/dVNnXo0KFDh87WsLPcdmj0h8W7r7vzS6f2VTZ1aEyhszXsLLf9YfSXxZtvu/OrJ3+oXDPllx5uDY9f7/hffgOulqwRO2NSgAAAAABJRU5ErkJggg=='}} style={{width:size,height:size}} resizeMode="contain" accessibilityLabel="Like" />;
 
   if (name === 'check') return <View style={[s.box,{width:size,height:size}]}><View style={{position:'absolute',width:size*.42,height:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'-45deg'}],left:size*.28,top:size*.34}} /></View>;
 
