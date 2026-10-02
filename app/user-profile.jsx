@@ -220,7 +220,7 @@ export default function UserProfile() {
 
         <View style={s.tabs}>
           <Pressable onPress={() => setTab('grid')} style={[s.tab, tab === 'grid' && s.tabActive]} accessibilityRole="tab">
-            <AppIcon name="grid" size={22} color={tab === 'grid' ? C.text : C.muted}/>
+            <AppIcon name="photo" size={22} color={tab === 'grid' ? C.text : C.muted}/>
           </Pressable>
           <Pressable onPress={() => setTab('media')} style={[s.tab, tab === 'media' && s.tabActive]} accessibilityRole="tab">
             <AppIcon name="play" size={22} color={tab === 'media' ? C.text : C.muted}/>
@@ -267,7 +267,7 @@ function ProfileTile({post,onPress}) {
       ) : (
         <View style={s.textTile}><Text style={s.tileText} numberOfLines={7}>{post.content || 'Freetopia post'}</Text></View>
       )}
-      {media.length > 1 ? <View style={s.multi}><AppIcon name="layers" size={14} color={C.text}/></View> : null}
+      {media.length > 1 ? <View style={s.multi}><AppIcon name="dots" size={14} color={C.text}/></View> : null}
     </Pressable>
   );
 }
