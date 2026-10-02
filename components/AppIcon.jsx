@@ -207,8 +207,9 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'heart') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.34,height:size*.48,left:size*.20,top:size*.18,borderLeftWidth:stroke,borderBottomWidth:stroke,borderColor:color,borderBottomLeftRadius:size*.12,transform:[{rotate:'-45deg'}]}} />
-      <View style={{position:'absolute',width:size*.34,height:size*.48,left:size*.46,top:size*.18,borderRightWidth:stroke,borderBottomWidth:stroke,borderColor:color,borderBottomRightRadius:size*.12,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.36,height:size*.36,left:size*.18,top:size*.16,borderWidth:stroke,borderColor:color,borderTopLeftRadius:size*.20,borderTopRightRadius:size*.20,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.36,height:size*.36,left:size*.46,top:size*.16,borderWidth:stroke,borderColor:color,borderTopLeftRadius:size*.20,borderTopRightRadius:size*.20,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.42,height:size*.42,left:size*.29,top:size*.31,borderRightWidth:stroke,borderBottomWidth:stroke,borderColor:color,transform:[{rotate:'45deg'}]}} />
     </View>
   );
 
