@@ -165,8 +165,9 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'spark') return (
     <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.16,height:size*.8,left:size*.42,top:size*.1,backgroundColor:color,transform:[{rotate:'45deg'}],borderRadius:size}} />
-      <View style={{position:'absolute',width:size*.8,height:size*.16,left:size*.1,top:size*.42,backgroundColor:color,transform:[{rotate:'45deg'}],borderRadius:size}} />
+      <View style={{position:'absolute',width:size*.18,height:size*.72,left:size*.41,top:size*.14,backgroundColor:color,borderRadius:size*.09,transform:[{rotate:'45deg'}]}} />
+      <View style={{position:'absolute',width:size*.18,height:size*.72,left:size*.41,top:size*.14,backgroundColor:color,borderRadius:size*.09,transform:[{rotate:'-45deg'}]}} />
+      <View style={{position:'absolute',width:size*.16,height:size*.16,left:size*.42,top:size*.42,backgroundColor:color,borderRadius:size}} />
     </View>
   );
 
