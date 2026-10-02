@@ -21,9 +21,27 @@ function BottomNav() {
   const { user, profile } = useAuth();
   const [messageCount, setMessageCount] = useState(0);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [navAvatar, setNavAvatar] = useState(null);
   const pathname = usePathname();
   const { colors, accent, textScale } = useAppearance();
-  const profileAvatar = profile?.avatar_url ? getImageUrl(profile.avatar_url, { width: 160, height: 160, quality: 100 }) : null;
+  const profileAvatar = navAvatar || (profile?.avatar_url ? getImageUrl(profile.avatar_url, { width: 160, height: 160, quality: 100 }) : null);
+
+  const loadNavAvatar = useCallback(async () => {
+    if (!user?.id) {
+      setNavAvatar(null);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+      setNavAvatar(data?.avatar_url ? getImageUrl(data.avatar_url, { width: 160, height: 160, quality: 100 }) : null);
+    } catch {
+      setNavAvatar(profile?.avatar_url ? getImageUrl(profile.avatar_url, { width: 160, height: 160, quality: 100 }) : null);
+    }
+  }, [user?.id, profile?.avatar_url]);
 
   const loadCounts = useCallback(async () => {
     if (!user?.id) { setMessageCount(0); setNotificationCount(0); return; }
@@ -45,6 +63,7 @@ function BottomNav() {
 
   useEffect(() => {
     loadCounts();
+    loadNavAvatar();
     if (!user?.id) return;
     const timer = setInterval(loadCounts, 30000);
     const channel = supabase.channel('bottom-nav-counts-' + user.id)
@@ -54,7 +73,7 @@ function BottomNav() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadCounts)
       .subscribe();
     return () => { clearInterval(timer); supabase.removeChannel(channel); };
-  }, [user?.id, loadCounts]);
+  }, [user?.id, loadCounts, loadNavAvatar]);
 
   return (
     <View style={[styles.nav, { backgroundColor: colors.nav, borderTopColor: colors.line }]}>
