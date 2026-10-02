@@ -71,6 +71,7 @@ function BottomNav() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members', filter: 'user_id=eq.' + user.id }, loadCounts)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reads', filter: 'user_id=eq.' + user.id }, loadCounts)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadCounts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles', filter: 'id=eq.' + user.id }, loadNavAvatar)
       .subscribe();
     return () => { clearInterval(timer); supabase.removeChannel(channel); };
   }, [user?.id, loadCounts, loadNavAvatar]);
