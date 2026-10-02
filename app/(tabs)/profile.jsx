@@ -198,7 +198,7 @@ function ProfileSidebar({name,initials,onNavigate}) {
 }
 function ProfileHeader({colors,profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,pending,followBusy,onFollow,mobile=false}) {
   return <View style={[s.profileHeader,mobile&&s.mobileProfileHeader]}>
-    <View style={s.cover}>{profile?.cover_url?<Image source={{uri:getImageUrl(profile.cover_url,{width:2000,height:1000,quality:100})}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/></>}</View>
+    <View style={[s.cover,mobile&&s.mobileCover]}>{profile?.cover_url?<Image source={{uri:getImageUrl(profile.cover_url,{width:2000,height:1000,quality:100})}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/></>}</View>
     <View style={[s.profileBody,mobile&&s.mobileProfileBody]}>
       <Pressable onPress={onEdit} disabled={!onEdit} style={[s.avatarWrap,mobile&&s.mobileAvatarWrap]}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><AppIcon name="photo" size={14} color={C.text}/></View>}</Pressable>
       <View style={[s.profileActions,mobile&&s.mobileProfileActions]}>{isOwn&&<Pressable onPress={onEdit} style={({pressed})=>[s.outline,pressed&&s.pressed]}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={({pressed})=>[s.followButton,(following||pending)&&s.followingButton,pressed&&s.pressed]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':pending?'Requested':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={({pressed})=>[s.circle,pressed&&s.pressed]}><AppIcon name="settings" size={18} color={C.text}/></Pressable>}</View>
