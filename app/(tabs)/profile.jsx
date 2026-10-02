@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { getImageUrl } from '../../lib/imageUrl';
 import { Platform, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -178,8 +178,7 @@ export default function Profile() {
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} />} contentContainerStyle={s.mobileContent}>
-        <View style={s.mobileTop}><Pressable onPress={()=>router.back()}><AppIcon name="arrow-left" size={20} color={C.text}/></Pressable><Text style={[s.mobileTitle,{color:colors.text,fontSize:20*textScale}]}>{isOwn?'Profile':'Profile'}</Text>{isOwn?<Pressable onPress={()=>router.push('/settings')}><AppIcon name="settings" size={18} color={C.text}/></Pressable>:<View style={{width:20}}/>}</View>
-        {profileHeader}
+        {React.cloneElement(profileHeader, { mobile: true })}
         <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         {error || profileRouteError ? <ErrorBox message={error || profileRouteError}/> : null}
         {loading ? <Loading/> : <ProfilePosts posts={visiblePosts} activeTab={activeTab} profile={displayedProfile} name={name} onPost={(id)=>router.push({pathname:'/post',params:{id}})} />}
@@ -197,17 +196,17 @@ function ProfileSidebar({name,initials,onNavigate}) {
     <Pressable onPress={()=>onNavigate('/profile')} style={s.sideProfile}><Avatar initials={initials}/><View style={{flex:1}}><Text style={s.sideName}>{name}</Text><Text style={s.sideSub}>Profile</Text></View><AppIcon name="chevron-down" size={15} color={C.muted}/></Pressable>
   </View>;
 }
-function ProfileHeader({colors,profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,pending,followBusy,onFollow}) {
-  return <View style={s.profileHeader}>
+function ProfileHeader({colors,profile,name,handle,initials,counts,joinedAt,onEdit,onSettings,isOwn,following,pending,followBusy,onFollow,mobile=false}) {
+  return <View style={[s.profileHeader,mobile&&s.mobileProfileHeader]}>
     <View style={s.cover}>{profile?.cover_url?<Image source={{uri:getImageUrl(profile.cover_url,{width:2000,height:1000,quality:100})}} style={s.coverImage}/>:<><View style={s.coverGlowA}/><View style={s.coverGlowB}/></>}</View>
-    <View style={s.profileBody}>
-      <Pressable onPress={onEdit} disabled={!onEdit} style={s.avatarWrap}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><AppIcon name="photo" size={14} color={C.text}/></View>}</Pressable>
-      <View style={s.profileActions}>{isOwn&&<Pressable onPress={onEdit} style={({pressed})=>[s.outline,pressed&&s.pressed]}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={({pressed})=>[s.followButton,(following||pending)&&s.followingButton,pressed&&s.pressed]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':pending?'Requested':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={({pressed})=>[s.circle,pressed&&s.pressed]}><AppIcon name="settings" size={18} color={C.text}/></Pressable>}</View>
-      <Text style={s.name}>{name}</Text>
-      <Text style={s.handle}>{handle}</Text>
-      <View style={[s.statsRow,{borderColor:colors.line}]}><Stat n={counts.posts} label="Posts"/><Stat n={counts.followers} label="Followers"/><Stat n={counts.following} label="Following"/></View>
-      <Text style={s.bio}>{profile?.bio || 'Dream big. Build bigger. Share your world with Freetopia.'}</Text>
-      <View style={s.metaRow}><View style={s.metaItem}><AppIcon name="location" size={13} color={C.muted}/><Text style={s.meta}>{profile?.location || 'Add location'}</Text></View>{profile?.website?<View style={s.metaItem}><AppIcon name="globe" size={13} color={C.muted}/><Text style={s.meta}>{profile.website}</Text></View>:null}<View style={s.metaItem}><AppIcon name="clock" size={13} color={C.muted}/><Text style={s.meta}>Joined {joinedAt ? new Date(joinedAt).getFullYear() : 'recently'}</Text></View></View>
+    <View style={[s.profileBody,mobile&&s.mobileProfileBody]}>
+      <Pressable onPress={onEdit} disabled={!onEdit} style={[s.avatarWrap,mobile&&s.mobileAvatarWrap]}><Avatar initials={initials} uri={profile?.avatar_url}/>{isOwn&&<View style={s.camera}><AppIcon name="photo" size={14} color={C.text}/></View>}</Pressable>
+      <View style={[s.profileActions,mobile&&s.mobileProfileActions]}>{isOwn&&<Pressable onPress={onEdit} style={({pressed})=>[s.outline,pressed&&s.pressed]}><Text style={s.outlineText}>Edit Profile</Text></Pressable>}{!isOwn&&<Pressable onPress={onFollow} disabled={followBusy} style={({pressed})=>[s.followButton,(following||pending)&&s.followingButton,pressed&&s.pressed]}><Text style={s.followButtonText}>{followBusy?'…':following?'Following':pending?'Requested':'Follow'}</Text></Pressable>}{onSettings&&<Pressable onPress={onSettings} style={({pressed})=>[s.circle,pressed&&s.pressed]}><AppIcon name="settings" size={18} color={C.text}/></Pressable>}</View>
+      <Text style={[s.name,mobile&&s.mobileName]}>{name}</Text>
+      <Text style={[s.handle,mobile&&s.mobileHandle]}>{handle}</Text>
+      <View style={[s.statsRow,{borderColor:colors.line},mobile&&s.mobileStatsRow]}><Stat n={counts.posts} label="Posts"/><Stat n={counts.followers} label="Followers"/><Stat n={counts.following} label="Following"/></View>
+      <Text style={[s.bio,mobile&&s.mobileBio]}>{profile?.bio || 'Dream big. Build bigger. Share your world with Freetopia.'}</Text>
+      <View style={[s.metaRow,mobile&&s.mobileMetaRow]}><View style={s.metaItem}><AppIcon name="location" size={13} color={C.muted}/><Text style={s.meta}>{profile?.location || 'Add location'}</Text></View>{profile?.website?<View style={s.metaItem}><AppIcon name="globe" size={13} color={C.muted}/><Text style={s.meta}>{profile.website}</Text></View>:null}<View style={s.metaItem}><AppIcon name="clock" size={13} color={C.muted}/><Text style={s.meta}>Joined {joinedAt ? new Date(joinedAt).getFullYear() : 'recently'}</Text></View></View>
     </View>
   </View>;
 }
@@ -248,5 +247,16 @@ const s=StyleSheet.create({mobileScroll:{paddingBottom:104},pressed:{opacity:.72
  tabs:{height:50,marginTop:1,flexDirection:'row',borderWidth:1,borderTopWidth:0,borderColor:C.line,backgroundColor:C.panel},tab:{flex:1,alignItems:'center',justifyContent:'center',position:'relative'},tabText:{color:C.muted,fontSize:16,fontWeight:'700'},tabActive:{color:C.text,fontWeight:'800'},tabLine:{position:'absolute',bottom:0,left:22,right:22,height:2,borderRadius:3,backgroundColor:'#4B78A8'},
  post:{padding:15,borderWidth:1,borderColor:'#14212F',borderTopWidth:0,backgroundColor:'#09121C'},postHead:{flexDirection:'row',alignItems:'flex-start',gap:10},postAuthor:{color:C.text,fontSize: 16,fontWeight:'800'},postHandle:{color:C.muted,fontWeight:'500'},postText:{color:'#D9E2EC',fontSize: 16,lineHeight:19,marginTop:6},more:{color:C.muted,fontSize: 17,letterSpacing:2},mediaPreview:{marginTop:10,height:220,borderRadius:12,overflow:'hidden',backgroundColor:'#08111B',position:'relative'},mediaImage:{width:'100%',height:'100%'},mediaCount:{position:'absolute',right:8,top:8,paddingHorizontal:8,paddingVertical:4,borderRadius:8,backgroundColor:'#08111B'},mediaCountText:{color:C.text,fontSize:9,fontWeight:'800'},mediaPlaceholder:{height:130,borderRadius:11,backgroundColor:'#0F1C2C',borderWidth:1,borderColor:'#1E314A',marginTop:10,alignItems:'center',justifyContent:'center'},mediaText:{color:'#72869E',fontSize: 14},postActions:{height:42,flexDirection:'row',alignItems:'center',marginTop:10,paddingTop:7,borderTopWidth:1,borderTopColor:C.line},actionItem:{flex:1,minHeight:34,flexDirection:'row',alignItems:'center',justifyContent:'flex-start',gap:7,paddingHorizontal:4},actionMore:{width:34,height:34,alignItems:'center',justifyContent:'center'},action:{color:'#9EAEC1',fontSize:13,fontWeight:'600'},
  railCard:{borderWidth:1,borderColor:'#14212F',borderRadius:12,backgroundColor:'#09121C',padding:13},railTitle:{color:C.text,fontSize: 17,fontWeight:'800'},progressRow:{flexDirection:'row',alignItems:'center',gap:10,marginTop:10},progress:{flex:1,height:6,borderRadius:5,backgroundColor:'#172A43',overflow:'hidden'},progressFill:{height:6,borderRadius:5,backgroundColor:C.blue},percent:{color:C.text,fontSize: 14,fontWeight:'700'},checkRow:{flexDirection:'row',alignItems:'center',gap:9,marginTop:10},check:{width:18,height:18,borderRadius:9,borderWidth:1,borderColor:'#54708F',alignItems:'center',justifyContent:'center'},checkDone:{backgroundColor:C.blue,borderColor:'#4B78A8'},checkText:{color:C.white,fontSize: 14,fontWeight:'800'},checkLabel:{color:'#B9C6D5',fontSize: 14},railEmpty:{color:C.muted,fontSize: 14,lineHeight:16,marginTop:7},statGrid:{flexDirection:'row',justifyContent:'space-between',marginTop:12},mini:{alignItems:'center',minWidth:65},miniIcon:{color:'#AFC6E3',fontSize:18},miniN:{color:C.text,fontSize: 17,fontWeight:'800',marginTop:3},miniLabel:{color:C.muted,fontSize:9,marginTop:2},promo:{borderWidth:1,borderColor:'#243344',borderRadius:12,padding:13,backgroundColor:'#0C151F'},promoLogo:{width:32,height:32},promoTitle:{color:C.text,fontSize: 15,fontWeight:'800',marginTop:8},promoBody:{color:'#B9B4E2',fontSize:9,lineHeight:14,marginTop:4},promoButton:{height:34,borderRadius:17,backgroundColor:'#334D69',alignItems:'center',justifyContent:'center',marginTop:11},promoButtonText:{color:C.white,fontSize:9,fontWeight:'800'},
- mobileContent:{paddingBottom:40},mobileTop:{height:56,paddingHorizontal:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},back:{color:C.text,fontSize:28},mobileTitle:{color:'#EAF0F6',fontSize:20,fontWeight:'800'},mobileMore:{fontSize: 18},loading:{padding:30,alignItems:'center'},loadingText:{color:C.muted,fontSize: 15},error:{margin:12,padding:13,borderRadius:11,borderWidth:1,borderColor:'#4B2630',backgroundColor:'#1B0D14'},errorTitle:{color:'#FF9BAD',fontSize: 16,fontWeight:'800'},errorBody:{color:'#C88B96',fontSize: 14,marginTop:4},empty:{margin:14,padding:30,borderWidth:1,borderColor:'#17293B',borderRadius:13,backgroundColor:'#09121C',alignItems:'center'},emptyTitle:{color:C.text,fontSize: 18,fontWeight:'800'},emptyBody:{color:C.muted,fontSize: 14,lineHeight:16,textAlign:'center',marginTop:7}
+ mobileContent:{paddingBottom:40},
+mobileProfileHeader:{borderWidth:0,borderRadius:0,borderColor:'transparent',backgroundColor:C.bg},
+mobileCover:{height:145},
+mobileProfileBody:{paddingBottom:0},
+mobileAvatarWrap:{left:18,top:-46},
+mobileProfileActions:{height:62,paddingHorizontal:16},
+mobileName:{fontSize:23,lineHeight:28,paddingHorizontal:18},
+mobileHandle:{fontSize:14,paddingHorizontal:18},
+mobileStatsRow:{marginTop:12,paddingHorizontal:18,paddingVertical:13},
+mobileBio:{fontSize:15,lineHeight:21,paddingHorizontal:18,marginTop:10},
+mobileMetaRow:{paddingHorizontal:18,marginTop:9,gap:12},
+mobileTop:{height:56,paddingHorizontal:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},back:{color:C.text,fontSize:28},mobileTitle:{color:'#EAF0F6',fontSize:20,fontWeight:'800'},mobileMore:{fontSize: 18},loading:{padding:30,alignItems:'center'},loadingText:{color:C.muted,fontSize: 15},error:{margin:12,padding:13,borderRadius:11,borderWidth:1,borderColor:'#4B2630',backgroundColor:'#1B0D14'},errorTitle:{color:'#FF9BAD',fontSize: 16,fontWeight:'800'},errorBody:{color:'#C88B96',fontSize: 14,marginTop:4},empty:{margin:14,padding:30,borderWidth:1,borderColor:'#17293B',borderRadius:13,backgroundColor:'#09121C',alignItems:'center'},emptyTitle:{color:C.text,fontSize: 18,fontWeight:'800'},emptyBody:{color:C.muted,fontSize: 14,lineHeight:16,textAlign:'center',marginTop:7}
 });
