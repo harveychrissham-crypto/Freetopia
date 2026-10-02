@@ -29,7 +29,7 @@ export default function Home() {
    let authorIds=null;
    if(activeTab==='Following'&&user?.id){
     const{data,error:e}=await supabase.from('follows').select('following_id').eq('follower_id',user.id).eq('status','accepted');
-    if(e){if(mountedRef.current&&seq===loadSeq.current)setError(e.message);authorIds=[user.id]}else authorIds=(data||[]).map(r=>r.following_id);
+    if(e){if(mountedRef.current&&seq===loadSeq.current)setError(e.message);authorIds=[]}else authorIds=(data||[]).map(r=>r.following_id);
    }
    let query=supabase.from('posts').select('id,author_id,content,visibility,community_id,created_at,location_name,feeling,profiles:author_id(id,username,display_name,avatar_url),communities:community_id(id,name),post_reactions(user_id,reaction_type),post_media(id,storage_path,media_type,width,height,duration_seconds,sort_order,processing_status,playback_url,thumbnail_path),post_polls(question,post_poll_options(id,option_text,sort_order)),post_poll_votes(user_id,option_id),post_tags(user_id,profiles:user_id(id,username,display_name))').order('created_at',{ascending:false}).limit(10);
    if(activeTab==='Following'&&authorIds)query=query.in('author_id',authorIds.length?authorIds:['00000000-0000-0000-0000-000000000000']);
