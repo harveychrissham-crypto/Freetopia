@@ -18,7 +18,7 @@ export default function Home() {
  const router=useRouter(),{width}=useWindowDimensions(),{user,profile}=useAuth(),desktop=Platform.OS==='web'&&width>=1000;
  const { colors, accent, textScale, densityScale } = useAppearance();
  const[activeTab,setActiveTab]=useState('For You'),[posts,setPosts]=useState([]),[communities,setCommunities]=useState([]),[loading,setLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[error,setError]=useState(''),[unreadNotifications,setUnreadNotifications]=useState(0);
- const loadSeq=useRef(0); const postsLoadedRef=useRef(false); const mountedRef=useRef(true);
+ const loadSeq=useRef(0); const postsLoadedRef=useRef(false); const mountedRef=useRef(true); const likeBusyRef=useRef(new Set()); const pollBusyRef=useRef(new Set());
  useEffect(()=>()=>{mountedRef.current=false;loadSeq.current+=1},[]);
  const load=useCallback(async(pull=false)=>{
   if(!mountedRef.current)return;
@@ -54,7 +54,8 @@ export default function Home() {
  },[activeTab,user?.id]);
  useFocusEffect(useCallback(()=>{load()},[load]));
  const toggleLike=async(postId,liked)=>{
-  if(!user?.id)return;
+  if(!user?.id||likeBusyRef.current.has(postId))return;
+  likeBusyRef.current.add(postId);
   setPosts(cur=>cur.map(p=>p.id===postId?{...p,liked:!liked,reactionCount:Math.max(0,p.reactionCount+(liked?-1:1))}:p));
   try{
    const request=liked?supabase.from('post_reactions').delete().eq('post_id',postId).eq('user_id',user.id).eq('reaction_type','like'):supabase.from('post_reactions').insert({post_id:postId,user_id:user.id,reaction_type:'like'});
@@ -62,10 +63,13 @@ export default function Home() {
    if(e)throw e;
   }catch(e){
    if(mountedRef.current){setPosts(cur=>cur.map(p=>p.id===postId?{...p,liked,reactionCount:Math.max(0,p.reactionCount+(liked?1:-1))}:p));setError(e?.message||'Unable to update this reaction.');}
+  }finally{
+   likeBusyRef.current.delete(postId);
   }
  };
  const votePoll=async(postId,optionId)=>{
-  if(!user?.id)return;
+  if(!user?.id||pollBusyRef.current.has(postId))return;
+  pollBusyRef.current.add(postId);
   let previousVotes=null;
   setPosts(cur=>cur.map(p=>{
    if(p.id!==postId)return p;
@@ -78,6 +82,8 @@ export default function Home() {
    if(e)throw e;
   }catch(e){
    if(mountedRef.current){setPosts(cur=>cur.map(p=>p.id===postId?{...p,post_poll_votes:previousVotes||p.post_poll_votes}:p));setError(e?.message||'Unable to record your vote.');}
+  }finally{
+   pollBusyRef.current.delete(postId);
   }
  };
  const displayName=profile?.display_name||user?.email?.split('@')[0]||'Freetopia member',initials=displayName.charAt(0).toUpperCase();
