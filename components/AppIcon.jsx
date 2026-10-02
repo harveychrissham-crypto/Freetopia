@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
-  const stroke = Math.max(1.6, size * 0.09);
+  const stroke = Math.max(1.25, size * 0.075);
   const common = { position: 'absolute', backgroundColor: color };
   const scale = size / 20; // icon scale baseline
 
