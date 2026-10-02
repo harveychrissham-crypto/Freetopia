@@ -296,7 +296,7 @@ function Row({c,tab,router,open,accept,decline,archive,colors}) {
   const mine=c.lastMessage?.sender_id===c.me?.user_id;
   const unread=c.unreadCount>0 && tab==='Messages';
   const openProfile=()=>{
-    if(p?.id)router.push({pathname:'/profile',params:{id:p.id}});
+    if(p?.id)router.push({pathname:'/user-profile',params:{id:p.id}});
   };
   return <View style={[s.row,{backgroundColor:colors.panel,borderTopColor:colors.line}]}>
     <View style={s.rowMain}>
