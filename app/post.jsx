@@ -156,7 +156,7 @@ export default function PostScreen(){
  const author=Array.isArray(post?.profiles)?post.profiles[0]:post?.profiles;
  const community=Array.isArray(post?.communities)?post.communities[0]:post?.communities;
  const name=author?.display_name||author?.username||'Freetopia member';
- const openAuthor=()=>{if(author?.id)r.push({pathname:'/profile',params:{id:author.id}})};
+ const openAuthor=()=>{if(author?.id)r.push({pathname:'/user-profile',params:{id:author.id}})};
  const postReportKey=post?'post:'+post.id:'';
  const canReport=!!user&&post?.author_id!==user.id&&!reportedTargets.includes(postReportKey);
 
