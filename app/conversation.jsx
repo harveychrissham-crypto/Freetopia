@@ -1054,7 +1054,7 @@ export default function Conversation(){
    {loading?<View style={s.center}><Text style={s.muted}>Loading conversation…</Text></View>:
     info?.me?.request_status==='pending'?
      <View style={s.request}>
-      <Pressable onPress={()=>info?.other?.user_id&&router.push({pathname:'/profile',params:{id:info.other.user_id}})} style={s.requestIdentity} hitSlop={8}>
+      <Pressable onPress={()=>info?.other?.user_id&&router.push({pathname:'/user-profile',params:{id:info.other.user_id}})} style={s.requestIdentity} hitSlop={8}>
        <View style={s.requestAvatar}>{avatar?<Image source={{uri:getImageUrl(avatar,{width:400,height:400,quality:90})}} style={s.requestAvatarImage}/>:<Text style={s.requestAvatarText}>{initials}</Text>}</View>
        <Text style={s.requestName}>{name}</Text>
        {handle?<Text style={s.requestHandle}>@{handle}</Text>:null}
