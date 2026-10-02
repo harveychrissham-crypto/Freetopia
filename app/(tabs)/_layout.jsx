@@ -1,10 +1,11 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { Redirect, Slot, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../providers/AuthProvider';
 import AppIcon from '../../components/AppIcon';
 import { useAppearance } from '../../providers/AppearanceProvider';
+import { getImageUrl } from '../../lib/imageUrl';
 import { supabase } from '../../lib/supabase';
 
 const NAV_ITEMS = [
@@ -17,11 +18,12 @@ const NAV_ITEMS = [
 
 function BottomNav() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [messageCount, setMessageCount] = useState(0);
   const [notificationCount, setNotificationCount] = useState(0);
   const pathname = usePathname();
   const { colors, accent, textScale } = useAppearance();
+  const profileAvatar = profile?.avatar_url ? getImageUrl(profile.avatar_url, { width: 160, height: 160, quality: 100 }) : null;
 
   const loadCounts = useCallback(async () => {
     if (!user?.id) { setMessageCount(0); setNotificationCount(0); return; }
@@ -70,11 +72,19 @@ function BottomNav() {
             style={({ pressed }) => [styles.item, pressed && styles.pressed]}
           >
             <View style={styles.iconWrap}>
-              <AppIcon
-                name={item.icon}
-                size={24}
-                color={active ? accent : colors.muted}
-              />
+              {item.path === '/profile' && profileAvatar ? (
+                <Image
+                  source={{ uri: profileAvatar }}
+                  style={[styles.profileNavAvatar, { borderColor: active ? accent : colors.muted }]}
+                  accessibilityLabel="Your profile picture"
+                />
+              ) : (
+                <AppIcon
+                  name={item.icon}
+                  size={24}
+                  color={active ? accent : colors.muted}
+                />
+              )}
             </View>
             <View style={styles.labelRow}>
               {active ? <View style={[styles.activeIndicator, { backgroundColor: accent }]} /> : null}
@@ -168,6 +178,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  profileNavAvatar: {
+    width: 25,
+    height: 25,
+    borderRadius: 13,
+    borderWidth: 1.5,
   },
   activeIndicator: {
     width: 22,
