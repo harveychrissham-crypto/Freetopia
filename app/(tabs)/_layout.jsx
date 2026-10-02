@@ -69,14 +69,15 @@ function BottomNav() {
             onPress={() => router.replace(item.path)}
             style={({ pressed }) => [styles.item, pressed && styles.pressed]}
           >
-            <View style={[styles.iconWrap, active && { backgroundColor: colors.panel2, borderColor: accent, borderWidth: 1 }]}>
+            <View style={styles.iconWrap}>
               <AppIcon
                 name={item.icon}
-                size={28}
-                color={active ? colors.text : colors.muted}
+                size={24}
+                color={active ? accent : colors.muted}
               />
             </View>
             <View style={styles.labelRow}>
+              {active ? <View style={[styles.activeIndicator, { backgroundColor: accent }]} /> : null}
               <Text style={[styles.label, { color: active ? colors.text : colors.muted, fontSize: 13 * textScale }]}>
                 {item.label}
               </Text>
@@ -141,10 +142,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   nav: {
-    height: 82,
-    paddingHorizontal: 8,
-    paddingTop: 6,
-    paddingBottom: 8,
+    height: 78,
+    paddingHorizontal: 6,
+    paddingTop: 5,
+    paddingBottom: 7,
     flexDirection: 'row',
     alignItems: 'stretch',
     backgroundColor: '#050A11',
@@ -153,19 +154,26 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 10,
   },
   pressed: {
     opacity: 0.65,
   },
   iconWrap: {
-    width: 48,
-    height: 38,
-    borderRadius: 12,
+    width: 44,
+    height: 31,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  activeIndicator: {
+    width: 22,
+    height: 2.5,
+    borderRadius: 2,
+    marginTop: 1,
   },
   iconWrapActive: {
     backgroundColor: '#14263A',
@@ -173,7 +181,7 @@ const styles = StyleSheet.create({
     borderColor: '#243B57',
   },
   labelRow: {
-    marginTop: 3,
+    marginTop: 2,
     minHeight: 18,
     flexDirection: 'row',
     alignItems: 'center',
@@ -195,9 +203,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   label: {
-    marginTop: 3,
+    marginTop: 0,
     color: '#7F8FA2',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   labelActive: {
