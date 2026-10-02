@@ -64,6 +64,8 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     </View>
   );
 
+  if (name === 'nav-profile' || name === 'profile') return <Image source={{uri:'data:image/png;base64,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'}} style={{width:size,height:size}} resizeMode="contain" accessibilityLabel="Profile" />;
+
   if (name === 'nav-home') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.44,left:size*.24,top:size*.40,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.08}} />
@@ -96,13 +98,6 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
     </View>
   );
 
-  if (name === 'nav-profile') return (
-    <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.31,height:size*.31,left:size*.345,top:size*.08,borderWidth:stroke,borderColor:color,borderRadius:size}} />
-      <View style={{position:'absolute',width:size*.68,height:size*.36,left:size*.16,top:size*.53,borderWidth:stroke,borderColor:color,borderRadius:size*.35}} />
-    </View>
-  );
-
   if (name === 'home') return (
     <View style={[s.box,{width:size,height:size}]}>
       <View style={{position:'absolute',width:size*.52,height:size*.44,left:size*.24,top:size*.38,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.08}} />
@@ -126,13 +121,6 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
       <View style={{position:'absolute',width:size*.25,height:size*.25,left:size*.53,top:size*.12,borderWidth:stroke,borderColor:color,borderRadius:size}} />
       <View style={{position:'absolute',width:size*.46,height:size*.25,left:size*.10,top:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.25}} />
       <View style={{position:'absolute',width:size*.46,height:size*.25,left:size*.44,top:size*.55,borderWidth:stroke,borderColor:color,borderRadius:size*.25}} />
-    </View>
-  );
-
-  if (name === 'profile') return (
-    <View style={[s.box,{width:size,height:size}]}>
-      <View style={{position:'absolute',width:size*.30,height:size*.30,left:size*.35,top:size*.10,borderWidth:stroke,borderColor:color,borderRadius:size}} />
-      <View style={{position:'absolute',width:size*.66,height:size*.34,left:size*.17,top:size*.54,borderWidth:stroke,borderColor:color,borderRadius:size*.34}} />
     </View>
   );
 
