@@ -22,7 +22,8 @@ export default function Home() {
  const load=useCallback(async(pull=false)=>{
   if(!mountedRef.current)return;
   const seq=++loadSeq.current;
-  pull?setRefreshing(true):setLoading(!postsLoadedRef.current);setError('');
+  if(!pull){setLoading(true);setPosts([]);}else setRefreshing(true);
+  setError('');
   try{
    const unreadPromise=user?.id?supabase.from('notifications').select('id',{count:'exact',head:true}).eq('recipient_id',user.id).is('read_at',null):Promise.resolve({count:0,error:null});
    const communitiesPromise=supabase.from('communities').select('id,name,slug,description,is_private,avatar_url').order('created_at',{ascending:false}).limit(5);
