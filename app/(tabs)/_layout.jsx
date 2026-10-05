@@ -103,6 +103,7 @@ function BottomNav() {
                   name={item.icon}
                   size={24}
                   color={active ? accent : colors.muted}
+                  filled={item.path === '/home' && active}
                 />
               )}
             </View>
