@@ -113,7 +113,7 @@ export default function Profile() {
   const visiblePosts = useMemo(() => {
     if (activeTab === 'Posts') return posts;
     if (activeTab === 'Media') return posts.filter(p => p.post_media?.length);
-    if (activeTab === 'Reactions') return posts.filter(p => p.post_reactions?.some(x => x.user_id === user?.id));
+    if (activeTab === 'Reactions') return posts.filter(p => p.post_reactions?.some(x => x.user_id === profile?.id));
     return [];
   },[activeTab,posts,user?.id]);
 
