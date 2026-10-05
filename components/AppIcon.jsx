@@ -1,7 +1,7 @@
 import { Image, StyleSheet, View } from 'react-native';
 
 
-export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
+export default function AppIcon({ name, size = 20, color = '#E9EEF4', filled = false }) {
   const stroke = Math.max(1.25, size * 0.075);
   const common = { position: 'absolute', backgroundColor: color };
   const scale = size / 20; // icon scale baseline
@@ -68,10 +68,23 @@ export default function AppIcon({ name, size = 20, color = '#E9EEF4' }) {
 
   if (name === 'nav-home') return (
     <View style={[s.box,{width:size,height:size}]}>
+      {filled ? (
+        <View
+          style={{
+            position:'absolute',
+            width:size*.48,
+            height:size*.39,
+            left:size*.26,
+            top:size*.38,
+            backgroundColor:color,
+            borderRadius:size*.06,
+          }}
+        />
+      ) : null}
       <View style={{position:'absolute',width:size*.52,height:size*.44,left:size*.24,top:size*.40,borderWidth:stroke,borderColor:color,borderTopWidth:0,borderRadius:size*.08}} />
       <View style={{position:'absolute',width:size*.42,height:stroke,left:size*.16,top:size*.30,backgroundColor:color,borderRadius:stroke,transform:[{rotate:'-45deg'}]}} />
       <View style={{position:'absolute',width:size*.42,height:stroke,left:size*.42,top:size*.30,backgroundColor:color,borderRadius:stroke,transform:[{rotate:'45deg'}]}} />
-      <View style={{position:'absolute',width:size*.13,height:size*.23,left:size*.435,top:size*.57,borderWidth:stroke,borderBottomWidth:0,borderColor:color,borderTopLeftRadius:size*.04,borderTopRightRadius:size*.04}} />
+      <View style={{position:'absolute',width:size*.13,height:size*.23,left:size*.435,top:size*.57,borderWidth:stroke,borderBottomWidth:0,borderColor:color,borderTopLeftRadius:size*.04,borderTopRightRadius:size*.04,backgroundColor:filled ? '#060B12' : 'transparent'}} />
     </View>
   );
 
